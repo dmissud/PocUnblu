@@ -5,6 +5,7 @@ import com.unblu.webapi.jersey.v4.invoker.ApiException;
 import com.unblu.webapi.jersey.v4.api.AccountsApi;
 import com.unblu.webapi.jersey.v4.api.ConversationsApi;
 import com.unblu.webapi.jersey.v4.api.PersonsApi;
+import com.unblu.webapi.jersey.v4.api.WebhookRegistrationsApi;
 import com.unblu.webapi.model.v4.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -163,6 +164,84 @@ public class UnbluService {
         } catch (Exception e) {
             log.error("Unexpected error getting person by source from Unblu", e);
             throw new RuntimeException("Erreur inattendue lors de la recherche de la personne", e);
+        }
+    }
+
+    /**
+     * Search for webhook registrations
+     */
+    public WebhookRegistrationResult searchWebhooks(WebhookRegistrationQuery query) {
+        try {
+            WebhookRegistrationsApi webhookApi = new WebhookRegistrationsApi(apiClient);
+
+            log.info("Searching for webhooks in Unblu...");
+            WebhookRegistrationResult result = webhookApi.webhookRegistrationsSearch(query);
+            log.info("Successfully found {} webhooks", result.getItems().size());
+
+            return result;
+        } catch (ApiException e) {
+            log.error("Error searching webhooks in Unblu - Status: {}", e.getCode(), e);
+            if (e.getCode() == 403) {
+                throw new UnbluApiException(403, "Forbidden", "Service non autorisé : vous n'avez pas les permissions nécessaires pour rechercher les webhooks");
+            }
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la recherche des webhooks : " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error searching webhooks in Unblu", e);
+            throw new RuntimeException("Erreur inattendue lors de la recherche des webhooks", e);
+        }
+    }
+
+    /**
+     * Get webhook by ID
+     */
+    public WebhookRegistration getWebhookById(String registrationId) {
+        try {
+            WebhookRegistrationsApi webhookApi = new WebhookRegistrationsApi(apiClient);
+
+            log.info("Getting webhook by ID from Unblu - ID: {}", registrationId);
+            WebhookRegistration result = webhookApi.webhookRegistrationsRead(registrationId);
+            log.info("Successfully found webhook: {}", result.getName());
+
+            return result;
+        } catch (ApiException e) {
+            log.error("Error getting webhook by ID from Unblu - Status: {}", e.getCode(), e);
+            if (e.getCode() == 404) {
+                throw new UnbluApiException(404, "Not Found", "Webhook non trouvé : aucun webhook trouvé avec cet ID");
+            }
+            if (e.getCode() == 403) {
+                throw new UnbluApiException(403, "Forbidden", "Service non autorisé : vous n'avez pas les permissions nécessaires pour consulter ce webhook");
+            }
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la récupération du webhook : " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error getting webhook by ID from Unblu", e);
+            throw new RuntimeException("Erreur inattendue lors de la récupération du webhook", e);
+        }
+    }
+
+    /**
+     * Get webhook by name
+     */
+    public WebhookRegistration getWebhookByName(String name) {
+        try {
+            WebhookRegistrationsApi webhookApi = new WebhookRegistrationsApi(apiClient);
+
+            log.info("Getting webhook by name from Unblu - Name: {}", name);
+            WebhookRegistration result = webhookApi.webhookRegistrationsGetByName(name);
+            log.info("Successfully found webhook: {}", result.getName());
+
+            return result;
+        } catch (ApiException e) {
+            log.error("Error getting webhook by name from Unblu - Status: {}", e.getCode(), e);
+            if (e.getCode() == 404) {
+                throw new UnbluApiException(404, "Not Found", "Webhook non trouvé : aucun webhook trouvé avec ce nom");
+            }
+            if (e.getCode() == 403) {
+                throw new UnbluApiException(403, "Forbidden", "Service non autorisé : vous n'avez pas les permissions nécessaires pour consulter ce webhook");
+            }
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la récupération du webhook : " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error getting webhook by name from Unblu", e);
+            throw new RuntimeException("Erreur inattendue lors de la récupération du webhook", e);
         }
     }
 }
