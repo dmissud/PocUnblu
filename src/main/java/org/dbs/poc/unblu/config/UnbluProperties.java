@@ -9,5 +9,6 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "unblu.api")
 public class UnbluProperties {
     private String baseUrl;
-    private String apiKey;
+    private String username;
+    private String password;
 }

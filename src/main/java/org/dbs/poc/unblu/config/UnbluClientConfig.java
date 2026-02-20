@@ -1,6 +1,6 @@
 package org.dbs.poc.unblu.config;
 
-import com.unblu.webapi.jersey.v3.ApiClient;
+import com.unblu.webapi.jersey.v4.invoker.ApiClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,7 +15,8 @@ public class UnbluClientConfig {
     public ApiClient unbluApiClient() {
         ApiClient apiClient = new ApiClient();
         apiClient.setBasePath(unbluProperties.getBaseUrl());
-        apiClient.setApiKey(unbluProperties.getApiKey());
+        apiClient.setUsername(unbluProperties.getUsername());
+        apiClient.setPassword(unbluProperties.getPassword());
         return apiClient;
     }
 }
