@@ -60,4 +60,25 @@ public class UnbluTestController {
         PersonData person = unbluService.getPersonBySource(personSource, sourceId);
         return ResponseEntity.ok(person);
     }
+
+    @PostMapping("/webhooks/search")
+    @Operation(summary = "Rechercher les webhooks enregistrés")
+    public ResponseEntity<WebhookRegistrationResult> searchWebhooks(@RequestBody WebhookRegistrationQuery query) {
+        WebhookRegistrationResult webhooks = unbluService.searchWebhooks(query);
+        return ResponseEntity.ok(webhooks);
+    }
+
+    @GetMapping("/webhooks/{registrationId}")
+    @Operation(summary = "Récupérer un webhook par son ID")
+    public ResponseEntity<WebhookRegistration> getWebhookById(@PathVariable String registrationId) {
+        WebhookRegistration webhook = unbluService.getWebhookById(registrationId);
+        return ResponseEntity.ok(webhook);
+    }
+
+    @GetMapping("/webhooks/by-name")
+    @Operation(summary = "Récupérer un webhook par son nom")
+    public ResponseEntity<WebhookRegistration> getWebhookByName(@RequestParam String name) {
+        WebhookRegistration webhook = unbluService.getWebhookByName(name);
+        return ResponseEntity.ok(webhook);
+    }
 }
