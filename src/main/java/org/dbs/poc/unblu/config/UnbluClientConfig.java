@@ -1,7 +1,11 @@
 package org.dbs.poc.unblu.config;
 
 import com.unblu.webapi.jersey.v4.invoker.ApiClient;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.ClientBuilder;
 import lombok.RequiredArgsConstructor;
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.client.ClientProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -27,6 +31,29 @@ public class UnbluClientConfig {
         apiClient.setBasePath(baseUrl);
         apiClient.setUsername(unbluProperties.getUsername());
         apiClient.setPassword(unbluProperties.getPassword());
+
+        configureProxy(apiClient);
+
         return apiClient;
+    }
+
+    private void configureProxy(ApiClient apiClient) {
+        UnbluProperties.ProxyProperties proxyProps = unbluProperties.getProxy();
+        if (proxyProps != null && proxyProps.getHost() != null && !proxyProps.getHost().isBlank()) {
+            ClientConfig clientConfig = new ClientConfig();
+            
+            String proxyUri = String.format("http://%s:%d", proxyProps.getHost(), 
+                proxyProps.getPort() != null ? proxyProps.getPort() : 8080);
+            
+            clientConfig.property(ClientProperties.PROXY_URI, proxyUri);
+            
+            if (proxyProps.getUsername() != null && !proxyProps.getUsername().isBlank()) {
+                clientConfig.property(ClientProperties.PROXY_USERNAME, proxyProps.getUsername());
+                clientConfig.property(ClientProperties.PROXY_PASSWORD, proxyProps.getPassword());
+            }
+
+            Client client = ClientBuilder.newClient(clientConfig);
+            apiClient.setHttpClient(client);
+        }
     }
 }
