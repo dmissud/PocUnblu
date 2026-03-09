@@ -17,11 +17,15 @@ public class MainOrchestratorRoute extends RouteBuilder {
     @Override
     public void configure() throws Exception {
 
-        // Setup REST DSL configuration
+        // Setup REST DSL configuration avec OpenAPI
         restConfiguration()
             .component("servlet")
             .bindingMode(RestBindingMode.json)
-            .dataFormatProperty("prettyPrint", "true");
+            .dataFormatProperty("prettyPrint", "true")
+            .apiContextPath("/openapi.json") // Point d'entrée pour la spec OpenAPI
+            .apiProperty("api.title", "Unblu Camel Orchestrator API")
+            .apiProperty("api.version", "1.0")
+            .apiProperty("cors", "true");
 
         // Global Exception Handling : if Rule Engine denies access
         onException(ChatAccessDeniedException.class)
@@ -39,11 +43,15 @@ public class MainOrchestratorRoute extends RouteBuilder {
         // ==========================================
         // ROUTE PRINCIPALE / USE CASE
         // ==========================================
-        rest("/v1/conversations")
+        rest("/v1/conversations").description("API d'orchestration de conversations Unblu")
             .post("/start")
-            .type(StartConversationRequest.class)
-            .outType(StartConversationResponse.class)
-            .to("direct:start-conversation");
+                .description("Démarre une nouvelle conversation en orchestrant le contexte (ERP, Règles)")
+                .consumes("application/json").produces("application/json")
+                .type(StartConversationRequest.class).description("Données d'initialisation requises")
+                .outType(StartConversationResponse.class)
+                .responseMessage().code(200).message("Conversation initialisée ou Mode Hors-ligne activé").endResponseMessage()
+                .responseMessage().code(403).message("Accès au chat refusé par le Moteur de Règles").endResponseMessage()
+                .to("direct:start-conversation");
 
         from("direct:start-conversation")
             .routeId("main-conversation-orchestrator")
