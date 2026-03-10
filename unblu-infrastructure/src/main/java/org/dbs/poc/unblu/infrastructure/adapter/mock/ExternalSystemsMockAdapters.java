@@ -6,8 +6,19 @@ import org.dbs.poc.unblu.domain.model.CustomerProfile;
 import org.dbs.poc.unblu.domain.model.ConversationContext;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.Random;
+
 @Component
 public class ExternalSystemsMockAdapters extends RouteBuilder {
+
+    private static final List<String> HELLO_BANK_TEAM_IDS = List.of(
+        "cAaYUeKyTZ25_OaA6jUeVA", // Hello bank! Premium
+        "xanCWmO_Rluxt0DaUn_11w", // Hello bank! Classic
+        "pf50ylVKRRWeMkttXKPwQw", // Hello bank! End2End
+        "7iLOw0i9TVCpI8SDAaTXyA"  // Hello bank! Supervision
+    );
+    private static final Random RANDOM = new Random();
 
     @Override
     public void configure() throws Exception {
@@ -53,7 +64,8 @@ public class ExternalSystemsMockAdapters extends RouteBuilder {
                 } else {
                     decision.setAuthorized(true);
                     decision.setRoutingReason("Client éligible.");
-                    decision.setUnbluAssignedGroupId("VIP".equalsIgnoreCase(segment) ? "vip_advisors" : "standard_advisors");
+                    String teamId = HELLO_BANK_TEAM_IDS.get(RANDOM.nextInt(HELLO_BANK_TEAM_IDS.size()));
+                    decision.setUnbluAssignedGroupId(teamId);
                 }
                 
                 exchange.getIn().setBody(decision);
