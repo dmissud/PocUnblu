@@ -27,6 +27,8 @@
         <module>unblu-domain</module>
         <module>unblu-infrastructure</module>
         <module>unblu-application</module>
+        <module>unblu-exposition</module>
+        <module>unblu-configuration</module>
     </modules>
 
     <dependencyManagement>
@@ -40,6 +42,21 @@
             <dependency>
                 <groupId>org.dbs.poc</groupId>
                 <artifactId>unblu-infrastructure</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.dbs.poc</groupId>
+                <artifactId>unblu-application</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.dbs.poc</groupId>
+                <artifactId>unblu-exposition</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.dbs.poc</groupId>
+                <artifactId>unblu-configuration</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

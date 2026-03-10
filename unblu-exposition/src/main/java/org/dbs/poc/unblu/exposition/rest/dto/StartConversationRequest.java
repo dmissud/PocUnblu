@@ -1,4 +1,4 @@
-package org.dbs.poc.unblu.infrastructure.orchestration.dto;
+package org.dbs.poc.unblu.exposition.rest.dto;
 
 import lombok.Data;
 

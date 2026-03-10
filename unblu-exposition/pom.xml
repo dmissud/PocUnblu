@@ -8,25 +8,21 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>unblu-application</artifactId>
-    <name>unblu-application</name>
-    <description>Application Layer: Use Cases and Services</description>
+    <artifactId>unblu-exposition</artifactId>
+    <name>unblu-exposition</name>
+    <description>Entry Points (REST Controllers) for Unblu Orchestration</description>
 
     <dependencies>
         <dependency>
             <groupId>org.dbs.poc</groupId>
-            <artifactId>unblu-domain</artifactId>
+            <artifactId>unblu-application</artifactId>
         </dependency>
+        
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-        </dependency>
-        <!-- Adding Lombok for Use Case Services -->
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
