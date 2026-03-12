@@ -30,4 +30,11 @@ public interface UnbluPort {
      * @param subject       the conversation subject
      */
     UnbluConversationInfo createDirectConversation(PersonInfo virtualPerson, PersonInfo agentPerson, String subject);
+
+    /**
+     * Sends the summary as a message in the conversation, on behalf of the virtual person.
+     */
+    void addSummaryToConversation(String conversationId, String summary);
+
+    String createBot(String name, String description);
 }
