@@ -14,10 +14,19 @@ public interface UnbluPort {
     UnbluConversationInfo createConversation(ConversationContext context);
 
     /**
-     * Searches for known persons (VIRTUAL source) in Unblu.
+     * Searches for persons in Unblu.
      * @param sourceId optional filter by source ID
+     * @param personSource optional filter by person source (USER_DB or VIRTUAL)
      */
-    List<PersonInfo> searchPersons(String sourceId);
+    List<PersonInfo> searchPersons(String sourceId, PersonSource personSource);
 
     List<TeamInfo> searchTeams();
+
+    /**
+     * Creates a direct conversation between a VIRTUAL person and a USER_DB agent.
+     * @param virtualPerson the VIRTUAL participant
+     * @param agentPerson   the USER_DB agent participant
+     * @param subject       the conversation subject
+     */
+    UnbluConversationInfo createDirectConversation(PersonInfo virtualPerson, PersonInfo agentPerson, String subject);
 }

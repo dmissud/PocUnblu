@@ -241,6 +241,46 @@ public class UnbluService {
     }
 
     /**
+     * Create a direct conversation between a VIRTUAL person and a USER_DB agent
+     */
+    public ConversationData createDirectConversation(
+            org.dbs.poc.unblu.domain.model.PersonInfo virtualPerson,
+            org.dbs.poc.unblu.domain.model.PersonInfo agentPerson,
+            String subject) {
+        try {
+            ConversationsApi conversationsApi = new ConversationsApi(apiClient);
+
+            ConversationCreationData data = new ConversationCreationData();
+            data.setTopic(subject);
+            data.setInitialEngagementType(EInitialEngagementType.CHAT_REQUEST);
+            data.setVisitorData(virtualPerson.getSourceId());
+
+            ConversationCreationParticipantData virtualParticipant = new ConversationCreationParticipantData();
+            virtualParticipant.setParticipationType(EConversationRealParticipationType.CONTEXT_PERSON);
+            virtualParticipant.setPersonId(virtualPerson.getId());
+
+            ConversationCreationParticipantData agentParticipant = new ConversationCreationParticipantData();
+            agentParticipant.setParticipationType(EConversationRealParticipationType.ASSIGNED_AGENT);
+            agentParticipant.setPersonId(agentPerson.getId());
+
+            data.addParticipantsItem(virtualParticipant);
+            data.addParticipantsItem(agentParticipant);
+
+            log.info("Création d'une conversation directe dans Unblu - VIRTUAL: {}, Agent: {}", virtualPerson.getId(), agentPerson.getId());
+            ConversationData result = conversationsApi.conversationsCreate(data, null);
+            log.info("Conversation directe créée avec ID: {}", result.getId());
+
+            return result;
+        } catch (ApiException e) {
+            log.error("Erreur lors de la création de la conversation directe - Status: {}", e.getCode(), e);
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la création de la conversation directe : " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error creating direct conversation in Unblu", e);
+            throw new RuntimeException("Erreur inattendue lors de la création de la conversation directe", e);
+        }
+    }
+
+    /**
      * Search for webhook registrations
      */
     public WebhookRegistrationResult searchWebhooks(WebhookRegistrationQuery query) {

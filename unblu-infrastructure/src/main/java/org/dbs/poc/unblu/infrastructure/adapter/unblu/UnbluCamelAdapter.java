@@ -10,6 +10,8 @@ import org.apache.camel.builder.RouteBuilder;
 import org.dbs.poc.unblu.domain.model.ConversationContext;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
 import org.dbs.poc.unblu.domain.model.TeamInfo;
+import org.dbs.poc.unblu.infrastructure.adapter.unblu.UnbluCamelAdapterPort.DirectConversationRequest;
+import org.dbs.poc.unblu.infrastructure.adapter.unblu.UnbluCamelAdapterPort.PersonSearchRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -70,6 +72,19 @@ public class UnbluCamelAdapter extends RouteBuilder {
                 String sourceId = exchange.getIn().getBody(String.class);
                 List<PersonInfo> persons = unbluService.searchPersons(sourceId);
                 exchange.getIn().setBody(persons);
+            });
+
+        // ==========================================
+        // ADAPTER : Conversation directe Unblu
+        // ==========================================
+        from("direct:unblu-create-direct-conversation")
+            .routeId("unblu-create-direct-conversation")
+            .log("Création d'une conversation directe dans Unblu")
+            .process(exchange -> {
+                DirectConversationRequest req = exchange.getIn().getBody(DirectConversationRequest.class);
+                ConversationData result = unbluService.createDirectConversation(
+                        req.virtualPerson(), req.agentPerson(), req.subject());
+                exchange.getIn().setBody(result);
             });
 
         // ==========================================

@@ -29,6 +29,19 @@ public class UnbluCamelAdapterPort implements UnbluPort {
         return producerTemplate.requestBody("direct:unblu-search-persons", sourceId, List.class);
     }
 
+    public record PersonSearchRequest(String sourceId, PersonSource personSource) {}
+
+    @Override
+    public UnbluConversationInfo createDirectConversation(PersonInfo virtualPerson, PersonInfo agentPerson, String subject) {
+        DirectConversationRequest req = new DirectConversationRequest(virtualPerson, agentPerson, subject);
+        com.unblu.webapi.model.v4.ConversationData result =
+                producerTemplate.requestBody("direct:unblu-create-direct-conversation", req,
+                        com.unblu.webapi.model.v4.ConversationData.class);
+        return new UnbluConversationInfo(result.getId(), result.getId());
+    }
+
+    public record DirectConversationRequest(PersonInfo virtualPerson, PersonInfo agentPerson, String subject) {}
+
     @Override
     @SuppressWarnings("unchecked")
     public List<TeamInfo> searchTeams() {
