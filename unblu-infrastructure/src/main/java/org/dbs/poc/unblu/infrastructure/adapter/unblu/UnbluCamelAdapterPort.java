@@ -17,6 +17,7 @@ import java.util.List;
 public class UnbluCamelAdapterPort implements UnbluPort {
 
     private final ProducerTemplate producerTemplate;
+    private final UnbluService unbluService;
 
     @Override
     public UnbluConversationInfo createConversation(ConversationContext context) {
@@ -43,6 +44,18 @@ public class UnbluCamelAdapterPort implements UnbluPort {
     }
 
     public record DirectConversationRequest(PersonInfo virtualPerson, PersonInfo agentPerson, String subject) {}
+
+    @Override
+    public void addSummaryToConversation(String conversationId, String summary) {
+        producerTemplate.sendBody("direct:unblu-add-summary", new SummaryRequest(conversationId, summary));
+    }
+
+    public record SummaryRequest(String conversationId, String summary) {}
+
+    @Override
+    public String createBot(String name, String description) {
+        return unbluService.createBot(name, description);
+    }
 
     @Override
     @SuppressWarnings("unchecked")
