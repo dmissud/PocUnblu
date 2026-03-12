@@ -8,6 +8,7 @@ import org.dbs.poc.unblu.domain.model.PersonInfo;
 import org.dbs.poc.unblu.domain.model.TeamInfo;
 import org.dbs.poc.unblu.infrastructure.adapter.unblu.UnbluCamelAdapterPort.DirectConversationRequest;
 import org.dbs.poc.unblu.infrastructure.adapter.unblu.UnbluCamelAdapterPort.PersonSearchRequest;
+import org.dbs.poc.unblu.infrastructure.adapter.unblu.UnbluCamelAdapterPort.SummaryRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -81,6 +82,17 @@ public class UnbluCamelAdapter extends RouteBuilder {
                 ConversationData result = unbluService.createDirectConversation(
                         req.virtualPerson(), req.agentPerson(), req.subject());
                 exchange.getIn().setBody(result);
+            });
+
+        // ==========================================
+        // ADAPTER : Ajout du résumé à une conversation Unblu
+        // ==========================================
+        from("direct:unblu-add-summary")
+            .routeId("unblu-add-summary")
+            .log("Ajout du résumé à la conversation Unblu")
+            .process(exchange -> {
+                SummaryRequest req = exchange.getIn().getBody(SummaryRequest.class);
+                unbluService.addSummaryToConversation(req.conversationId(), req.summary());
             });
 
         // ==========================================
