@@ -3,6 +3,7 @@ package org.dbs.poc.unblu.infrastructure.adapter.unblu;
 import com.unblu.webapi.jersey.v4.invoker.ApiClient;
 import com.unblu.webapi.jersey.v4.invoker.ApiException;
 import com.unblu.webapi.jersey.v4.api.AccountsApi;
+import com.unblu.webapi.jersey.v4.api.BotsApi;
 import com.unblu.webapi.jersey.v4.api.ConversationsApi;
 import com.unblu.webapi.jersey.v4.api.PersonsApi;
 import com.unblu.webapi.jersey.v4.api.TeamsApi;
@@ -10,6 +11,7 @@ import com.unblu.webapi.jersey.v4.api.WebhookRegistrationsApi;
 import com.unblu.webapi.model.v4.*;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
 import org.dbs.poc.unblu.domain.model.TeamInfo;
+import org.dbs.poc.unblu.infrastructure.config.UnbluProperties;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,6 +27,7 @@ import org.springframework.stereotype.Service;
 public class UnbluService {
 
     private final ApiClient apiClient;
+    private final UnbluProperties unbluProperties;
 
     /**
      * Get current account from Unblu
@@ -241,6 +244,83 @@ public class UnbluService {
         } catch (Exception e) {
             log.error("Unexpected error getting person by source from Unblu", e);
             throw new RuntimeException("Erreur inattendue lors de la recherche de la personne", e);
+        }
+    }
+
+    /**
+     * Adds a summary as metadata to an existing Unblu conversation
+     */
+    /**
+     * Creates a bot in Unblu and returns its botPersonId to configure as summary-bot-person-id
+     */
+    public String createBot(String name, String description) {
+        try {
+            PersonsApi personsApi = new PersonsApi(apiClient);
+            BotsApi botsApi = new BotsApi(apiClient);
+
+            // 1. Créer la personne bot (sourceId = identifiant unique externe)
+            PersonData botPerson = new PersonData();
+            botPerson.setDisplayName(name);
+            botPerson.setSourceId("bot-" + name.toLowerCase().replaceAll("[^a-z0-9]", "-"));
+            PersonData createdPerson = personsApi.personsCreateOrUpdateBot(botPerson, null);
+            String botPersonId = createdPerson.getId();
+            log.info("Personne bot créée: id={}", botPersonId);
+
+            // 2. Créer le bot avec l'ID de la personne
+            CustomDialogBotData botData = new CustomDialogBotData();
+            botData.setName(name);
+            botData.setDescription(description);
+            botData.setType(EBotType.CUSTOM);
+            botData.setBotPersonId(botPersonId);
+            botData.setOnboardingFilter(EBotDialogFilter.NONE);
+            botData.setOffboardingFilter(EBotDialogFilter.NONE);
+            botData.setWebhookStatus(ERegistrationStatus.INACTIVE);
+            botData.setWebhookEndpoint("http://localhost/unused");
+            botData.setWebhookApiVersion(EWebApiVersion.V4);
+            botData.setOutboundTimeoutMillis(5000L);
+            botsApi.botsCreate(botData);
+            log.info("Bot créé: name={}, botPersonId={}", name, botPersonId);
+
+            return botPersonId;
+        } catch (ApiException e) {
+            log.error("Erreur lors de la création du bot - Status: {}", e.getCode(), e);
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la création du bot : " + e.getMessage());
+        }
+    }
+
+    public void addSummaryToConversation(String conversationId, String summary) {
+        try {
+            BotsApi botsApi = new BotsApi(apiClient);
+
+            TextPostMessageData messageData = new TextPostMessageData();
+            messageData.setType(EPostMessageType.TEXT);
+            messageData.setText(summary);
+            messageData.setFallbackText(summary);
+
+            String botPersonId = unbluProperties.getSummaryBotPersonId();
+            if (botPersonId == null || botPersonId.isBlank()) {
+                log.warn("unblu.api.summary-bot-person-id non configuré — résumé non envoyé dans la conversation {}", conversationId);
+                return;
+            }
+
+            BotPostMessage message = new BotPostMessage();
+            message.setConversationId(conversationId);
+            message.setSenderPersonId(botPersonId);
+            message.setMessageData(messageData);
+
+            // Ajouter le bot comme participant avant d'envoyer le message
+            ConversationsApi conversationsApi = new ConversationsApi(apiClient);
+            ConversationsAddParticipantBody addParticipantBody = new ConversationsAddParticipantBody();
+            addParticipantBody.setPersonId(botPersonId);
+            addParticipantBody.setHidden(true);
+            conversationsApi.conversationsAddParticipant(conversationId, addParticipantBody, null);
+
+            log.info("Envoi du résumé comme message bot dans la conversation {}", conversationId);
+            botsApi.botsSendMessage(message);
+            log.info("Résumé envoyé avec succès dans la conversation: {}", conversationId);
+        } catch (ApiException e) {
+            log.error("Erreur lors de l'envoi du résumé dans la conversation {} - Status: {}", conversationId, e.getCode(), e);
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de l'envoi du résumé : " + e.getMessage());
         }
     }
 
