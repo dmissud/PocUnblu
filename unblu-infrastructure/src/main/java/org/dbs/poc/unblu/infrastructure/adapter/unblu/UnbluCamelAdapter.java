@@ -1,10 +1,6 @@
 package org.dbs.poc.unblu.infrastructure.adapter.unblu;
 
-import com.unblu.webapi.model.v4.ConversationCreationData;
-import com.unblu.webapi.model.v4.ConversationCreationParticipantData;
-import com.unblu.webapi.model.v4.ConversationData;
-import com.unblu.webapi.model.v4.EConversationRealParticipationType;
-import com.unblu.webapi.model.v4.EInitialEngagementType;
+import com.unblu.webapi.model.v4.*;
 import lombok.RequiredArgsConstructor;
 import org.apache.camel.builder.RouteBuilder;
 import org.dbs.poc.unblu.domain.model.ConversationContext;

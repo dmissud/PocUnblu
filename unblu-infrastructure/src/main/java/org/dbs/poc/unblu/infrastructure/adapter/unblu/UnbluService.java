@@ -13,6 +13,7 @@ import org.dbs.poc.unblu.domain.model.TeamInfo;
 
 import java.util.List;
 import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dbs.poc.unblu.infrastructure.exception.UnbluApiException;
@@ -136,7 +137,7 @@ public class UnbluService {
                             .displayName(p.getDisplayName())
                             .email(p.getEmail())
                             .build())
-                    .collect(Collectors.toList());
+                    .toList();
         } catch (ApiException e) {
             log.error("Erreur lors de la recherche de personnes dans Unblu - Status: {}", e.getCode(), e);
             throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la recherche de personnes : " + e.getMessage());
@@ -161,7 +162,7 @@ public class UnbluService {
                             .name(t.getName())
                             .description(t.getDescription())
                             .build())
-                    .collect(Collectors.toList());
+                    .toList();
         } catch (ApiException e) {
             log.error("Erreur lors de la récupération des équipes Unblu - Status: {}", e.getCode(), e);
             throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la récupération des équipes : " + e.getMessage());
