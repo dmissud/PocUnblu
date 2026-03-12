@@ -11,6 +11,7 @@ import org.dbs.poc.unblu.domain.model.CustomerProfile;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
 import org.dbs.poc.unblu.domain.model.PersonSource;
 import org.dbs.poc.unblu.domain.model.UnbluConversationInfo;
+import org.dbs.poc.unblu.domain.port.secondary.ConversationSummaryPort;
 import org.dbs.poc.unblu.domain.port.secondary.ErpPort;
 import org.dbs.poc.unblu.domain.port.secondary.RuleEnginePort;
 import org.dbs.poc.unblu.domain.port.secondary.UnbluPort;
@@ -26,6 +27,7 @@ public class DirectConversationService implements StartDirectConversationUseCase
     private final ErpPort erpPort;
     private final RuleEnginePort ruleEnginePort;
     private final UnbluPort unbluPort;
+    private final ConversationSummaryPort conversationSummaryPort;
 
     @Override
     public UnbluConversationInfo startDirectConversation(StartDirectConversationCommand command) {
@@ -63,6 +65,12 @@ public class DirectConversationService implements StartDirectConversationUseCase
         PersonInfo agentPerson = agentPersons.getFirst();
 
         // 5. Créer la conversation directe dans Unblu
-        return unbluPort.createDirectConversation(virtualPerson, agentPerson, command.getSubject());
+        UnbluConversationInfo info = unbluPort.createDirectConversation(virtualPerson, agentPerson, command.getSubject());
+
+        // 6. Génération et ajout du résumé comme message au nom du participant VIRTUAL
+        String summary = conversationSummaryPort.generateSummary(info.unbluConversationId());
+        unbluPort.addSummaryToConversation(info.unbluConversationId(), summary);
+
+        return info;
     }
 }

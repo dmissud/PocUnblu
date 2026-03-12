@@ -9,6 +9,7 @@ import org.dbs.poc.unblu.domain.model.ChatRoutingDecision;
 import org.dbs.poc.unblu.domain.model.ConversationContext;
 import org.dbs.poc.unblu.domain.model.CustomerProfile;
 import org.dbs.poc.unblu.domain.model.UnbluConversationInfo;
+import org.dbs.poc.unblu.domain.port.secondary.ConversationSummaryPort;
 import org.dbs.poc.unblu.domain.port.secondary.ErpPort;
 import org.dbs.poc.unblu.domain.port.secondary.RuleEnginePort;
 import org.dbs.poc.unblu.domain.port.secondary.UnbluPort;
@@ -22,6 +23,7 @@ public class ConversationOrchestratorService implements StartConversationUseCase
     private final ErpPort erpPort;
     private final RuleEnginePort ruleEnginePort;
     private final UnbluPort unbluPort;
+    private final ConversationSummaryPort conversationSummaryPort;
 
     @Override
     public ConversationContext startConversation(StartConversationCommand command) {
@@ -51,7 +53,11 @@ public class ConversationOrchestratorService implements StartConversationUseCase
         UnbluConversationInfo unbluInfo = unbluPort.createConversation(context);
         context.setUnbluConversationId(unbluInfo.unbluConversationId());
         context.setUnbluJoinUrl(unbluInfo.unbluJoinUrl());
-        
+
+        // 6. Génération et ajout du résumé comme message système dans la conversation
+        String summary = conversationSummaryPort.generateSummary(unbluInfo.unbluConversationId());
+        unbluPort.addSummaryToConversation(unbluInfo.unbluConversationId(), summary);
+
         return context;
     }
 }
