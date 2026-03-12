@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.camel.ProducerTemplate;
 import org.dbs.poc.unblu.domain.model.ConversationContext;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
+import org.dbs.poc.unblu.domain.model.PersonSource;
 import org.dbs.poc.unblu.domain.model.TeamInfo;
 import org.dbs.poc.unblu.domain.model.UnbluConversationInfo;
 import org.dbs.poc.unblu.domain.port.secondary.UnbluPort;
@@ -25,8 +26,9 @@ public class UnbluCamelAdapterPort implements UnbluPort {
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<PersonInfo> searchPersons(String sourceId) {
-        return producerTemplate.requestBody("direct:unblu-search-persons", sourceId, List.class);
+    public List<PersonInfo> searchPersons(String sourceId, PersonSource personSource) {
+        return producerTemplate.requestBody("direct:unblu-search-persons",
+                new PersonSearchRequest(sourceId, personSource), List.class);
     }
 
     public record PersonSearchRequest(String sourceId, PersonSource personSource) {}

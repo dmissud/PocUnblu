@@ -101,17 +101,20 @@ public class UnbluService {
     /**
      * Search for known persons (VIRTUAL source) in Unblu
      */
-    public List<PersonInfo> searchPersons(String sourceId) {
+    public List<PersonInfo> searchPersons(String sourceId, org.dbs.poc.unblu.domain.model.PersonSource personSource) {
         try {
             PersonsApi personsApi = new PersonsApi(apiClient);
             PersonQuery query = new PersonQuery();
 
-            EqualsPersonSourceOperator sourceOperator = new EqualsPersonSourceOperator();
-            sourceOperator.setValue(EPersonSource.VIRTUAL);
-            PersonSourcePersonSearchFilter sourceFilter = new PersonSourcePersonSearchFilter();
-            sourceFilter.setField(EPersonSearchFilterField.PERSON_SOURCE);
-            sourceFilter.setOperator(sourceOperator);
-            query.addSearchFiltersItem(sourceFilter);
+            if (personSource != null) {
+                EPersonSource ePersonSource = EPersonSource.valueOf(personSource.name());
+                EqualsPersonSourceOperator sourceOperator = new EqualsPersonSourceOperator();
+                sourceOperator.setValue(ePersonSource);
+                PersonSourcePersonSearchFilter sourceFilter = new PersonSourcePersonSearchFilter();
+                sourceFilter.setField(EPersonSearchFilterField.PERSON_SOURCE);
+                sourceFilter.setOperator(sourceOperator);
+                query.addSearchFiltersItem(sourceFilter);
+            }
 
             if (sourceId != null && !sourceId.isBlank()) {
                 EqualsIdOperator sourceIdOperator = new EqualsIdOperator();

@@ -2,6 +2,7 @@ package org.dbs.poc.unblu.domain.port.secondary;
 
 import org.dbs.poc.unblu.domain.model.ConversationContext;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
+import org.dbs.poc.unblu.domain.model.PersonSource;
 import org.dbs.poc.unblu.domain.model.TeamInfo;
 import org.dbs.poc.unblu.domain.model.UnbluConversationInfo;
 

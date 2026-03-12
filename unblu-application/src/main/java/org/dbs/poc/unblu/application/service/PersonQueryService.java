@@ -19,7 +19,7 @@ public class PersonQueryService implements SearchPersonsUseCase {
 
     @Override
     public List<PersonInfo> searchPersons(SearchPersonsQuery query) {
-        log.info("Recherche de personnes connues dans Unblu, sourceId: {}", query.getSourceId());
-        return unbluPort.searchPersons(query.getSourceId());
+        log.info("Recherche de personnes dans Unblu, sourceId: {}, personSource: {}", query.getSourceId(), query.getPersonSource());
+        return unbluPort.searchPersons(query.getSourceId(), query.getPersonSource());
     }
 }

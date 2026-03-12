@@ -67,10 +67,10 @@ public class UnbluCamelAdapter extends RouteBuilder {
         // ==========================================
         from("direct:unblu-search-persons")
             .routeId("unblu-search-persons")
-            .log("Recherche de personnes connues dans Unblu, sourceId: ${body}")
+            .log("Recherche de personnes dans Unblu")
             .process(exchange -> {
-                String sourceId = exchange.getIn().getBody(String.class);
-                List<PersonInfo> persons = unbluService.searchPersons(sourceId);
+                PersonSearchRequest req = exchange.getIn().getBody(PersonSearchRequest.class);
+                List<PersonInfo> persons = unbluService.searchPersons(req.sourceId(), req.personSource());
                 exchange.getIn().setBody(persons);
             });
 

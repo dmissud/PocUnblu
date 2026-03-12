@@ -3,6 +3,7 @@ package org.dbs.poc.unblu.exposition.rest;
 import lombok.RequiredArgsConstructor;
 import org.dbs.poc.unblu.application.port.in.SearchPersonsQuery;
 import org.dbs.poc.unblu.application.port.in.SearchPersonsUseCase;
+import org.dbs.poc.unblu.domain.model.PersonSource;
 import org.dbs.poc.unblu.exposition.rest.dto.PersonResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,10 +22,11 @@ public class PersonController {
 
     @GetMapping
     public ResponseEntity<List<PersonResponse>> searchPersons(
-            @RequestParam(required = false) String sourceId) {
+            @RequestParam(required = false) String sourceId,
+            @RequestParam(required = false) PersonSource personSource) {
 
         List<PersonResponse> response = searchPersonsUseCase
-                .searchPersons(SearchPersonsQuery.builder().sourceId(sourceId).build())
+                .searchPersons(SearchPersonsQuery.builder().sourceId(sourceId).personSource(personSource).build())
                 .stream()
                 .map(p -> PersonResponse.builder()
                         .id(p.getId())
