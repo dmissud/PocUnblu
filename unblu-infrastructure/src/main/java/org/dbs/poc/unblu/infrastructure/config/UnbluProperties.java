@@ -11,6 +11,7 @@ public class UnbluProperties {
     private String baseUrl;
     private String username;
     private String password;
+    private String summaryBotPersonId;
 
     private ProxyProperties proxy = new ProxyProperties();
 
