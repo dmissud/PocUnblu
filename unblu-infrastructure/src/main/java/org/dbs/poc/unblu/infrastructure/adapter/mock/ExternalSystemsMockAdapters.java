@@ -32,21 +32,7 @@ public class ExternalSystemsMockAdapters extends RouteBuilder {
         from(DIRECT_ERP_ADAPTER)
             .routeId("mock-erp-adapter")
             .log("Mock ERP appelé pour le client ID: ${body.initialClientId}")
-            .process(exchange -> {
-                ConversationContext ctx = exchange.getIn().getBody(ConversationContext.class);
-                String clientId = ctx.getInitialClientId();
-                
-                // Simulation d'une logique métier ERP
-                CustomerProfile profile = CustomerProfile.builder()
-                        .customerId(clientId)
-                        .firstName("Jean")
-                        .lastName("Dupont")
-                        .isKnown(true)
-                        .customerSegment(clientId.startsWith("VIP") ? "VIP" : "STANDARD")
-                        .build();
-
-                exchange.getIn().setBody(profile);
-            });
+            .process(this::mockErpLogic);
 
 
         // ==========================================
@@ -55,23 +41,37 @@ public class ExternalSystemsMockAdapters extends RouteBuilder {
         from(DIRECT_RULE_ENGINE_ADAPTER)
             .routeId("mock-rule-engine-adapter")
             .log("Mock Moteur de Règles appelé pour le segment: ${body.customerProfile.customerSegment}")
-            .process(exchange -> {
-                ConversationContext ctx = exchange.getIn().getBody(ConversationContext.class);
-                String segment = ctx.getCustomerProfile().getCustomerSegment();
-                
-                ChatRoutingDecision decision = new ChatRoutingDecision();
-                
-                if ("BANNED".equalsIgnoreCase(segment)) {
-                    decision.setAuthorized(false);
-                    decision.setRoutingReason("Client blacklisté - Accès au chat refusé.");
-                } else {
-                    decision.setAuthorized(true);
-                    decision.setRoutingReason("Client éligible.");
-                    String teamId = HELLO_BANK_TEAM_IDS.get(RANDOM.nextInt(HELLO_BANK_TEAM_IDS.size()));
-                    decision.setUnbluAssignedGroupId(teamId);
-                }
-                
-                exchange.getIn().setBody(decision);
-            });
+            .process(this::mockRuleEngineLogic);
+    }
+
+    private void mockErpLogic(org.apache.camel.Exchange exchange) {
+        ConversationContext ctx = exchange.getIn().getBody(ConversationContext.class);
+        String clientId = ctx.getInitialClientId();
+        
+        // Simulation d'une logique métier ERP
+        CustomerProfile profile = new CustomerProfile(
+                clientId,
+                "Jean",
+                "Dupont",
+                clientId.startsWith("VIP") ? "VIP" : "STANDARD",
+                true);
+
+        exchange.getIn().setBody(profile);
+    }
+
+    private void mockRuleEngineLogic(org.apache.camel.Exchange exchange) {
+        ConversationContext ctx = exchange.getIn().getBody(ConversationContext.class);
+        String segment = ctx.getCustomerProfile().customerSegment();
+        
+        ChatRoutingDecision decision;
+        
+        if (ctx.getCustomerProfile().isBanned()) {
+            decision = new ChatRoutingDecision(false, null, "Client blacklisté - Accès au chat refusé.");
+        } else {
+            String teamId = HELLO_BANK_TEAM_IDS.get(RANDOM.nextInt(HELLO_BANK_TEAM_IDS.size()));
+            decision = new ChatRoutingDecision(true, teamId, "Client éligible.");
+        }
+        
+        exchange.getIn().setBody(decision);
     }
 }

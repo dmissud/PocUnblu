@@ -27,5 +27,12 @@ public class UnbluResilientRoute extends RouteBuilder {
                     exchange.getIn().setBody(ctx);
                 })
             .end();
+            .end();
+    }
+
+    private void handleFallback(org.apache.camel.Exchange exchange) {
+        ConversationContext ctx = exchange.getIn().getBody(ConversationContext.class);
+        ctx.updateUnbluConversation("OFFLINE-PENDING", "Le service de chat est temporairement indisponible.");
+        exchange.getIn().setBody(ctx);
     }
 }
