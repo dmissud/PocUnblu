@@ -47,3 +47,7 @@ unblu-configuration/src/main/resources/static/prerendered-routes.json
 unblu-frontend/node_modules/
 unblu-frontend/package-lock.json
 unblu-frontend/.angular/
+
+### Frontend Maven Plugin ###
+unblu-frontend/node/
+unblu-frontend/etc/

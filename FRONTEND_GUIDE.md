@@ -6,18 +6,25 @@ Une interface web Angular pour tester facilement vos services Unblu sans avoir b
 
 ## 🚀 Démarrage rapide
 
-### 1. Builder le frontend (une seule fois)
+### Option 1 : Build automatique avec Maven (recommandé)
 ```bash
-./build-frontend.sh
-```
-
-### 2. Lancer l'application Spring Boot
-```bash
+# Maven build le frontend Angular automatiquement
 mvn clean install
+
+# Lancer l'application
 mvn spring-boot:run -pl unblu-configuration
 ```
 
-### 3. Accéder à l'interface
+### Option 2 : Build manuel du frontend
+```bash
+# Build manuel (optionnel si déjà fait par Maven)
+./build-frontend.sh
+
+# Lancer l'application
+mvn spring-boot:run -pl unblu-configuration
+```
+
+### Accéder à l'interface
 Ouvrir dans votre navigateur : **http://localhost:8081**
 
 ## 📋 Fonctionnalités
@@ -90,16 +97,35 @@ unblu-frontend/
 
 ## 📦 Build et Déploiement
 
-### Build manuel
+### Build automatique avec Maven (intégré)
+
+Le build Angular est **automatiquement intégré** dans le cycle de vie Maven via le `frontend-maven-plugin` :
+
+```bash
+mvn clean install
+```
+
+Ce qui exécute automatiquement :
+1. Installation de Node.js v20.11.0 et npm v10.2.4 (si nécessaire)
+2. `npm install` (installation des dépendances)
+3. `npm run build` (build de l'application Angular)
+4. Empaquetage dans le JAR Spring Boot
+
+Les fichiers buildés sont générés dans :
+```
+unblu-configuration/src/main/resources/static/browser/
+```
+
+### Build manuel (pour développement)
 ```bash
 cd unblu-frontend
 npm install
 npm run build
 ```
 
-Les fichiers sont générés dans :
-```
-unblu-configuration/src/main/resources/static/browser/
+Ou avec le script :
+```bash
+./build-frontend.sh
 ```
 
 ### Configuration Spring Boot
