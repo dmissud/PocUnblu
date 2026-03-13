@@ -68,18 +68,31 @@ public class UnbluCamelAdapter extends RouteBuilder {
             .log("Récupération des équipes Unblu")
             .process(this::searchTeams);
     }
+
     private void createConversation(org.apache.camel.Exchange exchange) {
+        ConversationContext ctx = exchange.getIn().getBody(ConversationContext.class);
 
+        ConversationCreationData creationData = new ConversationCreationData();
         creationData.setTopic("Contact depuis " + ctx.getOriginApplication());
+        creationData.setVisitorData(ctx.getInitialClientId());
+        creationData.setInitialEngagementType(EInitialEngagementType.CHAT_REQUEST);
 
+        com.unblu.webapi.model.v4.ConversationCreationRecipientData recipient = new com.unblu.webapi.model.v4.ConversationCreationRecipientData();
         recipient.setType(com.unblu.webapi.model.v4.EConversationRecipientType.TEAM);
+        recipient.setId(ctx.getRoutingDecision().unbluAssignedGroupId());
         creationData.setRecipient(recipient);
 
+        ConversationCreationParticipantData participant = new ConversationCreationParticipantData();
         participant.setPersonId(ctx.getInitialClientId());
+        participant.setParticipationType(EConversationRealParticipationType.CONTEXT_PERSON);
         creationData.addParticipantsItem(participant);
 
+        ConversationData response = unbluService.createConversation(creationData);
 
+        ctx.updateUnbluConversation(response.getId(), "https://server.unblu.com/join/" + response.getId());
 
+        exchange.getIn().setBody(ctx);
+    }
 
     private void searchPersons(org.apache.camel.Exchange exchange) {
         PersonSearchRequest req = exchange.getIn().getBody(PersonSearchRequest.class);

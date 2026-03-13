@@ -16,9 +16,7 @@ public class ErpCamelAdapter implements ErpPort {
     @Override
     public CustomerProfile getCustomerProfile(String clientId) {
         // We create a temporary context just for the Camel route to extract the ID
-        ConversationContext requestContext = ConversationContext.builder()
-                .initialClientId(clientId)
-                .build();
+        ConversationContext requestContext = new ConversationContext(clientId, "ERP_ADAPTER_REPLY");
                 
         // Call the resilient Camel route for ERP
         return producerTemplate.requestBody("direct:erp-adapter", requestContext, CustomerProfile.class);

@@ -20,13 +20,7 @@ public class UnbluResilientRoute extends RouteBuilder {
                 .to(UnbluCamelAdapter.DIRECT_UNBLU_ADAPTER)
             .onFallback()
                 .log("⚠️ L'API Unblu est injoignable ou a expiré. Déclenchement du Fallback.")
-                .process(exchange -> {
-                    ConversationContext ctx = exchange.getIn().getBody(ConversationContext.class);
-                    ctx.setUnbluConversationId("OFFLINE-PENDING");
-                    ctx.setUnbluJoinUrl("Le service de chat est temporairement indisponible.");
-                    exchange.getIn().setBody(ctx);
-                })
-            .end();
+                .process(this::handleFallback)
             .end();
     }
 
