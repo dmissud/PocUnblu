@@ -11,8 +11,9 @@ public record StartDirectConversationCommand(
         String agentParticipantSourceId,
         String subject
 ) {
-    public StartDirectConversationCommand {
-        Objects.requireNonNull(virtualParticipantSourceId, "virtualParticipantSourceId is required");
-        Objects.requireNonNull(agentParticipantSourceId, "agentParticipantSourceId is required");
+    public StartDirectConversationCommand(String virtualParticipantSourceId, String agentParticipantSourceId, String subject) {
+        this.virtualParticipantSourceId = Objects.requireNonNull(virtualParticipantSourceId, "virtualParticipantSourceId is required");
+        this.agentParticipantSourceId = Objects.requireNonNull(agentParticipantSourceId, "agentParticipantSourceId is required");
+        this.subject = subject;
     }
 }

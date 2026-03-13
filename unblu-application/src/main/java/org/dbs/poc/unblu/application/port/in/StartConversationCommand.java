@@ -11,8 +11,9 @@ public record StartConversationCommand(
         String subject,
         String origin
 ) {
-    public StartConversationCommand {
-        Objects.requireNonNull(clientId, "clientId is required");
-        Objects.requireNonNull(origin, "origin is required");
+    public StartConversationCommand(String clientId, String subject, String origin) {
+        this.clientId = Objects.requireNonNull(clientId, "clientId is required");
+        this.subject = subject;
+        this.origin = Objects.requireNonNull(origin, "origin is required");
     }
 }
