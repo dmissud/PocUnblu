@@ -1,0 +1,77 @@
+package org.dbs.poc.unblu.infrastructure.adapter.mock;
+
+import org.apache.camel.builder.RouteBuilder;
+import org.dbs.poc.unblu.domain.model.ChatRoutingDecision;
+import org.dbs.poc.unblu.domain.model.CustomerProfile;
+import org.dbs.poc.unblu.domain.model.ConversationContext;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.Random;
+
+@Component
+public class ExternalSystemsMockAdapters extends RouteBuilder {
+
+    public static final String DIRECT_ERP_ADAPTER = "direct:erp-adapter";
+    public static final String DIRECT_RULE_ENGINE_ADAPTER = "direct:rule-engine-adapter";
+
+    private static final List<String> HELLO_BANK_TEAM_IDS = List.of(
+        "cAaYUeKyTZ25_OaA6jUeVA", // Hello bank! Premium
+        "xanCWmO_Rluxt0DaUn_11w", // Hello bank! Classic
+        "pf50ylVKRRWeMkttXKPwQw", // Hello bank! End2End
+        "7iLOw0i9TVCpI8SDAaTXyA"  // Hello bank! Supervision
+    );
+    private static final Random RANDOM = new Random();
+
+    @Override
+    public void configure() throws Exception {
+
+        // ==========================================
+        // ADAPTER MOCK : ERP (Récupération Profil)
+        // ==========================================
+        from(DIRECT_ERP_ADAPTER)
+            .routeId("mock-erp-adapter")
+            .log("Mock ERP appelé pour le client ID: ${body.initialClientId}")
+            .process(this::mockErpLogic);
+
+
+        // ==========================================
+        // ADAPTER MOCK : Moteur de Règles
+        // ==========================================
+        from(DIRECT_RULE_ENGINE_ADAPTER)
+            .routeId("mock-rule-engine-adapter")
+            .log("Mock Moteur de Règles appelé pour le segment: ${body.customerProfile.customerSegment}")
+            .process(this::mockRuleEngineLogic);
+    }
+
+    private void mockErpLogic(org.apache.camel.Exchange exchange) {
+        ConversationContext ctx = exchange.getIn().getBody(ConversationContext.class);
+        String clientId = ctx.getInitialClientId();
+        
+        // Simulation d'une logique métier ERP
+        CustomerProfile profile = new CustomerProfile(
+                clientId,
+                "Jean",
+                "Dupont",
+                clientId.startsWith("VIP") ? "VIP" : "STANDARD",
+                true);
+
+        exchange.getIn().setBody(profile);
+    }
+
+    private void mockRuleEngineLogic(org.apache.camel.Exchange exchange) {
+        ConversationContext ctx = exchange.getIn().getBody(ConversationContext.class);
+        String segment = ctx.getCustomerProfile().customerSegment();
+        
+        ChatRoutingDecision decision;
+        
+        if (ctx.getCustomerProfile().isBanned()) {
+            decision = new ChatRoutingDecision(false, null, "Client blacklisté - Accès au chat refusé.");
+        } else {
+            String teamId = HELLO_BANK_TEAM_IDS.get(RANDOM.nextInt(HELLO_BANK_TEAM_IDS.size()));
+            decision = new ChatRoutingDecision(true, teamId, "Client éligible.");
+        }
+        
+        exchange.getIn().setBody(decision);
+    }
+}

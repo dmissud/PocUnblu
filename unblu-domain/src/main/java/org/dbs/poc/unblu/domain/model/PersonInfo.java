@@ -1,0 +1,20 @@
+package org.dbs.poc.unblu.domain.model;
+
+import java.util.Objects;
+
+/**
+ * Informations sur une personne (Agent ou Client).
+ * Objet immuable.
+ */
+public record PersonInfo(
+        String id,
+        String sourceId,
+        String displayName,
+        String email
+) {
+    public PersonInfo {
+        Objects.requireNonNull(id, "Person id cannot be null");
+        Objects.requireNonNull(sourceId, "Person sourceId cannot be null");
+        Objects.requireNonNull(displayName, "Person displayName cannot be null");
+    }
+}
