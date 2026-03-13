@@ -18,21 +18,12 @@ public class StartConversationRoute extends RouteBuilder {
     public void configure() {
         from(DIRECT_START_CONVERSATION)
             .routeId("main-orchestrator-start-conversation")
-            .log("Démarrage de l'orchestration Camel pour clientId: ${body.clientId}")
-            
-            .process(this::initConversationContext)
-            .enrich(DIRECT_ERP_ADAPTER, this::aggregateCustomerProfile)
-            .enrich(DIRECT_RULE_ENGINE_ADAPTER, this::aggregateRoutingDecision)
+            .log("Démarrage de l'orchestration Camel pour clientId: ${body.clientId}, teamId: ${body.teamId}")
 
-            .choice()
-                .when(simple("${body.chatAuthorized} == false"))
-                    .log("Accès refusé par le moteur de règles")
-                    .process(this::handleAccessDenied)
-                .otherwise()
-                    .to(DIRECT_UNBLU_ADAPTER_RESILIENT)
-                    .enrich(DIRECT_CONVERSATION_SUMMARY_ADAPTER, (oldExchange, newExchange) -> oldExchange)
-                    .to(DIRECT_UNBLU_ADD_SUMMARY_INTERNAL)
-            .end();
+            .process(this::initConversationContext)
+            .to(DIRECT_UNBLU_ADAPTER_RESILIENT)
+            .enrich(DIRECT_CONVERSATION_SUMMARY_ADAPTER, (oldExchange, newExchange) -> oldExchange)
+            .to(DIRECT_UNBLU_ADD_SUMMARY_INTERNAL);
 
         from(DIRECT_UNBLU_ADD_SUMMARY_INTERNAL)
             .routeId("main-orchestrator-add-summary-internal")
@@ -48,24 +39,16 @@ public class StartConversationRoute extends RouteBuilder {
         ConversationContext context = new ConversationContext(
                 command.clientId(),
                 command.origin());
+
+        // Crée une décision de routage directement avec le teamId fourni
+        ChatRoutingDecision decision = new ChatRoutingDecision(
+                true,
+                command.teamId(),
+                "Team fournie par le front"
+        );
+        context.setRoutingDecision(decision);
+
         exchange.getIn().setBody(context);
-    }
-
-    private Exchange aggregateCustomerProfile(Exchange oldExchange, Exchange newExchange) {
-        ConversationContext ctx = oldExchange.getIn().getBody(ConversationContext.class);
-        ctx.setCustomerProfile(newExchange.getIn().getBody(CustomerProfile.class));
-        return oldExchange;
-    }
-
-    private Exchange aggregateRoutingDecision(Exchange oldExchange, Exchange newExchange) {
-        ConversationContext ctx = oldExchange.getIn().getBody(ConversationContext.class);
-        ctx.setRoutingDecision(newExchange.getIn().getBody(ChatRoutingDecision.class));
-        return oldExchange;
-    }
-
-    private void handleAccessDenied(Exchange exchange) {
-        ConversationContext ctx = exchange.getIn().getBody(ConversationContext.class);
-        throw new ChatAccessDeniedException("Accès refusé", ctx.getRoutingDecision().routingReason());
     }
 
     private void prepareSummaryRequestFromContext(Exchange exchange) {

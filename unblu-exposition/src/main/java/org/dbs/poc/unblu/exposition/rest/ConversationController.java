@@ -38,13 +38,14 @@ public class ConversationController {
     @PostMapping("/team")
     public ResponseEntity<ConversationContext> startTeamConversation(
             @RequestBody TeamConversationRequest request) {
-        
+
         StartConversationCommand command = new StartConversationCommand(
                 request.clientId(),
                 request.subject(),
-                "FRONTEND_TEST"
+                "FRONTEND_TEST",
+                request.teamId()
         );
-        
+
         ConversationContext result = startConversationUseCase.startConversation(command);
         return ResponseEntity.ok(result);
     }
@@ -57,6 +58,7 @@ public class ConversationController {
 
     public record TeamConversationRequest(
             String clientId,
-            String subject
+            String subject,
+            String teamId
     ) {}
 }
