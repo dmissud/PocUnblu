@@ -82,8 +82,11 @@ public class UnbluCamelAdapter extends RouteBuilder {
         recipient.setId(ctx.getRoutingDecision().unbluAssignedGroupId());
         creationData.setRecipient(recipient);
 
+        // Récupérer l'ID Unblu de la personne à partir du sourceId
+        PersonData person = unbluService.getPersonBySource(EPersonSource.VIRTUAL, ctx.getInitialClientId());
+
         ConversationCreationParticipantData participant = new ConversationCreationParticipantData();
-        participant.setPersonId(ctx.getInitialClientId());
+        participant.setPersonId(person.getId());
         participant.setParticipationType(EConversationRealParticipationType.CONTEXT_PERSON);
         creationData.addParticipantsItem(participant);
 
