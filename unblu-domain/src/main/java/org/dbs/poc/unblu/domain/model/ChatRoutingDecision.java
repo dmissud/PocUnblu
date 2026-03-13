@@ -1,16 +1,18 @@
 package org.dbs.poc.unblu.domain.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.util.Objects;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class ChatRoutingDecision {
-    private boolean isAuthorized;
-    private String unbluAssignedGroupId; // ex: "vip_advisors_group"
-    private String routingReason;
+/**
+ * Décision de routage prise par le moteur de règles.
+ */
+public record ChatRoutingDecision(
+        boolean isAuthorized,
+        String unbluAssignedGroupId,
+        String routingReason
+) {
+    public ChatRoutingDecision {
+        if (isAuthorized) {
+            Objects.requireNonNull(unbluAssignedGroupId, "unbluAssignedGroupId must be provided for authorized chats");
+        }
+    }
 }

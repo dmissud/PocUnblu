@@ -21,10 +21,10 @@ public class TeamController {
     public ResponseEntity<List<TeamResponse>> searchTeams() {
         List<TeamResponse> response = searchTeamsUseCase.searchTeams()
                 .stream()
-                .map(t -> TeamResponse.builder()
-                        .id(t.getId())
-                        .name(t.getName())
-                        .description(t.getDescription())
+                .map(teamInfo -> TeamResponse.builder()
+                        .id(teamInfo.id())
+                        .name(teamInfo.name())
+                        .description(teamInfo.description())
                         .build())
                 .toList();
 

@@ -1,17 +1,20 @@
 package org.dbs.poc.unblu.domain.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.util.Objects;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class PersonInfo {
-    private String id;
-    private String sourceId;
-    private String displayName;
-    private String email;
+/**
+ * Informations sur une personne (Agent ou Client).
+ * Objet immuable.
+ */
+public record PersonInfo(
+        String id,
+        String sourceId,
+        String displayName,
+        String email
+) {
+    public PersonInfo {
+        Objects.requireNonNull(id, "Person id cannot be null");
+        Objects.requireNonNull(sourceId, "Person sourceId cannot be null");
+        Objects.requireNonNull(displayName, "Person displayName cannot be null");
+    }
 }

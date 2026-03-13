@@ -134,17 +134,20 @@ public class UnbluService {
             log.info("Trouvé {} personne(s)", result.getItems().size());
 
             return result.getItems().stream()
-                    .map(p -> PersonInfo.builder()
-                            .id(p.getId())
-                            .sourceId(p.getSourceId())
-                            .displayName(p.getDisplayName())
-                            .email(p.getEmail())
-                            .build())
+                    .map(this::mapToPersonInfo)
                     .toList();
         } catch (ApiException e) {
             log.error("Erreur lors de la recherche de personnes dans Unblu - Status: {}", e.getCode(), e);
             throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la recherche de personnes : " + e.getMessage());
         }
+    }
+
+    private PersonInfo mapToPersonInfo(PersonData personData) {
+        return new PersonInfo(
+                personData.getId(),
+                personData.getSourceId(),
+                personData.getDisplayName(),
+                personData.getEmail());
     }
 
     /**
@@ -160,11 +163,10 @@ public class UnbluService {
             log.info("Trouvé {} équipe(s)", result.getItems().size());
 
             return result.getItems().stream()
-                    .map(t -> TeamInfo.builder()
-                            .id(t.getId())
-                            .name(t.getName())
-                            .description(t.getDescription())
-                            .build())
+                    .map(team -> new TeamInfo(
+                            team.getId(),
+                            team.getName(),
+                            team.getDescription()))
                     .toList();
         } catch (ApiException e) {
             log.error("Erreur lors de la récupération des équipes Unblu - Status: {}", e.getCode(), e);
@@ -337,20 +339,20 @@ public class UnbluService {
             ConversationCreationData data = new ConversationCreationData();
             data.setTopic(subject);
             data.setInitialEngagementType(EInitialEngagementType.CHAT_REQUEST);
-            data.setVisitorData(virtualPerson.getSourceId());
+            data.setVisitorData(virtualPerson.sourceId());
 
             ConversationCreationParticipantData virtualParticipant = new ConversationCreationParticipantData();
             virtualParticipant.setParticipationType(EConversationRealParticipationType.CONTEXT_PERSON);
-            virtualParticipant.setPersonId(virtualPerson.getId());
+            virtualParticipant.setPersonId(virtualPerson.id());
 
             ConversationCreationParticipantData agentParticipant = new ConversationCreationParticipantData();
             agentParticipant.setParticipationType(EConversationRealParticipationType.ASSIGNED_AGENT);
-            agentParticipant.setPersonId(agentPerson.getId());
+            agentParticipant.setPersonId(agentPerson.id());
 
             data.addParticipantsItem(virtualParticipant);
             data.addParticipantsItem(agentParticipant);
 
-            log.info("Création d'une conversation directe dans Unblu - VIRTUAL: {}, Agent: {}", virtualPerson.getId(), agentPerson.getId());
+            log.info("Création d'une conversation directe dans Unblu - VIRTUAL: {}, Agent: {}", virtualPerson.id(), agentPerson.id());
             ConversationData result = conversationsApi.conversationsCreate(data, null);
             log.info("Conversation directe créée avec ID: {}", result.getId());
 

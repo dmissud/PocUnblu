@@ -26,13 +26,13 @@ public class PersonController {
             @RequestParam(required = false) PersonSource personSource) {
 
         List<PersonResponse> response = searchPersonsUseCase
-                .searchPersons(SearchPersonsQuery.builder().sourceId(sourceId).personSource(personSource).build())
+                .searchPersons(new SearchPersonsQuery(sourceId, personSource))
                 .stream()
-                .map(p -> PersonResponse.builder()
-                        .id(p.getId())
-                        .sourceId(p.getSourceId())
-                        .displayName(p.getDisplayName())
-                        .email(p.getEmail())
+                .map(personInfo -> PersonResponse.builder()
+                        .id(personInfo.id())
+                        .sourceId(personInfo.sourceId())
+                        .displayName(personInfo.displayName())
+                        .email(personInfo.email())
                         .build())
                 .toList();
 

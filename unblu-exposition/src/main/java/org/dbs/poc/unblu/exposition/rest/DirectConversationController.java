@@ -24,11 +24,10 @@ public class DirectConversationController {
     public ResponseEntity<StartConversationResponse> startDirectConversation(
             @Valid @RequestBody StartDirectConversationRequest request) {
 
-        StartDirectConversationCommand command = StartDirectConversationCommand.builder()
-                .virtualParticipantSourceId(request.getVirtualParticipantSourceId())
-                .agentParticipantSourceId(request.getAgentParticipantSourceId())
-                .subject(request.getSubject())
-                .build();
+        StartDirectConversationCommand command = new StartDirectConversationCommand(
+                request.getVirtualParticipantSourceId(),
+                request.getAgentParticipantSourceId(),
+                request.getSubject());
 
         UnbluConversationInfo info = startDirectConversationUseCase.startDirectConversation(command);
 

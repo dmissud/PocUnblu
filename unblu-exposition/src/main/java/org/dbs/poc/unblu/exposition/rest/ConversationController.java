@@ -22,12 +22,11 @@ public class ConversationController {
     @PostMapping("/start")
     public ResponseEntity<StartConversationResponse> startConversation(@RequestBody StartConversationRequest request) {
         
-        // Map DTO to Command
-        StartConversationCommand command = StartConversationCommand.builder()
-                .clientId(request.getClientId())
-                .subject(request.getSubject())
-                .origin(request.getOrigin())
-                .build();
+        // Map DTO to Command (Manual validation/construction instead of Lombok builder)
+        StartConversationCommand command = new StartConversationCommand(
+                request.getClientId(),
+                request.getSubject(),
+                request.getOrigin());
                 
         // Execute Use Case
         ConversationContext context = startConversationUseCase.startConversation(command);

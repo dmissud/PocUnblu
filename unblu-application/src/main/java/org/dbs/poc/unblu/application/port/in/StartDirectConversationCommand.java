@@ -1,12 +1,18 @@
 package org.dbs.poc.unblu.application.port.in;
 
-import lombok.Builder;
-import lombok.Data;
+import java.util.Objects;
 
-@Data
-@Builder
-public class StartDirectConversationCommand {
-    private String virtualParticipantSourceId;
-    private String agentParticipantSourceId;
-    private String subject;
+/**
+ * Commande pour démarrer une conversation directe.
+ * Objet immuable.
+ */
+public record StartDirectConversationCommand(
+        String virtualParticipantSourceId,
+        String agentParticipantSourceId,
+        String subject
+) {
+    public StartDirectConversationCommand {
+        Objects.requireNonNull(virtualParticipantSourceId, "virtualParticipantSourceId is required");
+        Objects.requireNonNull(agentParticipantSourceId, "agentParticipantSourceId is required");
+    }
 }

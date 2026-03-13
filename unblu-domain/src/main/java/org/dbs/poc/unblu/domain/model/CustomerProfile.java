@@ -1,18 +1,26 @@
 package org.dbs.poc.unblu.domain.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.util.Objects;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class CustomerProfile {
-    private String customerId;
-    private String firstName;
-    private String lastName;
-    private String customerSegment; // ex: "VIP", "STANDARD", "PRO"
-    private boolean isKnown;
+/**
+ * Profil du client issu de l'ERP.
+ */
+public record CustomerProfile(
+        String customerId,
+        String firstName,
+        String lastName,
+        String customerSegment,
+        boolean isKnown
+) {
+    public CustomerProfile {
+        Objects.requireNonNull(customerId, "customerId cannot be null");
+        Objects.requireNonNull(customerSegment, "customerSegment cannot be null");
+    }
+
+    /**
+     * Vérifie si le client est "BANNED" d'après son segment.
+     */
+    public boolean isBanned() {
+        return "BANNED".equalsIgnoreCase(customerSegment);
+    }
 }

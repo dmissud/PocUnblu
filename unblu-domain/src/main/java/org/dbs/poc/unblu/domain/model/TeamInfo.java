@@ -1,16 +1,17 @@
 package org.dbs.poc.unblu.domain.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.util.Objects;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class TeamInfo {
-    private String id;
-    private String name;
-    private String description;
+/**
+ * Informations sur une équipe (Team) Unblu.
+ */
+public record TeamInfo(
+        String id,
+        String name,
+        String description
+) {
+    public TeamInfo {
+        Objects.requireNonNull(id, "Team id cannot be null");
+        Objects.requireNonNull(name, "Team name cannot be null");
+    }
 }
