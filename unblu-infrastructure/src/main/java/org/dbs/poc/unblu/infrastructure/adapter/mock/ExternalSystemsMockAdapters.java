@@ -12,6 +12,9 @@ import java.util.Random;
 @Component
 public class ExternalSystemsMockAdapters extends RouteBuilder {
 
+    public static final String DIRECT_ERP_ADAPTER = "direct:erp-adapter";
+    public static final String DIRECT_RULE_ENGINE_ADAPTER = "direct:rule-engine-adapter";
+
     private static final List<String> HELLO_BANK_TEAM_IDS = List.of(
         "cAaYUeKyTZ25_OaA6jUeVA", // Hello bank! Premium
         "xanCWmO_Rluxt0DaUn_11w", // Hello bank! Classic
@@ -26,7 +29,7 @@ public class ExternalSystemsMockAdapters extends RouteBuilder {
         // ==========================================
         // ADAPTER MOCK : ERP (Récupération Profil)
         // ==========================================
-        from("direct:erp-adapter")
+        from(DIRECT_ERP_ADAPTER)
             .routeId("mock-erp-adapter")
             .log("Mock ERP appelé pour le client ID: ${body.initialClientId}")
             .process(exchange -> {
@@ -49,7 +52,7 @@ public class ExternalSystemsMockAdapters extends RouteBuilder {
         // ==========================================
         // ADAPTER MOCK : Moteur de Règles
         // ==========================================
-        from("direct:rule-engine-adapter")
+        from(DIRECT_RULE_ENGINE_ADAPTER)
             .routeId("mock-rule-engine-adapter")
             .log("Mock Moteur de Règles appelé pour le segment: ${body.customerProfile.customerSegment}")
             .process(exchange -> {

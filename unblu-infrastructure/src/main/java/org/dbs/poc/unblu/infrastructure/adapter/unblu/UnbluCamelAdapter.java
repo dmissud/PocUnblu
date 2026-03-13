@@ -17,6 +17,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UnbluCamelAdapter extends RouteBuilder {
 
+    public static final String DIRECT_UNBLU_ADAPTER = "direct:unblu-adapter";
+    public static final String DIRECT_UNBLU_SEARCH_PERSONS = "direct:unblu-search-persons";
+    public static final String DIRECT_UNBLU_CREATE_DIRECT_CONVERSATION = "direct:unblu-create-direct-conversation";
+    public static final String DIRECT_UNBLU_ADD_SUMMARY = "direct:unblu-add-summary";
+    public static final String DIRECT_UNBLU_SEARCH_TEAMS = "direct:unblu-search-teams";
+
     private final UnbluService unbluService;
 
     @Override
@@ -25,7 +31,7 @@ public class UnbluCamelAdapter extends RouteBuilder {
         // ==========================================
         // ADAPTER : Unblu (Appel au SDK)
         // ==========================================
-        from("direct:unblu-adapter")
+        from(DIRECT_UNBLU_ADAPTER)
             .routeId("unblu-rest-adapter")
             .log("Création de la conversation Unblu pour la file d'attente : ${body.routingDecision.unbluAssignedGroupId}")
             .process(exchange -> {
@@ -41,6 +47,39 @@ public class UnbluCamelAdapter extends RouteBuilder {
                 recipient.setType(com.unblu.webapi.model.v4.EConversationRecipientType.TEAM);
                 recipient.setId(ctx.getRoutingDecision().getUnbluAssignedGroupId());
                 creationData.setRecipient(recipient);
+
+        // ==========================================
+        // ADAPTER : Recherche de personnes Unblu
+        // ==========================================
+        from(DIRECT_UNBLU_SEARCH_PERSONS)
+            .routeId("unblu-search-persons")
+            .log("Recherche de personnes dans Unblu")
+            .process(this::searchPersons);
+
+        // ==========================================
+        // ADAPTER : Conversation directe Unblu
+        // ==========================================
+        from(DIRECT_UNBLU_CREATE_DIRECT_CONVERSATION)
+            .routeId("unblu-create-direct-conversation")
+            .log("Création d'une conversation directe dans Unblu")
+            .process(this::createDirectConversation);
+
+        // ==========================================
+        // ADAPTER : Ajout du résumé à une conversation Unblu
+        // ==========================================
+        from(DIRECT_UNBLU_ADD_SUMMARY)
+            .routeId("unblu-add-summary")
+            .log("Ajout du résumé à la conversation Unblu")
+            .process(this::addSummaryToConversation);
+
+        // ==========================================
+        // ADAPTER : Recherche des équipes Unblu
+        // ==========================================
+        from(DIRECT_UNBLU_SEARCH_TEAMS)
+            .routeId("unblu-search-teams")
+            .log("Récupération des équipes Unblu")
+            .process(this::searchTeams);
+    }
 
                 // Ajout du client comme participant CONTEXT_PERSON
                 ConversationCreationParticipantData participant = new ConversationCreationParticipantData();

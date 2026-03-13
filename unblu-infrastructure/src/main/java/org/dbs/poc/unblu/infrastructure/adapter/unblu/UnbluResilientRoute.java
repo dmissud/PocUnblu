@@ -8,14 +8,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class UnbluResilientRoute extends RouteBuilder {
 
+    public static final String DIRECT_UNBLU_ADAPTER_RESILIENT = "direct:unblu-adapter-resilient";
+
     @Override
     public void configure() throws Exception {
         // We wrap the base unblu rest adapter with a circuit breaker
-        from("direct:unblu-adapter-resilient")
+        from(DIRECT_UNBLU_ADAPTER_RESILIENT)
             .routeId("unblu-resilient-wrapper")
             .circuitBreaker()
                 .resilience4jConfiguration().timeoutEnabled(true).timeoutDuration(3000).end()
-                .to("direct:unblu-adapter")
+                .to(UnbluCamelAdapter.DIRECT_UNBLU_ADAPTER)
             .onFallback()
                 .log("⚠️ L'API Unblu est injoignable ou a expiré. Déclenchement du Fallback.")
                 .process(exchange -> {

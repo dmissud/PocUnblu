@@ -12,6 +12,8 @@ import java.util.Random;
 @Component
 public class ConversationSummaryMockAdapter extends RouteBuilder implements ConversationSummaryPort {
 
+    public static final String DIRECT_CONVERSATION_SUMMARY_ADAPTER = "direct:conversation-summary-adapter";
+
     private static final List<String> LINE1 = List.of(
             "Le client a contacté le service pour une demande d'information sur ses produits.",
             "Le client souhaite obtenir un accompagnement personnalisé sur ses placements financiers.",
@@ -40,7 +42,7 @@ public class ConversationSummaryMockAdapter extends RouteBuilder implements Conv
 
     @Override
     public void configure() throws Exception {
-        from("direct:conversation-summary-adapter")
+        from(DIRECT_CONVERSATION_SUMMARY_ADAPTER)
             .routeId("mock-conversation-summary-adapter")
             .log("Génération du résumé pour la conversation: ${header.CamelBeanMethodArgs[0]}")
             .bean(this, "generateSummary");

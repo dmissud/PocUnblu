@@ -8,6 +8,8 @@ import org.dbs.poc.unblu.application.port.in.StartDirectConversationUseCase;
 import org.dbs.poc.unblu.domain.model.UnbluConversationInfo;
 import org.springframework.stereotype.Service;
 
+import static org.dbs.poc.unblu.application.service.OrchestratorEndpoints.DIRECT_START_DIRECT_CONVERSATION;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -17,7 +19,7 @@ public class DirectConversationService implements StartDirectConversationUseCase
 
     @Override
     public UnbluConversationInfo startDirectConversation(StartDirectConversationCommand command) {
-        log.info("Appel de l'orchestrateur Camel (Direct) pour VIRTUAL: {}", command.getVirtualParticipantSourceId());
-        return producerTemplate.requestBody("direct:start-direct-conversation", command, UnbluConversationInfo.class);
+        log.info("Appel de l'orchestrateur Camel (Direct) pour VIRTUAL: {}", command.virtualParticipantSourceId());
+        return producerTemplate.requestBody(DIRECT_START_DIRECT_CONVERSATION, command, UnbluConversationInfo.class);
     }
 }

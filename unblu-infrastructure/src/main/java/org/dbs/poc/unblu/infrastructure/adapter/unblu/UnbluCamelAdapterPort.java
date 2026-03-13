@@ -21,14 +21,14 @@ public class UnbluCamelAdapterPort implements UnbluPort {
 
     @Override
     public UnbluConversationInfo createConversation(ConversationContext context) {
-        ConversationContext result = producerTemplate.requestBody("direct:unblu-adapter-resilient", context, ConversationContext.class);
+        ConversationContext result = producerTemplate.requestBody(UnbluResilientRoute.DIRECT_UNBLU_ADAPTER_RESILIENT, context, ConversationContext.class);
         return new UnbluConversationInfo(result.getUnbluConversationId(), result.getUnbluJoinUrl());
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public List<PersonInfo> searchPersons(String sourceId, PersonSource personSource) {
-        return producerTemplate.requestBody("direct:unblu-search-persons",
+        return producerTemplate.requestBody(UnbluCamelAdapter.DIRECT_UNBLU_SEARCH_PERSONS,
                 new PersonSearchRequest(sourceId, personSource), List.class);
     }
 
@@ -38,7 +38,7 @@ public class UnbluCamelAdapterPort implements UnbluPort {
     public UnbluConversationInfo createDirectConversation(PersonInfo virtualPerson, PersonInfo agentPerson, String subject) {
         DirectConversationRequest req = new DirectConversationRequest(virtualPerson, agentPerson, subject);
         com.unblu.webapi.model.v4.ConversationData result =
-                producerTemplate.requestBody("direct:unblu-create-direct-conversation", req,
+                producerTemplate.requestBody(UnbluCamelAdapter.DIRECT_UNBLU_CREATE_DIRECT_CONVERSATION, req,
                         com.unblu.webapi.model.v4.ConversationData.class);
         return new UnbluConversationInfo(result.getId(), result.getId());
     }
@@ -47,7 +47,7 @@ public class UnbluCamelAdapterPort implements UnbluPort {
 
     @Override
     public void addSummaryToConversation(String conversationId, String summary) {
-        producerTemplate.sendBody("direct:unblu-add-summary", new SummaryRequest(conversationId, summary));
+        producerTemplate.sendBody(UnbluCamelAdapter.DIRECT_UNBLU_ADD_SUMMARY, new SummaryRequest(conversationId, summary));
     }
 
     public record SummaryRequest(String conversationId, String summary) {}
@@ -60,6 +60,6 @@ public class UnbluCamelAdapterPort implements UnbluPort {
     @Override
     @SuppressWarnings("unchecked")
     public List<TeamInfo> searchTeams() {
-        return producerTemplate.requestBody("direct:unblu-search-teams", null, List.class);
+        return producerTemplate.requestBody(UnbluCamelAdapter.DIRECT_UNBLU_SEARCH_TEAMS, null, List.class);
     }
 }
