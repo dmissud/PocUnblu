@@ -1,6 +1,7 @@
 package org.dbs.poc.unblu.infrastructure.adapter.summary;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.camel.builder.RouteBuilder;
 import org.dbs.poc.unblu.domain.port.secondary.ConversationSummaryPort;
 import org.springframework.stereotype.Component;
 
@@ -9,7 +10,7 @@ import java.util.Random;
 
 @Slf4j
 @Component
-public class ConversationSummaryMockAdapter implements ConversationSummaryPort {
+public class ConversationSummaryMockAdapter extends RouteBuilder implements ConversationSummaryPort {
 
     private static final List<String> LINE1 = List.of(
             "Le client a contacté le service pour une demande d'information sur ses produits.",
@@ -35,5 +36,13 @@ public class ConversationSummaryMockAdapter implements ConversationSummaryPort {
                 + LINE2.get(random.nextInt(LINE2.size()));
         log.info("Résumé généré pour la conversation {}: {}", conversationId, summary);
         return summary;
+    }
+
+    @Override
+    public void configure() throws Exception {
+        from("direct:conversation-summary-adapter")
+            .routeId("mock-conversation-summary-adapter")
+            .log("Génération du résumé pour la conversation: ${header.CamelBeanMethodArgs[0]}")
+            .bean(this, "generateSummary");
     }
 }
