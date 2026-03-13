@@ -37,9 +37,10 @@ public class StartConversationRoute extends RouteBuilder {
         from(DIRECT_UNBLU_ADD_SUMMARY_INTERNAL)
             .routeId("main-orchestrator-add-summary-internal")
             .process(this::prepareSummaryRequestFromContext)
-            .toD(DIRECT_CONVERSATION_SUMMARY_ADAPTER)
+            .enrich(DIRECT_CONVERSATION_SUMMARY_ADAPTER, this::aggregateSummary)
             .process(this::prepareFinalSummaryRequest)
-            .to(DIRECT_UNBLU_ADD_SUMMARY);
+            .to(DIRECT_UNBLU_ADD_SUMMARY)
+            .process(this::restoreContext);
     }
 
     private void initConversationContext(Exchange exchange) {
@@ -70,11 +71,23 @@ public class StartConversationRoute extends RouteBuilder {
     private void prepareSummaryRequestFromContext(Exchange exchange) {
         ConversationContext ctx = exchange.getIn().getBody(ConversationContext.class);
         exchange.setProperty("convId", ctx.getUnbluConversationId());
+        exchange.setProperty("conversationContext", ctx);
+    }
+
+    private Exchange aggregateSummary(Exchange oldExchange, Exchange newExchange) {
+        String summary = newExchange.getIn().getBody(String.class);
+        oldExchange.setProperty("summary", summary);
+        return oldExchange;
     }
 
     private void prepareFinalSummaryRequest(Exchange exchange) {
-        String summary = exchange.getIn().getBody(String.class);
+        String summary = exchange.getProperty("summary", String.class);
         String convId = exchange.getProperty("convId", String.class);
         exchange.getIn().setBody(new org.dbs.poc.unblu.infrastructure.adapter.unblu.UnbluCamelAdapterPort.SummaryRequest(convId, summary));
+    }
+
+    private void restoreContext(Exchange exchange) {
+        ConversationContext ctx = exchange.getProperty("conversationContext", ConversationContext.class);
+        exchange.getIn().setBody(ctx);
     }
 }
