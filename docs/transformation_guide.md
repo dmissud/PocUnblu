@@ -13,27 +13,69 @@ Ce document est destiné à un agent IA pour transformer un projet Unblu d'une a
 
 ## 2. Étapes de Transformation
 
-### Étape 1 : Support Camel dans l'Application
-Dans le module `unblu-application/pom.xml` :
+### Étape 1 : Support Camel dans l'Application et l'Exposition
+Dans les modules `unblu-application/pom.xml` et `unblu-exposition/pom.xml` :
 ```xml
 <dependency>
     <groupId>org.apache.camel.springboot</groupId>
     <artifactId>camel-spring-boot-starter</artifactId>
 </dependency>
+<!-- Dans exposition, ajoutez aussi camel-jackson-starter pour le binding JSON -->
+<dependency>
+    <groupId>org.apache.camel.springboot</groupId>
+    <artifactId>camel-jackson-starter</artifactId>
+</dependency>
 ```
 
 ### Étape 2 : Définition des Endpoints
-Créez `OrchestratorEndpoints.java` pour centraliser les constantes :
+Créez `OrchestratorEndpoints.java` pour centraliser les constantes.
+
+### Étape 3 : Migration de l'Exposition (REST DSL)
+Remplacez les `@RestController` Spring par une classe `RestExpositionRoute` dans le module `unblu-exposition`.
+
 ```java
-public interface OrchestratorEndpoints {
-    String DIRECT_START_CONVERSATION = "direct:start-conversation";
-    String DIRECT_ERP_ADAPTER = "direct:erp-adapter";
-    // ...
+@Component
+public class RestExpositionRoute extends RouteBuilder {
+    @Override
+    public void configure() {
+        restConfiguration()
+            .component("servlet")
+            .bindingMode(RestBindingMode.json)
+            .apiContextPath("/api-doc")
+            .apiProperty("api.title", "Unblu Camel API")
+            .apiProperty("api.version", "1.0.0");
+
+        rest("/v1/conversations")
+            .post("/start")
+                .type(StartConversationRequest.class)
+                .outType(StartConversationResponse.class)
+                .to("direct:rest-start-conversation");
+
+        // Redirection par défaut vers la doc API
+        rest("/")
+            .get()
+                .to("direct:redirect-to-doc");
+
+        from("direct:redirect-to-doc")
+            .routeId("redirect-to-doc")
+            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(302))
+            .setHeader("Location", constant("/api/api-doc"))
+            .setBody(constant(""));
+
+        from("direct:rest-start-conversation")
+            .process(this::mapToCommand)
+            .to(OrchestratorEndpoints.DIRECT_START_CONVERSATION)
+            .process(this::mapToResponse);
+    }
 }
 ```
 
-### Étape 3 : Création des Routes Spécialisées
-Ne créez pas une seule route monolithique. Séparez chaque Use Case.
+### Étape 4 : Documentation API (OpenAPI)
+L'architecture pragmatique utilise `camel-openapi-java` au lieu de `springdoc`.
+- **Accès** : La documentation est accessible via le point d'entrée configuré (ex: `/api/api-doc`).
+- **Configuration** : Tout se passe dans la `restConfiguration()` de la route d'exposition.
+
+### Étape 5 : Création des Routes d'Orchestration Spécialisées
 
 **Règles de Clean Code pour les routes :**
 - Utilisez `this::methodName` pour les processeurs et agrégateurs.
@@ -95,6 +137,40 @@ public class ConversationOrchestratorService implements StartConversationUseCase
     @Override
     public ConversationContext startConversation(StartConversationCommand command) {
         return producerTemplate.requestBody(DIRECT_START_CONVERSATION, command, ConversationContext.class);
+    }
+}
+```
+
+### C. Multi-Point d'Entrée (REST & Kafka)
+Pour activer une logique métier via plusieurs canaux (ex: Appel API et Message Kafka), utilisez un endpoint `direct:` commun.
+
+**Architecture recommandée :**
+1. **Route d'Orchestration (Cœur)** : Consomme depuis `direct:process-data`.
+2. **Route d'Exposition REST** : Expose un endpoint HTTP et transfère vers `direct:process-data`.
+3. **Route d'Événement Kafka** : Écoute un topic et transfère vers `direct:process-data` après transformation.
+
+```java
+@Component
+public class DataIngestionRoute extends RouteBuilder {
+    @Override
+    public void configure() {
+        // 1. Entrée REST (Composant Camel REST)
+        rest("/api/data")
+            .post()
+            .type(DataRequest.class)
+            .to(DIRECT_PROCESS_DATA);
+
+        // 2. Entrée Kafka
+        from("kafka:topic-data?brokers=localhost:9092")
+            .routeId("kafka-consumer-route")
+            .unmarshal().json(JsonLibrary.Jackson, DataRequest.class)
+            .to(DIRECT_PROCESS_DATA);
+
+        // 3. Orchestration commune
+        from(DIRECT_PROCESS_DATA)
+            .routeId("common-orchestrator")
+            .process(this::enrichData)
+            .to(DIRECT_DB_ADAPTER);
     }
 }
 ```
