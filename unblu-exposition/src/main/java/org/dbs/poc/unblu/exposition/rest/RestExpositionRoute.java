@@ -11,12 +11,16 @@ import org.dbs.poc.unblu.domain.model.ConversationContext;
 import org.dbs.poc.unblu.domain.model.PersonSource;
 import org.dbs.poc.unblu.domain.model.UnbluConversationInfo;
 import org.dbs.poc.unblu.exposition.rest.dto.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
 public class RestExpositionRoute extends RouteBuilder {
+
+    @Value("${mock.rule-engine.default-team-id:cAaYUeKyTZ25_OaA6jUeVA}")
+    private String defaultTeamId;
 
     @Override
     public void configure() {
@@ -84,7 +88,8 @@ public class RestExpositionRoute extends RouteBuilder {
         exchange.getIn().setBody(new StartConversationCommand(
                 request.getClientId(),
                 request.getSubject(),
-                request.getOrigin()));
+                request.getOrigin(),
+                defaultTeamId));
     }
 
     protected void mapContextToResponse(Exchange exchange) {
