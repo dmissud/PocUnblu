@@ -100,7 +100,8 @@ export class App implements OnInit {
 
     this.apiService.startTeamConversation({
       clientId: this.selectedClient.sourceId,
-      subject: this.teamSubject || 'Conversation équipe'
+      subject: this.teamSubject || 'Conversation équipe',
+      teamId: this.selectedTeam.id
     }).subscribe({
       next: (result) => {
         this.teamResult = result;
