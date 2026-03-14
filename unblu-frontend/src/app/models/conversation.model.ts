@@ -19,4 +19,5 @@ export interface DirectConversationRequest {
 export interface TeamConversationRequest {
   clientId: string;
   subject: string;
+  teamId: string;
 }

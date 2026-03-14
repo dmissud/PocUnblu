@@ -39,6 +39,10 @@ public class ConversationController {
     public ResponseEntity<ConversationContext> startTeamConversation(
             @RequestBody TeamConversationRequest request) {
 
+        if (request.teamId() == null || request.teamId().isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+
         StartConversationCommand command = new StartConversationCommand(
                 request.clientId(),
                 request.subject(),
