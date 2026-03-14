@@ -2,6 +2,9 @@
   <header>
     <h1>{{ title }}</h1>
     <p>Gestion des conversations Unblu</p>
+    <button (click)="openSwagger()" class="btn-swagger" title="Ouvrir la documentation Swagger">
+      📖 Swagger API
+    </button>
   </header>
 
   <div *ngIf="loadingData" class="loading">

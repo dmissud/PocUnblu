@@ -128,4 +128,8 @@ export class App implements OnInit {
     this.teamResult = null;
     this.error = null;
   }
+
+  openSwagger(): void {
+    window.open('http://localhost:8081/swagger-ui', '_blank');
+  }
 }
