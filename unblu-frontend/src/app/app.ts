@@ -5,6 +5,7 @@ import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { ApiService } from './services/api.service';
 import { PersonInfo } from './models/person.model';
 import { TeamInfo } from './models/team.model';
+import { WebhookStatus } from './models/webhook.model';
 
 @Component({
   selector: 'app-root',
@@ -38,10 +39,15 @@ export class App implements OnInit {
   loading = false;
   loadingData = true;
 
+  // Webhook status
+  webhookStatus: WebhookStatus | null = null;
+  webhookLoading = false;
+
   constructor(private apiService: ApiService) {}
 
   ngOnInit(): void {
     this.loadData();
+    this.loadWebhookStatus();
   }
 
   loadData(): void {
