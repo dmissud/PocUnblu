@@ -9,6 +9,7 @@ import {
   DirectConversationRequest,
   TeamConversationRequest
 } from '../models/conversation.model';
+import { WebhookSetupResult, WebhookStatus } from '../models/webhook.model';
 
 @Injectable({
   providedIn: 'root'
@@ -36,5 +37,18 @@ export class ApiService {
 
   startTeamConversation(request: TeamConversationRequest): Observable<ConversationContext> {
     return this.http.post<ConversationContext>(`${this.baseUrl}/conversations/team`, request);
+  }
+
+  // Webhook setup methods
+  setupWebhook(): Observable<WebhookSetupResult> {
+    return this.http.post<WebhookSetupResult>(`${this.baseUrl}/webhooks/setup`, {});
+  }
+
+  getWebhookStatus(): Observable<WebhookStatus> {
+    return this.http.get<WebhookStatus>(`${this.baseUrl}/webhooks/status`);
+  }
+
+  teardownWebhook(deleteWebhook: boolean = false): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/webhooks/teardown?deleteWebhook=${deleteWebhook}`);
   }
 }
