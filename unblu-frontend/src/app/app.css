@@ -24,10 +24,16 @@ header p {
   font-size: 1.1rem;
 }
 
-.btn-swagger {
+.header-buttons {
   position: absolute;
   top: 0;
   right: 0;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.btn-swagger {
   padding: 0.75rem 1.5rem;
   background-color: #34a853;
   color: white;
@@ -48,6 +54,74 @@ header p {
 
 .btn-swagger:active {
   transform: translateY(0);
+}
+
+.webhook-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.webhook-status {
+  padding: 0.5rem 1rem;
+  background-color: #f1f3f4;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #202124;
+  white-space: nowrap;
+}
+
+.btn-webhook {
+  padding: 0.75rem 1.5rem;
+  background-color: #1a73e8;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+}
+
+.btn-webhook:hover:not(:disabled) {
+  background-color: #1557b0;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.btn-webhook:disabled {
+  background-color: #dadce0;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-webhook-stop {
+  padding: 0.75rem 1.5rem;
+  background-color: #ea4335;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+}
+
+.btn-webhook-stop:hover:not(:disabled) {
+  background-color: #c5221f;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.btn-webhook-stop:disabled {
+  background-color: #dadce0;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .loading {
