@@ -67,7 +67,6 @@ public class ExternalSystemsMockAdapters extends RouteBuilder {
 
     private void mockRuleEngineLogic(org.apache.camel.Exchange exchange) {
         ConversationContext ctx = exchange.getIn().getBody(ConversationContext.class);
-        String segment = ctx.getCustomerProfile().customerSegment();
 
         ChatRoutingDecision decision;
 
