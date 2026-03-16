@@ -3,10 +3,8 @@ package org.dbs.poc.unblu.application.service;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.dbs.poc.unblu.application.port.in.StartConversationCommand;
-import org.dbs.poc.unblu.domain.model.ChatAccessDeniedException;
-import org.dbs.poc.unblu.domain.model.ConversationContext;
-import org.dbs.poc.unblu.domain.model.CustomerProfile;
 import org.dbs.poc.unblu.domain.model.ChatRoutingDecision;
+import org.dbs.poc.unblu.domain.model.ConversationContext;
 import org.springframework.stereotype.Component;
 
 import static org.dbs.poc.unblu.application.service.OrchestratorEndpoints.*;
