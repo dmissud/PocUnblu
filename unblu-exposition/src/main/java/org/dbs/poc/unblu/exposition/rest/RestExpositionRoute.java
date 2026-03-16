@@ -101,10 +101,13 @@ public class RestExpositionRoute extends RouteBuilder {
                 .component("servlet")
                 .bindingMode(RestBindingMode.json)
                 .apiContextPath("/api-doc")
+                .contextPath("/api")
                 .apiProperty("api.title", API_TITLE)
                 .apiProperty("api.version", API_VERSION)
                 .apiProperty("api.description", API_DESCRIPTION)
                 .apiProperty("api.contact.name", API_CONTACT_NAME)
+                .apiProperty("host", "localhost:8081")
+                .apiProperty("schemes", "http")
                 .apiProperty("cors", "true");
     }
 
