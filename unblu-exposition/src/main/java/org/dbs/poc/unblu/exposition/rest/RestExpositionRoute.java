@@ -101,10 +101,13 @@ public class RestExpositionRoute extends RouteBuilder {
                 .component("servlet")
                 .bindingMode(RestBindingMode.json)
                 .apiContextPath("/api-doc")
+                .contextPath("/api")
                 .apiProperty("api.title", API_TITLE)
                 .apiProperty("api.version", API_VERSION)
                 .apiProperty("api.description", API_DESCRIPTION)
                 .apiProperty("api.contact.name", API_CONTACT_NAME)
+                .apiProperty("host", "localhost:8081")
+                .apiProperty("schemes", "http")
                 .apiProperty("cors", "true");
     }
 
@@ -152,7 +155,17 @@ public class RestExpositionRoute extends RouteBuilder {
                 .get()
                     .outType(List.class)
                     .produces("application/json")
-                    .to(DIRECT_REST_SEARCH_NAMED_AREAS);
+                    .to(DIRECT_REST_SEARCH_NAMED_AREAS)
+                .get("/{namedAreaId}/agents")
+                    .param()
+                        .name("namedAreaId")
+                        .type(RestParamType.path)
+                        .description("ID of the named area")
+                        .required(true)
+                    .endParam()
+                    .outType(List.class)
+                    .produces("application/json")
+                    .to("direct:rest-search-agents-by-named-area");
     }
 
     private void defineWebhookEndpoints() {
@@ -227,6 +240,12 @@ public class RestExpositionRoute extends RouteBuilder {
                 .log("Searching named areas")
                 .process(namedAreaMapper::searchAndMapNamedAreas)
                 .log("Found ${body.size()} named areas");
+
+        from("direct:rest-search-agents-by-named-area")
+                .routeId("rest-search-agents-by-named-area")
+                .log("Searching agents for named area ${header.namedAreaId}")
+                .process(namedAreaMapper::searchAndMapAgentsByNamedArea)
+                .log("Found ${body.size()} agents");
     }
 
     private void defineWebhookRoutes() {
