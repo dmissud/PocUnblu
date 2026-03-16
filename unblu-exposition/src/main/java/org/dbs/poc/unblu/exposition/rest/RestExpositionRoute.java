@@ -4,6 +4,7 @@ import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.rest.RestBindingMode;
 import org.dbs.poc.unblu.application.port.in.StartDirectConversationCommand;
+import org.apache.camel.model.rest.RestParamType;
 import org.dbs.poc.unblu.application.service.OrchestratorEndpoints;
 import org.dbs.poc.unblu.domain.model.ConversationContext;
 import org.dbs.poc.unblu.domain.model.PersonSource;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.dbs.poc.unblu.exposition.rest.dto.StartConversationRequest;
 import org.dbs.poc.unblu.exposition.rest.dto.StartConversationResponse;
 import org.dbs.poc.unblu.exposition.rest.dto.StartDirectConversationRequest;
+import org.dbs.poc.unblu.exposition.rest.mapper.ConversationMapper;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -70,6 +72,11 @@ public class RestExpositionRoute extends RouteBuilder {
             .get()
                 .outType(List.class)
                 .to("direct:rest-search-persons");
+        rest(PATH_PERSONS)
+                .get()
+                    .outType(List.class)
+                    .produces("application/json")
+                    .to(DIRECT_REST_SEARCH_PERSONS);
 
         // --- Teams ---
         rest("/v1/teams")
@@ -109,6 +116,12 @@ public class RestExpositionRoute extends RouteBuilder {
             .process(this::mapSearchPersonsQuery)
             .to(OrchestratorEndpoints.DIRECT_UNBLU_SEARCH_PERSONS)
             .process(this::mapPersonsToResponse);
+    private void definePersonRoutes() {
+        from(DIRECT_REST_SEARCH_PERSONS)
+                .routeId(ROUTE_REST_SEARCH_PERSONS)
+                .process(personMapper::mapHeadersToQuery)
+                .to(OrchestratorEndpoints.DIRECT_UNBLU_SEARCH_PERSONS)
+                .process(personMapper::mapPersonsToResponse);
 
         from("direct:rest-search-teams")
             .routeId("rest-search-teams")
@@ -128,12 +141,7 @@ public class RestExpositionRoute extends RouteBuilder {
             .process(this::teardownWebhook);
     }
 
-    protected void mapSearchPersonsQuery(Exchange exchange) {
-        String sourceId = exchange.getIn().getHeader("sourceId", String.class);
-        String personSourceStr = exchange.getIn().getHeader("personSource", String.class);
-        PersonSource personSource = personSourceStr != null ? PersonSource.valueOf(personSourceStr) : null;
-        
-        exchange.getIn().setBody(new SearchPersonsQuery(sourceId, personSource));
+    private void defineTeamRoutes() {
     }
 
     protected void mapPersonsToResponse(Exchange exchange) {
