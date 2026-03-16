@@ -12,7 +12,6 @@ import org.dbs.poc.unblu.domain.model.UnbluConversationInfo;
 import org.dbs.poc.unblu.domain.model.webhook.WebhookSetupResult;
 import org.dbs.poc.unblu.domain.model.webhook.WebhookStatus;
 import org.dbs.poc.unblu.exposition.rest.dto.*;
-import org.springframework.beans.factory.annotation.Value;
 import org.dbs.poc.unblu.exposition.rest.dto.StartConversationRequest;
 import org.dbs.poc.unblu.exposition.rest.dto.StartConversationResponse;
 import org.dbs.poc.unblu.exposition.rest.dto.StartDirectConversationRequest;
@@ -28,8 +27,7 @@ public class RestExpositionRoute extends RouteBuilder {
 
     private final SetupWebhookUseCase setupWebhookUseCase;
 
-    @Value("${mock.rule-engine.default-team-id:cAaYUeKyTZ25_OaA6jUeVA}")
-    private String defaultTeamId;
+    // REST path segments
 
     public RestExpositionRoute(SetupWebhookUseCase setupWebhookUseCase) {
         this.setupWebhookUseCase = setupWebhookUseCase;
