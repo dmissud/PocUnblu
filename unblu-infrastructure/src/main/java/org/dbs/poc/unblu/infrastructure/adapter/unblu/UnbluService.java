@@ -32,6 +32,12 @@ public class UnbluService {
     private final UnbluProperties unbluProperties;
 
     /**
+     * Constant to indicate no field expansion is needed in Unblu API calls.
+     * When null, only basic data is returned without expanding related entities.
+     */
+    private static final List<ExpandFields> NO_EXPAND_FIELDS = null;
+
+    /**
      * Get current account from Unblu
      */
     public Account getCurrentAccount() {
@@ -161,7 +167,7 @@ public class UnbluService {
             TeamQuery query = new TeamQuery();
 
             log.info("Récupération des équipes dans Unblu...");
-            TeamResult result = teamsApi.teamsSearch(query, null);
+            TeamResult result = teamsApi.teamsSearch(query, NO_EXPAND_FIELDS);
             log.info("Trouvé {} équipe(s)", result.getItems().size());
 
             return result.getItems().stream()
@@ -173,6 +179,30 @@ public class UnbluService {
         } catch (ApiException e) {
             log.error("Erreur lors de la récupération des équipes Unblu - Status: {}", e.getCode(), e);
             throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la récupération des équipes : " + e.getMessage());
+        }
+    }
+
+    /**
+     * Search for named areas
+     */
+    public List<NamedAreaInfo> searchNamedAreas() {
+        try {
+            NamedAreasApi namedAreasApi = new NamedAreasApi(apiClient);
+            NamedAreaQuery query = new NamedAreaQuery();
+
+            log.info("Récupération des zones nommées dans Unblu...");
+            NamedAreaResult result = namedAreasApi.namedAreasSearch(query, NO_EXPAND_FIELDS);
+            log.info("Trouvé {} zone(s) nommée(s)", result.getItems().size());
+
+            return result.getItems().stream()
+                    .map(namedArea -> new NamedAreaInfo(
+                            namedArea.getId(),
+                            namedArea.getName(),
+                            namedArea.getDescription()))
+                    .toList();
+        } catch (ApiException e) {
+            log.error("Erreur lors de la récupération des zones nommées Unblu - Status: {}", e.getCode(), e);
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la récupération des zones nommées : " + e.getMessage());
         }
     }
 
