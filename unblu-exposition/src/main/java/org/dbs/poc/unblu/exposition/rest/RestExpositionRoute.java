@@ -10,6 +10,7 @@ import org.dbs.poc.unblu.exposition.rest.dto.StartConversationRequest;
 import org.dbs.poc.unblu.exposition.rest.dto.StartConversationResponse;
 import org.dbs.poc.unblu.exposition.rest.dto.StartDirectConversationRequest;
 import org.dbs.poc.unblu.exposition.rest.mapper.ConversationMapper;
+import org.dbs.poc.unblu.exposition.rest.mapper.NamedAreaMapper;
 import org.dbs.poc.unblu.exposition.rest.mapper.PersonMapper;
 import org.dbs.poc.unblu.exposition.rest.mapper.TeamMapper;
 import org.dbs.poc.unblu.exposition.rest.mapper.WebhookMapper;
@@ -38,6 +39,7 @@ public class RestExpositionRoute extends RouteBuilder {
     private static final String ROUTE_REST_START_DIRECT_CONVERSATION = "rest-start-direct-conversation";
     private static final String ROUTE_REST_SEARCH_PERSONS = "rest-search-persons";
     private static final String ROUTE_REST_SEARCH_TEAMS = "rest-search-teams";
+    private static final String ROUTE_REST_SEARCH_NAMED_AREAS = "rest-search-named-areas";
     private static final String ROUTE_REST_WEBHOOK_SETUP = "rest-webhook-setup";
     private static final String ROUTE_REST_WEBHOOK_STATUS = "rest-webhook-status";
     private static final String ROUTE_REST_WEBHOOK_TEARDOWN = "rest-webhook-teardown";
@@ -47,6 +49,7 @@ public class RestExpositionRoute extends RouteBuilder {
     private static final String DIRECT_REST_START_DIRECT_CONVERSATION = "direct:rest-start-direct-conversation";
     private static final String DIRECT_REST_SEARCH_PERSONS = "direct:rest-search-persons";
     private static final String DIRECT_REST_SEARCH_TEAMS = "direct:rest-search-teams";
+    private static final String DIRECT_REST_SEARCH_NAMED_AREAS = "direct:rest-search-named-areas";
     private static final String DIRECT_REST_WEBHOOK_SETUP = "direct:rest-webhook-setup";
     private static final String DIRECT_REST_WEBHOOK_STATUS = "direct:rest-webhook-status";
     private static final String DIRECT_REST_WEBHOOK_TEARDOWN = "direct:rest-webhook-teardown";
@@ -55,6 +58,7 @@ public class RestExpositionRoute extends RouteBuilder {
     private static final String PATH_CONVERSATIONS = "/v1/conversations";
     private static final String PATH_PERSONS = "/v1/persons";
     private static final String PATH_TEAMS = "/v1/teams";
+    private static final String PATH_NAMED_AREAS = "/v1/named-areas";
     private static final String PATH_WEBHOOKS = "/v1/webhooks";
 
     // Swagger configuration
@@ -66,16 +70,19 @@ public class RestExpositionRoute extends RouteBuilder {
     private final ConversationMapper conversationMapper;
     private final PersonMapper personMapper;
     private final TeamMapper teamMapper;
+    private final NamedAreaMapper namedAreaMapper;
     private final WebhookMapper webhookMapper;
 
     public RestExpositionRoute(
             ConversationMapper conversationMapper,
             PersonMapper personMapper,
             TeamMapper teamMapper,
+            NamedAreaMapper namedAreaMapper,
             WebhookMapper webhookMapper) {
         this.conversationMapper = conversationMapper;
         this.personMapper = personMapper;
         this.teamMapper = teamMapper;
+        this.namedAreaMapper = namedAreaMapper;
         this.webhookMapper = webhookMapper;
     }
 
@@ -108,6 +115,7 @@ public class RestExpositionRoute extends RouteBuilder {
         defineConversationEndpoints();
         definePersonEndpoints();
         defineTeamEndpoints();
+        defineNamedAreaEndpoints();
         defineWebhookEndpoints();
     }
 
@@ -139,6 +147,14 @@ public class RestExpositionRoute extends RouteBuilder {
                     .to(DIRECT_REST_SEARCH_TEAMS);
     }
 
+    private void defineNamedAreaEndpoints() {
+        rest(PATH_NAMED_AREAS)
+                .get()
+                    .outType(List.class)
+                    .produces("application/json")
+                    .to(DIRECT_REST_SEARCH_NAMED_AREAS);
+    }
+
     private void defineWebhookEndpoints() {
         rest(PATH_WEBHOOKS)
                 .post("/setup")
@@ -165,6 +181,7 @@ public class RestExpositionRoute extends RouteBuilder {
         defineConversationRoutes();
         definePersonRoutes();
         defineTeamRoutes();
+        defineNamedAreaRoutes();
         defineWebhookRoutes();
     }
 
@@ -202,6 +219,14 @@ public class RestExpositionRoute extends RouteBuilder {
                 .log("Searching teams")
                 .process(teamMapper::searchAndMapTeams)
                 .log("Found ${body.size()} teams");
+    }
+
+    private void defineNamedAreaRoutes() {
+        from(DIRECT_REST_SEARCH_NAMED_AREAS)
+                .routeId(ROUTE_REST_SEARCH_NAMED_AREAS)
+                .log("Searching named areas")
+                .process(namedAreaMapper::searchAndMapNamedAreas)
+                .log("Found ${body.size()} named areas");
     }
 
     private void defineWebhookRoutes() {
