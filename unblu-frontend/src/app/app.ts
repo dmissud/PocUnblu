@@ -4,6 +4,7 @@ import {FormsModule} from '@angular/forms';
 import {ApiService} from './services/api.service';
 import {PersonInfo} from './models/person.model';
 import {TeamInfo} from './models/team.model';
+import {NamedAreaInfo} from './models/named-area.model';
 import {WebhookStatus} from './models/webhook.model';
 
 @Component({
@@ -19,15 +20,18 @@ export class App implements OnInit {
   clients: PersonInfo[] = [];
   agents: PersonInfo[] = [];
   teams: TeamInfo[] = [];
+  namedAreas: NamedAreaInfo[] = [];
 
   // Selected values
   selectedClient: PersonInfo | null = null;
   selectedAgent: PersonInfo | null = null;
   selectedTeam: TeamInfo | null = null;
+  selectedNamedArea: NamedAreaInfo | null = null;
 
   // Form values
   directSubject: string = '';
   teamSubject: string = '';
+  recipientType: 'TEAM' | 'NAMED_AREA' = 'TEAM';
 
   // Results
   directResult: any = null;
@@ -55,11 +59,13 @@ export class App implements OnInit {
     Promise.all([
       this.apiService.getClients().toPromise(),
       this.apiService.getAgents().toPromise(),
-      this.apiService.getTeams().toPromise()
-    ]).then(([clients, agents, teams]) => {
+      this.apiService.getTeams().toPromise(),
+      this.apiService.getNamedAreas().toPromise()
+    ]).then(([clients, agents, teams, namedAreas]) => {
       this.clients = clients || [];
       this.agents = agents || [];
       this.teams = teams || [];
+      this.namedAreas = namedAreas || [];
       this.loadingData = false;
     }).catch(err => {
       this.error = 'Erreur lors du chargement des données: ' + err.message;
@@ -94,8 +100,18 @@ export class App implements OnInit {
   }
 
   startTeamConversation(): void {
-    if (!this.selectedClient || !this.selectedTeam) {
-      this.error = 'Veuillez sélectionner un client et une équipe';
+    if (!this.selectedClient) {
+      this.error = 'Veuillez sélectionner un client';
+      return;
+    }
+
+    if (this.recipientType === 'TEAM' && !this.selectedTeam) {
+      this.error = 'Veuillez sélectionner une équipe';
+      return;
+    }
+
+    if (this.recipientType === 'NAMED_AREA' && !this.selectedNamedArea) {
+      this.error = 'Veuillez sélectionner une zone nommée';
       return;
     }
 
@@ -103,10 +119,14 @@ export class App implements OnInit {
     this.error = null;
     this.teamResult = null;
 
+    const recipientId = this.recipientType === 'TEAM'
+      ? this.selectedTeam!.id
+      : this.selectedNamedArea!.id;
+
     this.apiService.startTeamConversation({
       clientId: this.selectedClient.sourceId,
-      subject: this.teamSubject || 'Conversation équipe',
-      teamId: this.selectedTeam.id
+      subject: this.teamSubject || `Conversation ${this.recipientType === 'TEAM' ? 'équipe' : 'zone nommée'}`,
+      teamId: recipientId
     }).subscribe({
       next: (result) => {
         this.teamResult = result;
@@ -130,9 +150,15 @@ export class App implements OnInit {
   resetTeamForm(): void {
     this.selectedClient = null;
     this.selectedTeam = null;
+    this.selectedNamedArea = null;
     this.teamSubject = '';
     this.teamResult = null;
     this.error = null;
+  }
+
+  onRecipientTypeChange(): void {
+    this.selectedTeam = null;
+    this.selectedNamedArea = null;
   }
 
   openSwagger(): void {

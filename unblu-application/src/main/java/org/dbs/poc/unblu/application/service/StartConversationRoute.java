@@ -3,10 +3,8 @@ package org.dbs.poc.unblu.application.service;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.dbs.poc.unblu.application.port.in.StartConversationCommand;
-import org.dbs.poc.unblu.domain.model.ChatAccessDeniedException;
-import org.dbs.poc.unblu.domain.model.ConversationContext;
-import org.dbs.poc.unblu.domain.model.CustomerProfile;
 import org.dbs.poc.unblu.domain.model.ChatRoutingDecision;
+import org.dbs.poc.unblu.domain.model.ConversationContext;
 import org.springframework.stereotype.Component;
 
 import static org.dbs.poc.unblu.application.service.OrchestratorEndpoints.*;
@@ -18,19 +16,24 @@ public class StartConversationRoute extends RouteBuilder {
     public void configure() {
         from(DIRECT_START_CONVERSATION)
             .routeId("main-orchestrator-start-conversation")
-            .log("Démarrage de l'orchestration Camel pour clientId: ${body.clientId}, teamId: ${body.teamId}")
+            .log("Démarrage de l'orchestration Camel")
 
             .process(this::initConversationContext)
+            .log("Context initialisé, appel de l'adapter Unblu pour créer la conversation")
             .to(DIRECT_UNBLU_ADAPTER_RESILIENT)
+            .log("Conversation créée, enrichissement avec le summary")
             .enrich(DIRECT_CONVERSATION_SUMMARY_ADAPTER, (oldExchange, newExchange) -> oldExchange)
             .to(DIRECT_UNBLU_ADD_SUMMARY_INTERNAL);
 
         from(DIRECT_UNBLU_ADD_SUMMARY_INTERNAL)
             .routeId("main-orchestrator-add-summary-internal")
             .process(this::prepareSummaryRequestFromContext)
+            .log("Génération du summary pour la conversation ID: ${exchangeProperty.convId}")
             .enrich(DIRECT_CONVERSATION_SUMMARY_ADAPTER, this::aggregateSummary)
+            .log("Summary généré: ${exchangeProperty.summary}")
             .process(this::prepareFinalSummaryRequest)
             .to(DIRECT_UNBLU_ADD_SUMMARY)
+            .log("Summary ajouté à la conversation")
             .process(this::restoreContext);
     }
 

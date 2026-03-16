@@ -5,10 +5,12 @@ import com.unblu.webapi.jersey.v4.invoker.ApiException;
 import com.unblu.webapi.jersey.v4.api.AccountsApi;
 import com.unblu.webapi.jersey.v4.api.BotsApi;
 import com.unblu.webapi.jersey.v4.api.ConversationsApi;
+import com.unblu.webapi.jersey.v4.api.NamedAreasApi;
 import com.unblu.webapi.jersey.v4.api.PersonsApi;
 import com.unblu.webapi.jersey.v4.api.TeamsApi;
 import com.unblu.webapi.jersey.v4.api.WebhookRegistrationsApi;
 import com.unblu.webapi.model.v4.*;
+import org.dbs.poc.unblu.domain.model.NamedAreaInfo;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
 import org.dbs.poc.unblu.domain.model.TeamInfo;
 import org.dbs.poc.unblu.infrastructure.config.UnbluProperties;
@@ -28,6 +30,12 @@ public class UnbluService {
 
     private final ApiClient apiClient;
     private final UnbluProperties unbluProperties;
+
+    /**
+     * Constant to indicate no field expansion is needed in Unblu API calls.
+     * When null, only basic data is returned without expanding related entities.
+     */
+    private static final List<ExpandFields> NO_EXPAND_FIELDS = null;
 
     /**
      * Get current account from Unblu
@@ -159,7 +167,7 @@ public class UnbluService {
             TeamQuery query = new TeamQuery();
 
             log.info("Récupération des équipes dans Unblu...");
-            TeamResult result = teamsApi.teamsSearch(query, null);
+            TeamResult result = teamsApi.teamsSearch(query, NO_EXPAND_FIELDS);
             log.info("Trouvé {} équipe(s)", result.getItems().size());
 
             return result.getItems().stream()
@@ -171,6 +179,30 @@ public class UnbluService {
         } catch (ApiException e) {
             log.error("Erreur lors de la récupération des équipes Unblu - Status: {}", e.getCode(), e);
             throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la récupération des équipes : " + e.getMessage());
+        }
+    }
+
+    /**
+     * Search for named areas
+     */
+    public List<NamedAreaInfo> searchNamedAreas() {
+        try {
+            NamedAreasApi namedAreasApi = new NamedAreasApi(apiClient);
+            NamedAreaQuery query = new NamedAreaQuery();
+
+            log.info("Récupération des zones nommées dans Unblu...");
+            NamedAreaResult result = namedAreasApi.namedAreasSearch(query, NO_EXPAND_FIELDS);
+            log.info("Trouvé {} zone(s) nommée(s)", result.getItems().size());
+
+            return result.getItems().stream()
+                    .map(namedArea -> new NamedAreaInfo(
+                            namedArea.getId(),
+                            namedArea.getName(),
+                            namedArea.getDescription()))
+                    .toList();
+        } catch (ApiException e) {
+            log.error("Erreur lors de la récupération des zones nommées Unblu - Status: {}", e.getCode(), e);
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la récupération des zones nommées : " + e.getMessage());
         }
     }
 

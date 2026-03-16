@@ -108,10 +108,10 @@
       </div>
     </div>
 
-    <!-- Workflow 2: Conversation avec Team -->
+    <!-- Workflow 2: Conversation avec Team ou Named Area -->
     <div class="card">
-      <h2>👥 Conversation avec Équipe</h2>
-      <p class="subtitle">Client + Team → Conversation routée</p>
+      <h2>👥 Conversation avec Équipe ou Zone Nommée</h2>
+      <p class="subtitle">Client + Team/Named Area → Conversation routée</p>
 
       <div class="form-group">
         <label for="team-client">Client (VIRTUAL)</label>
@@ -128,6 +128,32 @@
       </div>
 
       <div class="form-group">
+        <label>Type de destinataire</label>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input
+              type="radio"
+              name="recipientType"
+              value="TEAM"
+              [(ngModel)]="recipientType"
+              (change)="onRecipientTypeChange()"
+              [disabled]="loading">
+            Équipe
+          </label>
+          <label class="radio-label">
+            <input
+              type="radio"
+              name="recipientType"
+              value="NAMED_AREA"
+              [(ngModel)]="recipientType"
+              (change)="onRecipientTypeChange()"
+              [disabled]="loading">
+            Zone Nommée
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group" *ngIf="recipientType === 'TEAM'">
         <label for="team-select">Équipe</label>
         <select
           id="team-select"
@@ -137,6 +163,20 @@
           <option [ngValue]="null">-- Sélectionner une équipe --</option>
           <option *ngFor="let team of teams" [ngValue]="team">
             {{ team.name }} - {{ team.description }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group" *ngIf="recipientType === 'NAMED_AREA'">
+        <label for="named-area-select">Zone Nommée</label>
+        <select
+          id="named-area-select"
+          [(ngModel)]="selectedNamedArea"
+          class="form-control"
+          [disabled]="loading">
+          <option [ngValue]="null">-- Sélectionner une zone nommée --</option>
+          <option *ngFor="let namedArea of namedAreas" [ngValue]="namedArea">
+            {{ namedArea.name }} - {{ namedArea.description }}
           </option>
         </select>
       </div>
@@ -156,8 +196,8 @@
         <button
           (click)="startTeamConversation()"
           class="btn btn-primary"
-          [disabled]="loading || !selectedClient || !selectedTeam">
-          {{ loading ? 'Création...' : 'Créer Conversation Équipe' }}
+          [disabled]="loading || !selectedClient || (recipientType === 'TEAM' && !selectedTeam) || (recipientType === 'NAMED_AREA' && !selectedNamedArea)">
+          {{ loading ? 'Création...' : 'Créer Conversation' }}
         </button>
         <button
           (click)="resetTeamForm()"
