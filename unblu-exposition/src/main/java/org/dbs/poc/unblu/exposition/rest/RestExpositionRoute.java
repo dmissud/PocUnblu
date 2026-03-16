@@ -94,6 +94,21 @@ public class RestExpositionRoute extends RouteBuilder {
             .delete("/teardown")
                 .param().name("deleteWebhook").type(org.apache.camel.model.rest.RestParamType.query).defaultValue("false").endParam()
                 .to("direct:rest-webhook-teardown");
+        rest(PATH_WEBHOOKS)
+                .post("/setup")
+                    .outType(WebhookSetupResult.class)
+                    .to(DIRECT_REST_WEBHOOK_SETUP)
+                .get("/status")
+                    .outType(WebhookStatus.class)
+                    .to(DIRECT_REST_WEBHOOK_STATUS)
+                .delete("/teardown")
+                    .param()
+                        .name("deleteWebhook")
+                        .type(RestParamType.query)
+                        .defaultValue("false")
+                        .description("Whether to delete the webhook from Unblu")
+                    .endParam()
+                    .to(DIRECT_REST_WEBHOOK_TEARDOWN);
 
         // --- Internal routes for mapping and orchestration call ---
 
@@ -123,19 +138,6 @@ public class RestExpositionRoute extends RouteBuilder {
                 .process(personMapper::mapPersonsToResponse);
 
 
-        from("direct:rest-webhook-setup")
-            .routeId("rest-webhook-setup")
-            .process(this::setupWebhook);
-
-        from("direct:rest-webhook-status")
-            .routeId("rest-webhook-status")
-            .process(this::getWebhookStatus);
-
-        from("direct:rest-webhook-teardown")
-            .routeId("rest-webhook-teardown")
-            .process(this::teardownWebhook);
-    }
-
     private void defineTeamRoutes() {
         from(DIRECT_REST_SEARCH_TEAMS)
                 .routeId(ROUTE_REST_SEARCH_TEAMS)
@@ -159,37 +161,16 @@ public class RestExpositionRoute extends RouteBuilder {
                 .toList();
         exchange.getIn().setBody(response);
     }
+        from(DIRECT_REST_WEBHOOK_SETUP)
+                .routeId(ROUTE_REST_WEBHOOK_SETUP)
+                .process(webhookMapper::setupWebhook);
 
-    protected void mapTeamsToResponse(Exchange exchange) {
-        List<?> list = exchange.getIn().getBody(List.class);
-        if (list == null) return;
+        from(DIRECT_REST_WEBHOOK_STATUS)
+                .routeId(ROUTE_REST_WEBHOOK_STATUS)
+                .process(webhookMapper::getWebhookStatus);
 
-        List<TeamResponse> response = list.stream()
-                .filter(org.dbs.poc.unblu.domain.model.TeamInfo.class::isInstance)
-                .map(org.dbs.poc.unblu.domain.model.TeamInfo.class::cast)
-                .map(teamInfo -> TeamResponse.builder()
-                        .id(teamInfo.id())
-                        .name(teamInfo.name())
-                        .description(teamInfo.description())
-                        .build())
-                .toList();
-        exchange.getIn().setBody(response);
-    }
-
-    protected void setupWebhook(Exchange exchange) {
-        WebhookSetupResult result = setupWebhookUseCase.setupWebhook();
-        exchange.getIn().setBody(result);
-    }
-
-    protected void getWebhookStatus(Exchange exchange) {
-        WebhookStatus status = setupWebhookUseCase.getWebhookStatus();
-        exchange.getIn().setBody(status);
-    }
-
-    protected void teardownWebhook(Exchange exchange) {
-        String deleteWebhookParam = exchange.getIn().getHeader("deleteWebhook", String.class);
-        boolean deleteWebhook = Boolean.parseBoolean(deleteWebhookParam);
-        setupWebhookUseCase.teardownWebhook(deleteWebhook);
-        exchange.getIn().setBody(null);
+        from(DIRECT_REST_WEBHOOK_TEARDOWN)
+                .routeId(ROUTE_REST_WEBHOOK_TEARDOWN)
+                .process(webhookMapper::teardownWebhook);
     }
 }
