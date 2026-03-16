@@ -8,6 +8,7 @@ import com.unblu.webapi.jersey.v4.api.ConversationsApi;
 import com.unblu.webapi.jersey.v4.api.NamedAreasApi;
 import com.unblu.webapi.jersey.v4.api.PersonsApi;
 import com.unblu.webapi.jersey.v4.api.TeamsApi;
+import com.unblu.webapi.jersey.v4.api.UsersApi;
 import com.unblu.webapi.jersey.v4.api.WebhookRegistrationsApi;
 import com.unblu.webapi.model.v4.*;
 import org.dbs.poc.unblu.domain.model.NamedAreaInfo;
@@ -16,6 +17,7 @@ import org.dbs.poc.unblu.domain.model.TeamInfo;
 import org.dbs.poc.unblu.infrastructure.config.UnbluProperties;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
@@ -572,6 +574,47 @@ public class UnbluService {
         } catch (Exception e) {
             log.error("Unexpected error deleting webhook from Unblu", e);
             throw new RuntimeException("Erreur inattendue lors de la suppression du webhook", e);
+        }
+    }
+
+    /**
+     * Search for agents who have a specific named area in their queue filter configuration
+     */
+    public List<PersonInfo> searchAgentsByNamedArea(String namedAreaId) {
+        try {
+            UsersApi usersApi = new UsersApi(apiClient);
+            UserQuery query = new UserQuery();
+
+            log.info("Recherche des agents ayant la named area {} dans leur configuration de queue...", namedAreaId);
+
+            // Récupérer tous les utilisateurs avec leur configuration
+            List<ExpandFields> expand = List.of(ExpandFields.CONFIGURATION);
+            UserResult result = usersApi.usersSearch(query, expand);
+
+            log.info("Trouvé {} utilisateur(s) au total", result.getItems().size());
+
+            // Filtrer les utilisateurs qui ont cette named area dans leur configuration de queue
+            List<PersonInfo> agents = result.getItems().stream()
+                    .filter(user -> {
+                        Map<String, String> config = user.getConfiguration();
+                        if (config == null) {
+                            return false;
+                        }
+                        String namedAreasFilter = config.get("com.unblu.queue.ui.defaultFilterNamedAreas");
+                        return namedAreasFilter != null && namedAreasFilter.contains(namedAreaId);
+                    })
+                    .map(user -> new PersonInfo(
+                            user.getId(),
+                            user.getUsername(),
+                            user.getDisplayName(),
+                            user.getEmail()))
+                    .toList();
+
+            log.info("Trouvé {} agent(s) avec la named area {} dans leur queue", agents.size(), namedAreaId);
+            return agents;
+        } catch (ApiException e) {
+            log.error("Erreur lors de la recherche des agents par named area - Status: {}", e.getCode(), e);
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la recherche des agents par named area : " + e.getMessage());
         }
     }
 }
