@@ -4,12 +4,15 @@ import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.rest.RestBindingMode;
 import org.dbs.poc.unblu.application.port.in.SearchPersonsQuery;
+import org.dbs.poc.unblu.application.port.in.SetupWebhookUseCase;
 import org.dbs.poc.unblu.application.port.in.StartConversationCommand;
 import org.dbs.poc.unblu.application.port.in.StartDirectConversationCommand;
 import org.dbs.poc.unblu.application.service.OrchestratorEndpoints;
 import org.dbs.poc.unblu.domain.model.ConversationContext;
 import org.dbs.poc.unblu.domain.model.PersonSource;
 import org.dbs.poc.unblu.domain.model.UnbluConversationInfo;
+import org.dbs.poc.unblu.domain.model.webhook.WebhookSetupResult;
+import org.dbs.poc.unblu.domain.model.webhook.WebhookStatus;
 import org.dbs.poc.unblu.exposition.rest.dto.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -19,8 +22,14 @@ import java.util.List;
 @Component
 public class RestExpositionRoute extends RouteBuilder {
 
+    private final SetupWebhookUseCase setupWebhookUseCase;
+
     @Value("${mock.rule-engine.default-team-id:cAaYUeKyTZ25_OaA6jUeVA}")
     private String defaultTeamId;
+
+    public RestExpositionRoute(SetupWebhookUseCase setupWebhookUseCase) {
+        this.setupWebhookUseCase = setupWebhookUseCase;
+    }
 
     @Override
     public void configure() {
@@ -57,6 +66,18 @@ public class RestExpositionRoute extends RouteBuilder {
                 .outType(List.class)
                 .to("direct:rest-search-teams");
 
+        // --- Webhooks ---
+        rest("/v1/webhooks")
+            .post("/setup")
+                .outType(WebhookSetupResult.class)
+                .to("direct:rest-webhook-setup")
+            .get("/status")
+                .outType(WebhookStatus.class)
+                .to("direct:rest-webhook-status")
+            .delete("/teardown")
+                .param().name("deleteWebhook").type(org.apache.camel.model.rest.RestParamType.query).defaultValue("false").endParam()
+                .to("direct:rest-webhook-teardown");
+
         // --- Internal routes for mapping and orchestration call ---
 
         from("direct:rest-start-conversation")
@@ -81,6 +102,18 @@ public class RestExpositionRoute extends RouteBuilder {
             .routeId("rest-search-teams")
             .to(OrchestratorEndpoints.DIRECT_UNBLU_SEARCH_TEAMS)
             .process(this::mapTeamsToResponse);
+
+        from("direct:rest-webhook-setup")
+            .routeId("rest-webhook-setup")
+            .process(this::setupWebhook);
+
+        from("direct:rest-webhook-status")
+            .routeId("rest-webhook-status")
+            .process(this::getWebhookStatus);
+
+        from("direct:rest-webhook-teardown")
+            .routeId("rest-webhook-teardown")
+            .process(this::teardownWebhook);
     }
 
     protected void mapStartConversationRequestToCommand(Exchange exchange) {
@@ -159,5 +192,22 @@ public class RestExpositionRoute extends RouteBuilder {
                         .build())
                 .toList();
         exchange.getIn().setBody(response);
+    }
+
+    protected void setupWebhook(Exchange exchange) {
+        WebhookSetupResult result = setupWebhookUseCase.setupWebhook();
+        exchange.getIn().setBody(result);
+    }
+
+    protected void getWebhookStatus(Exchange exchange) {
+        WebhookStatus status = setupWebhookUseCase.getWebhookStatus();
+        exchange.getIn().setBody(status);
+    }
+
+    protected void teardownWebhook(Exchange exchange) {
+        String deleteWebhookParam = exchange.getIn().getHeader("deleteWebhook", String.class);
+        boolean deleteWebhook = Boolean.parseBoolean(deleteWebhookParam);
+        setupWebhookUseCase.teardownWebhook(deleteWebhook);
+        exchange.getIn().setBody(null);
     }
 }
