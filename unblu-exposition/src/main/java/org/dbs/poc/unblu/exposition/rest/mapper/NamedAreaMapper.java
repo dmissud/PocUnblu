@@ -1,9 +1,12 @@
 package org.dbs.poc.unblu.exposition.rest.mapper;
 
 import org.apache.camel.Exchange;
+import org.dbs.poc.unblu.application.port.in.SearchAgentsByNamedAreaUseCase;
 import org.dbs.poc.unblu.application.port.in.SearchNamedAreasUseCase;
 import org.dbs.poc.unblu.domain.model.NamedAreaInfo;
+import org.dbs.poc.unblu.domain.model.PersonInfo;
 import org.dbs.poc.unblu.exposition.rest.dto.NamedAreaResponse;
+import org.dbs.poc.unblu.exposition.rest.dto.PersonResponse;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -17,9 +20,12 @@ import java.util.List;
 public class NamedAreaMapper {
 
     private final SearchNamedAreasUseCase searchNamedAreasUseCase;
+    private final SearchAgentsByNamedAreaUseCase searchAgentsByNamedAreaUseCase;
 
-    public NamedAreaMapper(SearchNamedAreasUseCase searchNamedAreasUseCase) {
+    public NamedAreaMapper(SearchNamedAreasUseCase searchNamedAreasUseCase,
+                          SearchAgentsByNamedAreaUseCase searchAgentsByNamedAreaUseCase) {
         this.searchNamedAreasUseCase = searchNamedAreasUseCase;
+        this.searchAgentsByNamedAreaUseCase = searchAgentsByNamedAreaUseCase;
     }
 
     /**
@@ -53,5 +59,22 @@ public class NamedAreaMapper {
     public void searchAndMapNamedAreas(Exchange exchange) {
         List<NamedAreaInfo> namedAreaInfos = searchNamedAreasUseCase.searchNamedAreas();
         exchange.getIn().setBody(toResponseList(namedAreaInfos));
+    }
+
+    /**
+     * Searches agents by named area and returns PersonResponse list.
+     */
+    public void searchAndMapAgentsByNamedArea(Exchange exchange) {
+        String namedAreaId = exchange.getIn().getHeader("namedAreaId", String.class);
+        List<PersonInfo> agents = searchAgentsByNamedAreaUseCase.searchAgentsByNamedArea(namedAreaId);
+        List<PersonResponse> responses = agents.stream()
+                .map(agent -> PersonResponse.builder()
+                        .id(agent.id())
+                        .sourceId(agent.sourceId())
+                        .displayName(agent.displayName())
+                        .email(agent.email())
+                        .build())
+                .toList();
+        exchange.getIn().setBody(responses);
     }
 }
