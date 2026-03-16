@@ -104,12 +104,6 @@
                 <version>${camel.version}</version>
             </dependency>
 
-            <!-- Spring Boot Actuator -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-actuator</artifactId>
-            </dependency>
-
             <!-- Unblu OpenAPI -->
             <dependency>
                 <groupId>com.unblu.openapi</groupId>
