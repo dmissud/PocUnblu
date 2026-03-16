@@ -18,12 +18,12 @@ public class StartConversationRoute extends RouteBuilder {
     public void configure() {
         from(DIRECT_START_CONVERSATION)
             .routeId("main-orchestrator-start-conversation")
-            .log("Démarrage de l'orchestration Camel pour clientId: ${body.clientId}, teamId: ${body.teamId}")
+            .log("Démarrage de l'orchestration Camel")
 
             .process(this::initConversationContext)
             .log("Context initialisé, appel de l'adapter Unblu pour créer la conversation")
             .to(DIRECT_UNBLU_ADAPTER_RESILIENT)
-            .log("Conversation créée avec ID: ${body.unbluConversationId}, enrichissement avec le summary")
+            .log("Conversation créée, enrichissement avec le summary")
             .enrich(DIRECT_CONVERSATION_SUMMARY_ADAPTER, (oldExchange, newExchange) -> oldExchange)
             .to(DIRECT_UNBLU_ADD_SUMMARY_INTERNAL);
 

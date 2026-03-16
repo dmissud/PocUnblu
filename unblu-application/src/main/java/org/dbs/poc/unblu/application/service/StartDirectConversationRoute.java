@@ -28,28 +28,28 @@ public class StartDirectConversationRoute extends RouteBuilder {
     public void configure() {
         from(DIRECT_START_DIRECT_CONVERSATION)
             .routeId("main-orchestrator-start-direct-conversation")
-            .log("Démarrage d'une conversation directe - VIRTUAL: ${body.virtualParticipantSourceId}")
+            .log("Démarrage d'une conversation directe")
             
             .setProperty(PROP_ORIGINAL_COMMAND, body())
 
-            .log("Recherche de la personne VIRTUAL avec sourceId: ${body.virtualParticipantSourceId}")
+            .log("Recherche de la personne VIRTUAL")
             .process(this::prepareVirtualPersonSearch)
             .enrich(DIRECT_UNBLU_SEARCH_PERSONS, this::aggregateVirtualPerson)
-            .log("Personne VIRTUAL trouvée: ${exchangeProperty.virtualPerson.displayName}")
+            .log("Personne VIRTUAL trouvée")
 
             .process(this::initContextFromVirtualPerson)
             .log("Recherche du profil client dans l'ERP")
             .enrich(DIRECT_ERP_ADAPTER, this::aggregateCustomerProfile)
-            .log("Profil client récupéré: ${body.customerProfile.customerId}")
+            .log("Profil client récupéré")
 
             .log("Appel du moteur de règles pour autorisation")
             .enrich(DIRECT_RULE_ENGINE_ADAPTER, this::aggregateRoutingDecisionAndCheckAuth)
-            .log("Décision de routage: ${body.routingDecision.teamId}")
+            .log("Décision de routage obtenue")
 
-            .log("Recherche de la personne AGENT avec sourceId: ${exchangeProperty.originalCommand.agentParticipantSourceId}")
+            .log("Recherche de la personne AGENT")
             .process(this::prepareAgentPersonSearch)
             .enrich(DIRECT_UNBLU_SEARCH_PERSONS, this::aggregateAgentPerson)
-            .log("Personne AGENT trouvée: ${exchangeProperty.agentPerson.displayName}")
+            .log("Personne AGENT trouvée")
 
             .log("Création de la conversation directe")
             .process(this::prepareDirectConversationRequest)
@@ -64,7 +64,7 @@ public class StartDirectConversationRoute extends RouteBuilder {
             .to(DIRECT_UNBLU_ADD_SUMMARY)
             .log("Summary ajouté à la conversation")
             .process(this::finalizeConversationInfo)
-            .log("Conversation directe finalisée avec ID: ${body.conversationId}");
+            .log("Conversation directe finalisée");
     }
 
     private void prepareVirtualPersonSearch(Exchange exchange) {

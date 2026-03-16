@@ -33,7 +33,7 @@ public class UnbluCamelAdapter extends RouteBuilder {
         // ==========================================
         from(DIRECT_UNBLU_ADAPTER)
             .routeId("unblu-rest-adapter")
-            .log("Création de la conversation Unblu pour la file d'attente : ${body.routingDecision.unbluAssignedGroupId}")
+            .log("Création de la conversation Unblu")
             .process(this::createConversation);
 
         // ==========================================
