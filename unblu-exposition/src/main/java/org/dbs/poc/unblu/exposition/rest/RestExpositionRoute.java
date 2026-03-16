@@ -185,9 +185,7 @@ public class RestExpositionRoute extends RouteBuilder {
     private void definePersonRoutes() {
         from(DIRECT_REST_SEARCH_PERSONS)
                 .routeId(ROUTE_REST_SEARCH_PERSONS)
-                .process(personMapper::mapHeadersToQuery)
-                .to(OrchestratorEndpoints.DIRECT_UNBLU_SEARCH_PERSONS)
-                .process(personMapper::mapPersonsToResponse);
+                .process(personMapper::searchAndMapPersons);
     }
 
     private void defineTeamRoutes() {
