@@ -32,25 +32,39 @@ public class StartDirectConversationRoute extends RouteBuilder {
             
             .setProperty(PROP_ORIGINAL_COMMAND, body())
 
+            .log("Recherche de la personne VIRTUAL avec sourceId: ${body.virtualParticipantSourceId}")
             .process(this::prepareVirtualPersonSearch)
             .enrich(DIRECT_UNBLU_SEARCH_PERSONS, this::aggregateVirtualPerson)
-            
+            .log("Personne VIRTUAL trouvée: ${exchangeProperty.virtualPerson.displayName}")
+
             .process(this::initContextFromVirtualPerson)
+            .log("Recherche du profil client dans l'ERP")
             .enrich(DIRECT_ERP_ADAPTER, this::aggregateCustomerProfile)
-            
+            .log("Profil client récupéré: ${body.customerProfile.customerId}")
+
+            .log("Appel du moteur de règles pour autorisation")
             .enrich(DIRECT_RULE_ENGINE_ADAPTER, this::aggregateRoutingDecisionAndCheckAuth)
-            
+            .log("Décision de routage: ${body.routingDecision.teamId}")
+
+            .log("Recherche de la personne AGENT avec sourceId: ${exchangeProperty.originalCommand.agentParticipantSourceId}")
             .process(this::prepareAgentPersonSearch)
             .enrich(DIRECT_UNBLU_SEARCH_PERSONS, this::aggregateAgentPerson)
-            
+            .log("Personne AGENT trouvée: ${exchangeProperty.agentPerson.displayName}")
+
+            .log("Création de la conversation directe")
             .process(this::prepareDirectConversationRequest)
             .to(DIRECT_UNBLU_CREATE_DIRECT_CONVERSATION)
-            
+            .log("Conversation directe créée")
+
             .process(this::extractConversationId)
+            .log("Génération du summary pour conversation ID: ${exchangeProperty.convId}")
             .toD(DIRECT_CONVERSATION_SUMMARY_ADAPTER)
+            .log("Summary généré: ${body}")
             .process(this::prepareSummaryRequest)
             .to(DIRECT_UNBLU_ADD_SUMMARY)
-            .process(this::finalizeConversationInfo);
+            .log("Summary ajouté à la conversation")
+            .process(this::finalizeConversationInfo)
+            .log("Conversation directe finalisée avec ID: ${body.conversationId}");
     }
 
     private void prepareVirtualPersonSearch(Exchange exchange) {
