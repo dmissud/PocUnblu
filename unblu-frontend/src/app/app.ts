@@ -1,10 +1,10 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
-import { ApiService } from './services/api.service';
-import { PersonInfo } from './models/person.model';
-import { TeamInfo } from './models/team.model';
+import {Component, OnInit} from '@angular/core';
+import {CommonModule} from '@angular/common';
+import {FormsModule} from '@angular/forms';
+import {ApiService} from './services/api.service';
+import {PersonInfo} from './models/person.model';
+import {TeamInfo} from './models/team.model';
+import {WebhookStatus} from './models/webhook.model';
 
 @Component({
   selector: 'app-root',
@@ -38,10 +38,15 @@ export class App implements OnInit {
   loading = false;
   loadingData = true;
 
+  // Webhook status
+  webhookStatus: WebhookStatus | null = null;
+  webhookLoading = false;
+
   constructor(private apiService: ApiService) {}
 
   ngOnInit(): void {
     this.loadData();
+    this.loadWebhookStatus();
   }
 
   loadData(): void {
@@ -73,8 +78,8 @@ export class App implements OnInit {
     this.directResult = null;
 
     this.apiService.startDirectConversation({
-      clientSourceId: this.selectedClient.sourceId,
-      agentSourceId: this.selectedAgent.sourceId,
+      virtualParticipantSourceId: this.selectedClient.sourceId,
+      agentParticipantSourceId: this.selectedAgent.sourceId,
       subject: this.directSubject || 'Conversation directe'
     }).subscribe({
       next: (result) => {
@@ -132,5 +137,75 @@ export class App implements OnInit {
 
   openSwagger(): void {
     window.open('http://localhost:8081/swagger-ui', '_blank');
+  }
+
+  // Webhook methods
+  loadWebhookStatus(): void {
+    this.apiService.getWebhookStatus().subscribe({
+      next: (status) => {
+        this.webhookStatus = status;
+      },
+      error: (err) => {
+        console.error('Error loading webhook status:', err);
+        this.webhookStatus = null;
+      }
+    });
+  }
+
+  setupWebhook(): void {
+    this.webhookLoading = true;
+    this.error = null;
+
+    this.apiService.setupWebhook().subscribe({
+      next: (result) => {
+        this.webhookLoading = false;
+        if (result.success) {
+          this.loadWebhookStatus();
+          console.log('Webhook setup successful:', result);
+        } else {
+          this.error = 'Erreur setup webhook: ' + result.message;
+        }
+      },
+      error: (err) => {
+        this.webhookLoading = false;
+        this.error = 'Erreur lors du setup webhook: ' + err.message;
+      }
+    });
+  }
+
+  teardownWebhook(): void {
+    if (!confirm('Êtes-vous sûr de vouloir arrêter le webhook ?')) {
+      return;
+    }
+
+    this.webhookLoading = true;
+    this.error = null;
+
+    this.apiService.teardownWebhook(false).subscribe({
+      next: () => {
+        this.webhookLoading = false;
+        this.loadWebhookStatus();
+        console.log('Webhook teardown successful');
+      },
+      error: (err) => {
+        this.webhookLoading = false;
+        this.error = 'Erreur lors du teardown webhook: ' + err.message;
+      }
+    });
+  }
+
+  get webhookStatusIcon(): string {
+    if (!this.webhookStatus) return '⚪';
+    if (this.webhookStatus.ngrokRunning && this.webhookStatus.webhookRegistered) return '🟢';
+    if (this.webhookStatus.ngrokRunning || this.webhookStatus.webhookRegistered) return '🟡';
+    return '🔴';
+  }
+
+  get webhookStatusText(): string {
+    if (!this.webhookStatus) return 'Non configuré';
+    if (this.webhookStatus.ngrokRunning && this.webhookStatus.webhookRegistered) return 'Actif';
+    if (this.webhookStatus.ngrokRunning) return 'Ngrok seul';
+    if (this.webhookStatus.webhookRegistered) return 'Webhook seul';
+    return 'Inactif';
   }
 }

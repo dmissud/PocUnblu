@@ -2,9 +2,34 @@
   <header>
     <h1>{{ title }}</h1>
     <p>Gestion des conversations Unblu</p>
-    <button (click)="openSwagger()" class="btn-swagger" title="Ouvrir la documentation Swagger">
-      📖 Swagger API
-    </button>
+    <div class="header-buttons">
+      <button (click)="openSwagger()" class="btn-swagger" title="Ouvrir la documentation Swagger">
+        📖 Swagger API
+      </button>
+
+      <!-- Webhook status and setup -->
+      <div class="webhook-controls">
+        <span class="webhook-status" [title]="webhookStatus?.ngrokUrl || 'Non configuré'">
+          {{ webhookStatusIcon }} {{ webhookStatusText }}
+        </span>
+        <button
+          *ngIf="!webhookStatus?.ngrokRunning"
+          (click)="setupWebhook()"
+          class="btn-webhook"
+          [disabled]="webhookLoading"
+          title="Configurer le webhook (lance ngrok + enregistre dans Unblu)">
+          {{ webhookLoading ? '⏳ Configuration...' : '🔧 Setup Webhook' }}
+        </button>
+        <button
+          *ngIf="webhookStatus?.ngrokRunning"
+          (click)="teardownWebhook()"
+          class="btn-webhook-stop"
+          [disabled]="webhookLoading"
+          title="Arrêter le webhook">
+          {{ webhookLoading ? '⏳ Arrêt...' : '🗑️ Arrêter Webhook' }}
+        </button>
+      </div>
+    </div>
   </header>
 
   <div *ngIf="loadingData" class="loading">
