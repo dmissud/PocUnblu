@@ -3,9 +3,6 @@ package org.dbs.poc.unblu.exposition.rest;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.rest.RestBindingMode;
-import org.dbs.poc.unblu.application.port.in.SearchPersonsQuery;
-import org.dbs.poc.unblu.application.port.in.SetupWebhookUseCase;
-import org.dbs.poc.unblu.application.port.in.StartConversationCommand;
 import org.dbs.poc.unblu.application.port.in.StartDirectConversationCommand;
 import org.dbs.poc.unblu.application.service.OrchestratorEndpoints;
 import org.dbs.poc.unblu.domain.model.ConversationContext;
@@ -15,6 +12,9 @@ import org.dbs.poc.unblu.domain.model.webhook.WebhookSetupResult;
 import org.dbs.poc.unblu.domain.model.webhook.WebhookStatus;
 import org.dbs.poc.unblu.exposition.rest.dto.*;
 import org.springframework.beans.factory.annotation.Value;
+import org.dbs.poc.unblu.exposition.rest.dto.StartConversationRequest;
+import org.dbs.poc.unblu.exposition.rest.dto.StartConversationResponse;
+import org.dbs.poc.unblu.exposition.rest.dto.StartDirectConversationRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -29,6 +29,9 @@ public class RestExpositionRoute extends RouteBuilder {
 
     public RestExpositionRoute(SetupWebhookUseCase setupWebhookUseCase) {
         this.setupWebhookUseCase = setupWebhookUseCase;
+    public RestExpositionRoute(
+            ConversationMapper conversationMapper,
+            PersonMapper personMapper,
     }
 
     @Override
@@ -53,6 +56,14 @@ public class RestExpositionRoute extends RouteBuilder {
                 .type(StartDirectConversationRequest.class)
                 .outType(StartConversationResponse.class)
                 .to("direct:rest-start-direct-conversation");
+                .post("/start")
+                    .type(StartConversationRequest.class)
+                    .outType(StartConversationResponse.class)
+                    .to(DIRECT_REST_START_CONVERSATION)
+                .post("/direct")
+                    .type(StartDirectConversationRequest.class)
+                    .outType(StartConversationResponse.class)
+                    .to(DIRECT_REST_START_DIRECT_CONVERSATION);
 
         // --- Persons ---
         rest("/v1/persons")
@@ -80,17 +91,18 @@ public class RestExpositionRoute extends RouteBuilder {
 
         // --- Internal routes for mapping and orchestration call ---
 
-        from("direct:rest-start-conversation")
-            .routeId("rest-start-conversation")
-            .process(this::mapStartConversationRequestToCommand)
-            .to(OrchestratorEndpoints.DIRECT_START_CONVERSATION)
-            .process(this::mapContextToResponse);
+    private void defineConversationRoutes() {
+        from(DIRECT_REST_START_CONVERSATION)
+                .routeId(ROUTE_REST_START_CONVERSATION)
+                .process(conversationMapper::mapRequestToCommand)
+                .to(OrchestratorEndpoints.DIRECT_START_CONVERSATION)
+                .process(conversationMapper::mapContextToResponse);
 
-        from("direct:rest-start-direct-conversation")
-            .routeId("rest-start-direct-conversation")
-            .process(this::mapStartDirectConversationRequestToCommand)
-            .to(OrchestratorEndpoints.DIRECT_START_DIRECT_CONVERSATION)
-            .process(this::mapUnbluInfoToResponse);
+        from(DIRECT_REST_START_DIRECT_CONVERSATION)
+                .routeId(ROUTE_REST_START_DIRECT_CONVERSATION)
+                .process(conversationMapper::mapDirectRequestToCommand)
+                .to(OrchestratorEndpoints.DIRECT_START_DIRECT_CONVERSATION)
+                .process(conversationMapper::mapInfoToResponse);
 
         from("direct:rest-search-persons")
             .routeId("rest-search-persons")
@@ -114,43 +126,6 @@ public class RestExpositionRoute extends RouteBuilder {
         from("direct:rest-webhook-teardown")
             .routeId("rest-webhook-teardown")
             .process(this::teardownWebhook);
-    }
-
-    protected void mapStartConversationRequestToCommand(Exchange exchange) {
-        StartConversationRequest request = exchange.getIn().getBody(StartConversationRequest.class);
-        exchange.getIn().setBody(new StartConversationCommand(
-                request.getClientId(),
-                request.getSubject(),
-                request.getOrigin(),
-                defaultTeamId));
-    }
-
-    protected void mapContextToResponse(Exchange exchange) {
-        ConversationContext context = exchange.getIn().getBody(ConversationContext.class);
-        exchange.getIn().setBody(StartConversationResponse.builder()
-                .unbluConversationId(context.getUnbluConversationId())
-                .unbluJoinUrl(context.getUnbluJoinUrl())
-                .status("CREATED")
-                .message("Conversation successfully created.")
-                .build());
-    }
-
-    protected void mapStartDirectConversationRequestToCommand(Exchange exchange) {
-        StartDirectConversationRequest request = exchange.getIn().getBody(StartDirectConversationRequest.class);
-        exchange.getIn().setBody(new StartDirectConversationCommand(
-                request.getVirtualParticipantSourceId(),
-                request.getAgentParticipantSourceId(),
-                request.getSubject()));
-    }
-
-    protected void mapUnbluInfoToResponse(Exchange exchange) {
-        UnbluConversationInfo info = exchange.getIn().getBody(UnbluConversationInfo.class);
-        exchange.getIn().setBody(StartConversationResponse.builder()
-                .unbluConversationId(info.unbluConversationId())
-                .unbluJoinUrl(info.unbluJoinUrl())
-                .status("CREATED")
-                .message("Conversation directe créée avec succès.")
-                .build());
     }
 
     protected void mapSearchPersonsQuery(Exchange exchange) {
