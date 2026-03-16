@@ -27,6 +27,13 @@ public interface UnbluPort {
     List<NamedAreaInfo> searchNamedAreas();
 
     /**
+     * Search for agents who have a specific named area in their queue filter configuration.
+     * @param namedAreaId the ID of the named area
+     * @return list of agents (PersonInfo) who have this named area in their queue filter
+     */
+    List<PersonInfo> searchAgentsByNamedArea(String namedAreaId);
+
+    /**
      * Creates a direct conversation between a VIRTUAL person and a USER_DB agent.
      * @param virtualPerson the VIRTUAL participant
      * @param agentPerson   the USER_DB agent participant

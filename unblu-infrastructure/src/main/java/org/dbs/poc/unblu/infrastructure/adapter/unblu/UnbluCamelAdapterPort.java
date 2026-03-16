@@ -68,4 +68,10 @@ public class UnbluCamelAdapterPort implements UnbluPort {
     public List<org.dbs.poc.unblu.domain.model.NamedAreaInfo> searchNamedAreas() {
         return producerTemplate.requestBody(UnbluCamelAdapter.DIRECT_UNBLU_SEARCH_NAMED_AREAS, null, List.class);
     }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<PersonInfo> searchAgentsByNamedArea(String namedAreaId) {
+        return producerTemplate.requestBody(UnbluCamelAdapter.DIRECT_UNBLU_SEARCH_AGENTS_BY_NAMED_AREA, namedAreaId, List.class);
+    }
 }
