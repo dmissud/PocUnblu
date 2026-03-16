@@ -3,6 +3,7 @@ import {HttpClient} from '@angular/common/http';
 import {Observable} from 'rxjs';
 import {PersonInfo} from '../models/person.model';
 import {TeamInfo} from '../models/team.model';
+import {NamedAreaInfo} from '../models/named-area.model';
 import {
   DirectConversationRequest,
   StartConversationResponse,
@@ -32,6 +33,10 @@ export class ApiService {
 
   getTeams(): Observable<TeamInfo[]> {
     return this.http.get<TeamInfo[]>(`${this.baseUrl}/teams`);
+  }
+
+  getNamedAreas(): Observable<NamedAreaInfo[]> {
+    return this.http.get<NamedAreaInfo[]>(`${this.baseUrl}/named-areas`);
   }
 
   startDirectConversation(request: DirectConversationRequest): Observable<StartConversationResponse> {
