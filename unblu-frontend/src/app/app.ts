@@ -1,11 +1,10 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
-import { ApiService } from './services/api.service';
-import { PersonInfo } from './models/person.model';
-import { TeamInfo } from './models/team.model';
-import { WebhookStatus } from './models/webhook.model';
+import {Component, OnInit} from '@angular/core';
+import {CommonModule} from '@angular/common';
+import {FormsModule} from '@angular/forms';
+import {ApiService} from './services/api.service';
+import {PersonInfo} from './models/person.model';
+import {TeamInfo} from './models/team.model';
+import {WebhookStatus} from './models/webhook.model';
 
 @Component({
   selector: 'app-root',
@@ -79,8 +78,8 @@ export class App implements OnInit {
     this.directResult = null;
 
     this.apiService.startDirectConversation({
-      clientSourceId: this.selectedClient.sourceId,
-      agentSourceId: this.selectedAgent.sourceId,
+      virtualParticipantSourceId: this.selectedClient.sourceId,
+      agentParticipantSourceId: this.selectedAgent.sourceId,
       subject: this.directSubject || 'Conversation directe'
     }).subscribe({
       next: (result) => {
