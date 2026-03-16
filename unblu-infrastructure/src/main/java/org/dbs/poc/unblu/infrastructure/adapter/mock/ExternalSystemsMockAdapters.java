@@ -37,7 +37,7 @@ public class ExternalSystemsMockAdapters extends RouteBuilder {
         // ==========================================
         from(DIRECT_ERP_ADAPTER)
             .routeId("mock-erp-adapter")
-            .log("Mock ERP appelé pour le client ID: ${body.initialClientId}")
+            .log("Mock ERP appelé")
             .process(this::mockErpLogic);
 
 
@@ -46,7 +46,7 @@ public class ExternalSystemsMockAdapters extends RouteBuilder {
         // ==========================================
         from(DIRECT_RULE_ENGINE_ADAPTER)
             .routeId("mock-rule-engine-adapter")
-            .log("Mock Moteur de Règles appelé pour le segment: ${body.customerProfile.customerSegment}")
+            .log("Mock Moteur de Règles appelé")
             .process(this::mockRuleEngineLogic);
     }
 

@@ -176,7 +176,7 @@ public class RestExpositionRoute extends RouteBuilder {
                 .log("Calling orchestrator with command: ${body}")
                 .to(OrchestratorEndpoints.DIRECT_START_CONVERSATION)
                 .process(conversationMapper::mapContextToResponse)
-                .log("Conversation started successfully: ${body.conversationId}");
+                .log("Conversation started successfully");
 
         from(DIRECT_REST_START_DIRECT_CONVERSATION)
                 .routeId(ROUTE_REST_START_DIRECT_CONVERSATION)
@@ -185,7 +185,7 @@ public class RestExpositionRoute extends RouteBuilder {
                 .log("Calling orchestrator with command: ${body}")
                 .to(OrchestratorEndpoints.DIRECT_START_DIRECT_CONVERSATION)
                 .process(conversationMapper::mapInfoToResponse)
-                .log("Direct conversation started successfully: ${body.conversationId}");
+                .log("Direct conversation started successfully");
     }
 
     private void definePersonRoutes() {
@@ -215,7 +215,7 @@ public class RestExpositionRoute extends RouteBuilder {
                 .routeId(ROUTE_REST_WEBHOOK_STATUS)
                 .log("Getting webhook status")
                 .process(webhookMapper::getWebhookStatus)
-                .log("Webhook status: ${body.status}");
+                .log("Webhook status: ${body}");
 
         from(DIRECT_REST_WEBHOOK_TEARDOWN)
                 .routeId(ROUTE_REST_WEBHOOK_TEARDOWN)
