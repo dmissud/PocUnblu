@@ -98,6 +98,17 @@
                 <artifactId>camel-http-starter</artifactId>
                 <version>${camel.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.camel.springboot</groupId>
+                <artifactId>camel-micrometer-starter</artifactId>
+                <version>${camel.version}</version>
+            </dependency>
+
+            <!-- Spring Boot Actuator -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-actuator</artifactId>
+            </dependency>
 
             <!-- Unblu OpenAPI -->
             <dependency>
