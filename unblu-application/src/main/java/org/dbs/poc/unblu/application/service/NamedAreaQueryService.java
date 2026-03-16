@@ -21,4 +21,10 @@ public class NamedAreaQueryService implements SearchNamedAreasUseCase {
         log.info("Récupération des zones nommées Unblu");
         return unbluPort.searchNamedAreas();
     }
+
+    @Override
+    public List<PersonInfo> searchAgentsByNamedArea(String namedAreaId) {
+        log.info("Récupération des agents pour la named area: {}", namedAreaId);
+        return unbluPort.searchAgentsByNamedArea(namedAreaId);
+    }
 }
