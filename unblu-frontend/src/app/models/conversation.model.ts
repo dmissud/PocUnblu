@@ -3,6 +3,13 @@ export interface UnbluConversationInfo {
   unbluJoinUrl: string;
 }
 
+export interface StartConversationResponse {
+  unbluConversationId: string;
+  unbluJoinUrl: string;
+  status: string;
+  message: string;
+}
+
 export interface ConversationContext {
   unbluConversationId: string;
   unbluJoinUrl: string;
@@ -11,8 +18,8 @@ export interface ConversationContext {
 }
 
 export interface DirectConversationRequest {
-  clientSourceId: string;
-  agentSourceId: string;
+  virtualParticipantSourceId: string;
+  agentParticipantSourceId: string;
   subject: string;
 }
 

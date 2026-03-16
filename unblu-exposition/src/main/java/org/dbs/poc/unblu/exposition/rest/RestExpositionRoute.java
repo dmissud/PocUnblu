@@ -1,163 +1,210 @@
 package org.dbs.poc.unblu.exposition.rest;
 
-import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.rest.RestBindingMode;
-import org.dbs.poc.unblu.application.port.in.SearchPersonsQuery;
-import org.dbs.poc.unblu.application.port.in.StartConversationCommand;
-import org.dbs.poc.unblu.application.port.in.StartDirectConversationCommand;
+import org.apache.camel.model.rest.RestParamType;
 import org.dbs.poc.unblu.application.service.OrchestratorEndpoints;
-import org.dbs.poc.unblu.domain.model.ConversationContext;
-import org.dbs.poc.unblu.domain.model.PersonSource;
-import org.dbs.poc.unblu.domain.model.UnbluConversationInfo;
-import org.dbs.poc.unblu.exposition.rest.dto.*;
-import org.springframework.beans.factory.annotation.Value;
+import org.dbs.poc.unblu.domain.model.webhook.WebhookSetupResult;
+import org.dbs.poc.unblu.domain.model.webhook.WebhookStatus;
+import org.dbs.poc.unblu.exposition.rest.dto.StartConversationRequest;
+import org.dbs.poc.unblu.exposition.rest.dto.StartConversationResponse;
+import org.dbs.poc.unblu.exposition.rest.dto.StartDirectConversationRequest;
+import org.dbs.poc.unblu.exposition.rest.mapper.ConversationMapper;
+import org.dbs.poc.unblu.exposition.rest.mapper.PersonMapper;
+import org.dbs.poc.unblu.exposition.rest.mapper.TeamMapper;
+import org.dbs.poc.unblu.exposition.rest.mapper.WebhookMapper;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+/**
+ * Camel REST DSL route configuration for Unblu API.
+ * Defines all REST endpoints and their mapping to internal Camel routes.
+ *
+ * <p>This class is responsible for:
+ * <ul>
+ *   <li>REST API configuration (Swagger, CORS, JSON binding)</li>
+ *   <li>REST endpoint definitions (conversations, persons, teams, webhooks)</li>
+ *   <li>Internal route definitions that connect REST endpoints to orchestrators</li>
+ * </ul>
+ *
+ * <p>All business logic and DTO mapping is delegated to dedicated mapper classes.
+ */
 @Component
 public class RestExpositionRoute extends RouteBuilder {
 
-    @Value("${mock.rule-engine.default-team-id:cAaYUeKyTZ25_OaA6jUeVA}")
-    private String defaultTeamId;
+    // Route identifiers
+    private static final String ROUTE_REST_START_CONVERSATION = "rest-start-conversation";
+    private static final String ROUTE_REST_START_DIRECT_CONVERSATION = "rest-start-direct-conversation";
+    private static final String ROUTE_REST_SEARCH_PERSONS = "rest-search-persons";
+    private static final String ROUTE_REST_SEARCH_TEAMS = "rest-search-teams";
+    private static final String ROUTE_REST_WEBHOOK_SETUP = "rest-webhook-setup";
+    private static final String ROUTE_REST_WEBHOOK_STATUS = "rest-webhook-status";
+    private static final String ROUTE_REST_WEBHOOK_TEARDOWN = "rest-webhook-teardown";
+
+    // Internal route URIs
+    private static final String DIRECT_REST_START_CONVERSATION = "direct:rest-start-conversation";
+    private static final String DIRECT_REST_START_DIRECT_CONVERSATION = "direct:rest-start-direct-conversation";
+    private static final String DIRECT_REST_SEARCH_PERSONS = "direct:rest-search-persons";
+    private static final String DIRECT_REST_SEARCH_TEAMS = "direct:rest-search-teams";
+    private static final String DIRECT_REST_WEBHOOK_SETUP = "direct:rest-webhook-setup";
+    private static final String DIRECT_REST_WEBHOOK_STATUS = "direct:rest-webhook-status";
+    private static final String DIRECT_REST_WEBHOOK_TEARDOWN = "direct:rest-webhook-teardown";
+
+    // REST path segments
+    private static final String PATH_CONVERSATIONS = "/v1/conversations";
+    private static final String PATH_PERSONS = "/v1/persons";
+    private static final String PATH_TEAMS = "/v1/teams";
+    private static final String PATH_WEBHOOKS = "/v1/webhooks";
+
+    // Swagger configuration
+    private static final String API_TITLE = "Unblu Camel Orchestration API";
+    private static final String API_VERSION = "1.0.0";
+    private static final String API_DESCRIPTION = "API d'orchestration pour l'intégration Unblu utilisant Camel REST DSL";
+    private static final String API_CONTACT_NAME = "Equipe Architecture";
+
+    private final ConversationMapper conversationMapper;
+    private final PersonMapper personMapper;
+    private final TeamMapper teamMapper;
+    private final WebhookMapper webhookMapper;
+
+    public RestExpositionRoute(
+            ConversationMapper conversationMapper,
+            PersonMapper personMapper,
+            TeamMapper teamMapper,
+            WebhookMapper webhookMapper) {
+        this.conversationMapper = conversationMapper;
+        this.personMapper = personMapper;
+        this.teamMapper = teamMapper;
+        this.webhookMapper = webhookMapper;
+    }
 
     @Override
     public void configure() {
+        configureRestApi();
+        defineRestEndpoints();
+        defineInternalRoutes();
+    }
+
+    /**
+     * Configures REST API global settings (JSON binding, Swagger, CORS).
+     */
+    private void configureRestApi() {
         restConfiguration()
-            .component("servlet")
-            .bindingMode(RestBindingMode.json)
-            .apiContextPath("/api-doc")
-            .apiProperty("api.title", "Unblu Camel Orchestration API")
-            .apiProperty("api.version", "1.0.0")
-            .apiProperty("api.description", "API d'orchestration pour l'intégration Unblu utilisant Camel REST DSL")
-            .apiProperty("api.contact.name", "Equipe Architecture")
-            .apiProperty("cors", "true");
-
-        // --- Conversations ---
-        rest("/v1/conversations")
-            .post("/start")
-                .type(StartConversationRequest.class)
-                .outType(StartConversationResponse.class)
-                .to("direct:rest-start-conversation")
-            .post("/direct")
-                .type(StartDirectConversationRequest.class)
-                .outType(StartConversationResponse.class)
-                .to("direct:rest-start-direct-conversation");
-
-        // --- Persons ---
-        rest("/v1/persons")
-            .get()
-                .outType(List.class)
-                .to("direct:rest-search-persons");
-
-        // --- Teams ---
-        rest("/v1/teams")
-            .get()
-                .outType(List.class)
-                .to("direct:rest-search-teams");
-
-        // --- Internal routes for mapping and orchestration call ---
-
-        from("direct:rest-start-conversation")
-            .routeId("rest-start-conversation")
-            .process(this::mapStartConversationRequestToCommand)
-            .to(OrchestratorEndpoints.DIRECT_START_CONVERSATION)
-            .process(this::mapContextToResponse);
-
-        from("direct:rest-start-direct-conversation")
-            .routeId("rest-start-direct-conversation")
-            .process(this::mapStartDirectConversationRequestToCommand)
-            .to(OrchestratorEndpoints.DIRECT_START_DIRECT_CONVERSATION)
-            .process(this::mapUnbluInfoToResponse);
-
-        from("direct:rest-search-persons")
-            .routeId("rest-search-persons")
-            .process(this::mapSearchPersonsQuery)
-            .to(OrchestratorEndpoints.DIRECT_UNBLU_SEARCH_PERSONS)
-            .process(this::mapPersonsToResponse);
-
-        from("direct:rest-search-teams")
-            .routeId("rest-search-teams")
-            .to(OrchestratorEndpoints.DIRECT_UNBLU_SEARCH_TEAMS)
-            .process(this::mapTeamsToResponse);
+                .component("servlet")
+                .bindingMode(RestBindingMode.json)
+                .apiContextPath("/api-doc")
+                .apiProperty("api.title", API_TITLE)
+                .apiProperty("api.version", API_VERSION)
+                .apiProperty("api.description", API_DESCRIPTION)
+                .apiProperty("api.contact.name", API_CONTACT_NAME)
+                .apiProperty("cors", "true");
     }
 
-    protected void mapStartConversationRequestToCommand(Exchange exchange) {
-        StartConversationRequest request = exchange.getIn().getBody(StartConversationRequest.class);
-        exchange.getIn().setBody(new StartConversationCommand(
-                request.getClientId(),
-                request.getSubject(),
-                request.getOrigin(),
-                defaultTeamId));
+    /**
+     * Defines all REST endpoints exposed by the API.
+     */
+    private void defineRestEndpoints() {
+        defineConversationEndpoints();
+        definePersonEndpoints();
+        defineTeamEndpoints();
+        defineWebhookEndpoints();
     }
 
-    protected void mapContextToResponse(Exchange exchange) {
-        ConversationContext context = exchange.getIn().getBody(ConversationContext.class);
-        exchange.getIn().setBody(StartConversationResponse.builder()
-                .unbluConversationId(context.getUnbluConversationId())
-                .unbluJoinUrl(context.getUnbluJoinUrl())
-                .status("CREATED")
-                .message("Conversation successfully created.")
-                .build());
+    private void defineConversationEndpoints() {
+        rest(PATH_CONVERSATIONS)
+                .post("/start")
+                    .type(StartConversationRequest.class)
+                    .outType(StartConversationResponse.class)
+                    .to(DIRECT_REST_START_CONVERSATION)
+                .post("/direct")
+                    .type(StartDirectConversationRequest.class)
+                    .outType(StartConversationResponse.class)
+                    .to(DIRECT_REST_START_DIRECT_CONVERSATION);
     }
 
-    protected void mapStartDirectConversationRequestToCommand(Exchange exchange) {
-        StartDirectConversationRequest request = exchange.getIn().getBody(StartDirectConversationRequest.class);
-        exchange.getIn().setBody(new StartDirectConversationCommand(
-                request.getVirtualParticipantSourceId(),
-                request.getAgentParticipantSourceId(),
-                request.getSubject()));
+    private void definePersonEndpoints() {
+        rest(PATH_PERSONS)
+                .get()
+                    .outType(List.class)
+                    .produces("application/json")
+                    .to(DIRECT_REST_SEARCH_PERSONS);
     }
 
-    protected void mapUnbluInfoToResponse(Exchange exchange) {
-        UnbluConversationInfo info = exchange.getIn().getBody(UnbluConversationInfo.class);
-        exchange.getIn().setBody(StartConversationResponse.builder()
-                .unbluConversationId(info.unbluConversationId())
-                .unbluJoinUrl(info.unbluJoinUrl())
-                .status("CREATED")
-                .message("Conversation directe créée avec succès.")
-                .build());
+    private void defineTeamEndpoints() {
+        rest(PATH_TEAMS)
+                .get()
+                    .outType(List.class)
+                    .produces("application/json")
+                    .to(DIRECT_REST_SEARCH_TEAMS);
     }
 
-    protected void mapSearchPersonsQuery(Exchange exchange) {
-        String sourceId = exchange.getIn().getHeader("sourceId", String.class);
-        String personSourceStr = exchange.getIn().getHeader("personSource", String.class);
-        PersonSource personSource = personSourceStr != null ? PersonSource.valueOf(personSourceStr) : null;
-        
-        exchange.getIn().setBody(new SearchPersonsQuery(sourceId, personSource));
+    private void defineWebhookEndpoints() {
+        rest(PATH_WEBHOOKS)
+                .post("/setup")
+                    .outType(WebhookSetupResult.class)
+                    .to(DIRECT_REST_WEBHOOK_SETUP)
+                .get("/status")
+                    .outType(WebhookStatus.class)
+                    .to(DIRECT_REST_WEBHOOK_STATUS)
+                .delete("/teardown")
+                    .param()
+                        .name("deleteWebhook")
+                        .type(RestParamType.query)
+                        .defaultValue("false")
+                        .description("Whether to delete the webhook from Unblu")
+                    .endParam()
+                    .to(DIRECT_REST_WEBHOOK_TEARDOWN);
     }
 
-    protected void mapPersonsToResponse(Exchange exchange) {
-        List<?> list = exchange.getIn().getBody(List.class);
-        if (list == null) return;
-        
-        List<PersonResponse> response = list.stream()
-                .filter(org.dbs.poc.unblu.domain.model.PersonInfo.class::isInstance)
-                .map(org.dbs.poc.unblu.domain.model.PersonInfo.class::cast)
-                .map(personInfo -> PersonResponse.builder()
-                        .id(personInfo.id())
-                        .sourceId(personInfo.sourceId())
-                        .displayName(personInfo.displayName())
-                        .email(personInfo.email())
-                        .build())
-                .toList();
-        exchange.getIn().setBody(response);
+    /**
+     * Defines all internal Camel routes that process REST requests.
+     * Each route connects a REST endpoint to business logic via mappers and orchestrators.
+     */
+    private void defineInternalRoutes() {
+        defineConversationRoutes();
+        definePersonRoutes();
+        defineTeamRoutes();
+        defineWebhookRoutes();
     }
 
-    protected void mapTeamsToResponse(Exchange exchange) {
-        List<?> list = exchange.getIn().getBody(List.class);
-        if (list == null) return;
+    private void defineConversationRoutes() {
+        from(DIRECT_REST_START_CONVERSATION)
+                .routeId(ROUTE_REST_START_CONVERSATION)
+                .process(conversationMapper::mapRequestToCommand)
+                .to(OrchestratorEndpoints.DIRECT_START_CONVERSATION)
+                .process(conversationMapper::mapContextToResponse);
 
-        List<TeamResponse> response = list.stream()
-                .filter(org.dbs.poc.unblu.domain.model.TeamInfo.class::isInstance)
-                .map(org.dbs.poc.unblu.domain.model.TeamInfo.class::cast)
-                .map(teamInfo -> TeamResponse.builder()
-                        .id(teamInfo.id())
-                        .name(teamInfo.name())
-                        .description(teamInfo.description())
-                        .build())
-                .toList();
-        exchange.getIn().setBody(response);
+        from(DIRECT_REST_START_DIRECT_CONVERSATION)
+                .routeId(ROUTE_REST_START_DIRECT_CONVERSATION)
+                .process(conversationMapper::mapDirectRequestToCommand)
+                .to(OrchestratorEndpoints.DIRECT_START_DIRECT_CONVERSATION)
+                .process(conversationMapper::mapInfoToResponse);
+    }
+
+    private void definePersonRoutes() {
+        from(DIRECT_REST_SEARCH_PERSONS)
+                .routeId(ROUTE_REST_SEARCH_PERSONS)
+                .process(personMapper::searchAndMapPersons);
+    }
+
+    private void defineTeamRoutes() {
+        from(DIRECT_REST_SEARCH_TEAMS)
+                .routeId(ROUTE_REST_SEARCH_TEAMS)
+                .process(teamMapper::searchAndMapTeams);
+    }
+
+    private void defineWebhookRoutes() {
+        from(DIRECT_REST_WEBHOOK_SETUP)
+                .routeId(ROUTE_REST_WEBHOOK_SETUP)
+                .process(webhookMapper::setupWebhook);
+
+        from(DIRECT_REST_WEBHOOK_STATUS)
+                .routeId(ROUTE_REST_WEBHOOK_STATUS)
+                .process(webhookMapper::getWebhookStatus);
+
+        from(DIRECT_REST_WEBHOOK_TEARDOWN)
+                .routeId(ROUTE_REST_WEBHOOK_TEARDOWN)
+                .process(webhookMapper::teardownWebhook);
     }
 }

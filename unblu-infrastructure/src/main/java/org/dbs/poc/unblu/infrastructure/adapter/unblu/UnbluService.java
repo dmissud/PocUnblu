@@ -443,4 +443,103 @@ public class UnbluService {
             throw new RuntimeException("Erreur inattendue lors de la récupération du webhook", e);
         }
     }
+
+    /**
+     * Create a new webhook registration
+     */
+    public WebhookRegistration createWebhook(String name, String endpoint, List<String> eventTypes) {
+        try {
+            WebhookRegistrationsApi webhookApi = new WebhookRegistrationsApi(apiClient);
+
+            log.info("Creating webhook in Unblu - Name: {}, Endpoint: {}, Events: {}", name, endpoint, eventTypes);
+
+            WebhookRegistration webhookData = new WebhookRegistration();
+            webhookData.setName(name);
+            webhookData.setDescription("Webhook auto-configuré pour le PoC Unblu");
+            webhookData.setEndpoint(endpoint);
+            webhookData.setApiVersion(EWebApiVersion.V4);
+            webhookData.setStatus(ERegistrationStatus.ACTIVE);
+            webhookData.setEvents(eventTypes);
+
+            WebhookRegistration result = webhookApi.webhookRegistrationsCreate(webhookData);
+            log.info("Successfully created webhook: {} with ID: {}", result.getName(), result.getId());
+
+            return result;
+        } catch (ApiException e) {
+            log.error("Error creating webhook in Unblu - Status: {}", e.getCode(), e);
+            if (e.getCode() == 403) {
+                throw new UnbluApiException(403, "Forbidden", "Service non autorisé : vous n'avez pas les permissions nécessaires pour créer un webhook");
+            }
+            if (e.getCode() == 409) {
+                throw new UnbluApiException(409, "Conflict", "Un webhook avec ce nom existe déjà");
+            }
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la création du webhook : " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error creating webhook in Unblu", e);
+            throw new RuntimeException("Erreur inattendue lors de la création du webhook", e);
+        }
+    }
+
+    /**
+     * Update an existing webhook registration
+     */
+    public WebhookRegistration updateWebhook(String webhookId, String endpoint, List<String> eventTypes) {
+        try {
+            WebhookRegistrationsApi webhookApi = new WebhookRegistrationsApi(apiClient);
+
+            log.info("Updating webhook in Unblu - ID: {}, New Endpoint: {}", webhookId, endpoint);
+
+            // First, get the existing webhook
+            WebhookRegistration existing = webhookApi.webhookRegistrationsRead(webhookId);
+
+            // Update the webhook object
+            existing.setEndpoint(endpoint);
+            existing.setStatus(ERegistrationStatus.ACTIVE);
+            if (eventTypes != null) {
+                existing.setEvents(eventTypes);
+            }
+
+            WebhookRegistration result = webhookApi.webhookRegistrationsUpdate(existing);
+            log.info("Successfully updated webhook: {}", result.getId());
+
+            return result;
+        } catch (ApiException e) {
+            log.error("Error updating webhook in Unblu - Status: {}", e.getCode(), e);
+            if (e.getCode() == 404) {
+                throw new UnbluApiException(404, "Not Found", "Webhook non trouvé : aucun webhook trouvé avec cet ID");
+            }
+            if (e.getCode() == 403) {
+                throw new UnbluApiException(403, "Forbidden", "Service non autorisé : vous n'avez pas les permissions nécessaires pour mettre à jour ce webhook");
+            }
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la mise à jour du webhook : " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error updating webhook in Unblu", e);
+            throw new RuntimeException("Erreur inattendue lors de la mise à jour du webhook", e);
+        }
+    }
+
+    /**
+     * Delete a webhook registration
+     */
+    public void deleteWebhook(String webhookId) {
+        try {
+            WebhookRegistrationsApi webhookApi = new WebhookRegistrationsApi(apiClient);
+
+            log.info("Deleting webhook from Unblu - ID: {}", webhookId);
+            webhookApi.webhookRegistrationsDelete(webhookId);
+            log.info("Successfully deleted webhook: {}", webhookId);
+        } catch (ApiException e) {
+            log.error("Error deleting webhook from Unblu - Status: {}", e.getCode(), e);
+            if (e.getCode() == 404) {
+                throw new UnbluApiException(404, "Not Found", "Webhook non trouvé : aucun webhook trouvé avec cet ID");
+            }
+            if (e.getCode() == 403) {
+                throw new UnbluApiException(403, "Forbidden", "Service non autorisé : vous n'avez pas les permissions nécessaires pour supprimer ce webhook");
+            }
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la suppression du webhook : " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error deleting webhook from Unblu", e);
+            throw new RuntimeException("Erreur inattendue lors de la suppression du webhook", e);
+        }
+    }
 }
