@@ -1,6 +1,7 @@
 package org.dbs.poc.unblu.exposition.rest.mapper;
 
 import org.apache.camel.Exchange;
+import org.dbs.poc.unblu.application.port.in.SearchTeamsUseCase;
 import org.dbs.poc.unblu.domain.model.TeamInfo;
 import org.dbs.poc.unblu.exposition.rest.dto.TeamResponse;
 import org.springframework.stereotype.Component;
@@ -14,6 +15,12 @@ import java.util.List;
  */
 @Component
 public class TeamMapper {
+
+    private final SearchTeamsUseCase searchTeamsUseCase;
+
+    public TeamMapper(SearchTeamsUseCase searchTeamsUseCase) {
+        this.searchTeamsUseCase = searchTeamsUseCase;
+    }
 
     /**
      * Maps a TeamInfo domain model to a TeamResponse DTO.
@@ -40,20 +47,11 @@ public class TeamMapper {
     }
 
     /**
-     * Maps list of TeamInfo from Exchange body to list of TeamResponse.
+     * Searches teams and directly returns TeamResponse list.
+     * This method combines query execution and response mapping.
      */
-    public void mapTeamsToResponse(Exchange exchange) {
-        List<?> rawList = exchange.getIn().getBody(List.class);
-        if (rawList == null) {
-            exchange.getIn().setBody(Collections.emptyList());
-            return;
-        }
-
-        List<TeamInfo> teamInfos = rawList.stream()
-                .filter(TeamInfo.class::isInstance)
-                .map(TeamInfo.class::cast)
-                .toList();
-
+    public void searchAndMapTeams(Exchange exchange) {
+        List<TeamInfo> teamInfos = searchTeamsUseCase.searchTeams();
         exchange.getIn().setBody(toResponseList(teamInfos));
     }
 }

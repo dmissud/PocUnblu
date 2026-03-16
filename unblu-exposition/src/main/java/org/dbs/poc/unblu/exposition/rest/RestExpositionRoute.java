@@ -191,8 +191,7 @@ public class RestExpositionRoute extends RouteBuilder {
     private void defineTeamRoutes() {
         from(DIRECT_REST_SEARCH_TEAMS)
                 .routeId(ROUTE_REST_SEARCH_TEAMS)
-                .to(OrchestratorEndpoints.DIRECT_UNBLU_SEARCH_TEAMS)
-                .process(teamMapper::mapTeamsToResponse);
+                .process(teamMapper::searchAndMapTeams);
     }
 
     private void defineWebhookRoutes() {
