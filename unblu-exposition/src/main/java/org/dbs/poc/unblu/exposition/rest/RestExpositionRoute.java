@@ -17,6 +17,8 @@ import org.dbs.poc.unblu.exposition.rest.dto.StartConversationRequest;
 import org.dbs.poc.unblu.exposition.rest.dto.StartConversationResponse;
 import org.dbs.poc.unblu.exposition.rest.dto.StartDirectConversationRequest;
 import org.dbs.poc.unblu.exposition.rest.mapper.ConversationMapper;
+import org.dbs.poc.unblu.exposition.rest.mapper.PersonMapper;
+import org.dbs.poc.unblu.exposition.rest.mapper.TeamMapper;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -79,10 +81,7 @@ public class RestExpositionRoute extends RouteBuilder {
                     .to(DIRECT_REST_SEARCH_PERSONS);
 
         // --- Teams ---
-        rest("/v1/teams")
-            .get()
-                .outType(List.class)
-                .to("direct:rest-search-teams");
+    private void defineTeamEndpoints() {
 
         // --- Webhooks ---
         rest("/v1/webhooks")
@@ -123,10 +122,6 @@ public class RestExpositionRoute extends RouteBuilder {
                 .to(OrchestratorEndpoints.DIRECT_UNBLU_SEARCH_PERSONS)
                 .process(personMapper::mapPersonsToResponse);
 
-        from("direct:rest-search-teams")
-            .routeId("rest-search-teams")
-            .to(OrchestratorEndpoints.DIRECT_UNBLU_SEARCH_TEAMS)
-            .process(this::mapTeamsToResponse);
 
         from("direct:rest-webhook-setup")
             .routeId("rest-webhook-setup")
@@ -142,6 +137,10 @@ public class RestExpositionRoute extends RouteBuilder {
     }
 
     private void defineTeamRoutes() {
+        from(DIRECT_REST_SEARCH_TEAMS)
+                .routeId(ROUTE_REST_SEARCH_TEAMS)
+                .to(OrchestratorEndpoints.DIRECT_UNBLU_SEARCH_TEAMS)
+                .process(teamMapper::mapTeamsToResponse);
     }
 
     protected void mapPersonsToResponse(Exchange exchange) {
