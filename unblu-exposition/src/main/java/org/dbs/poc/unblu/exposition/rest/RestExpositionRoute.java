@@ -171,40 +171,56 @@ public class RestExpositionRoute extends RouteBuilder {
     private void defineConversationRoutes() {
         from(DIRECT_REST_START_CONVERSATION)
                 .routeId(ROUTE_REST_START_CONVERSATION)
+                .log("Starting conversation with request: ${body}")
                 .process(conversationMapper::mapRequestToCommand)
+                .log("Calling orchestrator with command: ${body}")
                 .to(OrchestratorEndpoints.DIRECT_START_CONVERSATION)
-                .process(conversationMapper::mapContextToResponse);
+                .process(conversationMapper::mapContextToResponse)
+                .log("Conversation started successfully: ${body.conversationId}");
 
         from(DIRECT_REST_START_DIRECT_CONVERSATION)
                 .routeId(ROUTE_REST_START_DIRECT_CONVERSATION)
+                .log("Starting direct conversation with request: ${body}")
                 .process(conversationMapper::mapDirectRequestToCommand)
+                .log("Calling orchestrator with command: ${body}")
                 .to(OrchestratorEndpoints.DIRECT_START_DIRECT_CONVERSATION)
-                .process(conversationMapper::mapInfoToResponse);
+                .process(conversationMapper::mapInfoToResponse)
+                .log("Direct conversation started successfully: ${body.conversationId}");
     }
 
     private void definePersonRoutes() {
         from(DIRECT_REST_SEARCH_PERSONS)
                 .routeId(ROUTE_REST_SEARCH_PERSONS)
-                .process(personMapper::searchAndMapPersons);
+                .log("Searching persons")
+                .process(personMapper::searchAndMapPersons)
+                .log("Found ${body.size()} persons");
     }
 
     private void defineTeamRoutes() {
         from(DIRECT_REST_SEARCH_TEAMS)
                 .routeId(ROUTE_REST_SEARCH_TEAMS)
-                .process(teamMapper::searchAndMapTeams);
+                .log("Searching teams")
+                .process(teamMapper::searchAndMapTeams)
+                .log("Found ${body.size()} teams");
     }
 
     private void defineWebhookRoutes() {
         from(DIRECT_REST_WEBHOOK_SETUP)
                 .routeId(ROUTE_REST_WEBHOOK_SETUP)
-                .process(webhookMapper::setupWebhook);
+                .log("Setting up webhook")
+                .process(webhookMapper::setupWebhook)
+                .log("Webhook setup completed: ${body}");
 
         from(DIRECT_REST_WEBHOOK_STATUS)
                 .routeId(ROUTE_REST_WEBHOOK_STATUS)
-                .process(webhookMapper::getWebhookStatus);
+                .log("Getting webhook status")
+                .process(webhookMapper::getWebhookStatus)
+                .log("Webhook status: ${body.status}");
 
         from(DIRECT_REST_WEBHOOK_TEARDOWN)
                 .routeId(ROUTE_REST_WEBHOOK_TEARDOWN)
-                .process(webhookMapper::teardownWebhook);
+                .log("Tearing down webhook")
+                .process(webhookMapper::teardownWebhook)
+                .log("Webhook teardown completed");
     }
 }
