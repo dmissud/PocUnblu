@@ -1,0 +1,219 @@
+<div class="container">
+  <header>
+    <h1>{{ title }}</h1>
+    <p>Gestion des conversations Unblu</p>
+    <div class="header-buttons">
+      <button (click)="openSwagger()" class="btn-swagger" title="Ouvrir la documentation Swagger">
+        📖 Swagger API
+      </button>
+
+      <!-- Webhook status and setup -->
+      <div class="webhook-controls">
+        <span class="webhook-status" [title]="webhookStatus?.ngrokUrl || 'Non configuré'">
+          {{ webhookStatusIcon }} {{ webhookStatusText }}
+        </span>
+        <button
+          *ngIf="!webhookStatus?.ngrokRunning"
+          (click)="setupWebhook()"
+          class="btn-webhook"
+          [disabled]="webhookLoading"
+          title="Configurer le webhook (lance ngrok + enregistre dans Unblu)">
+          {{ webhookLoading ? '⏳ Configuration...' : '🔧 Setup Webhook' }}
+        </button>
+        <button
+          *ngIf="webhookStatus?.ngrokRunning"
+          (click)="teardownWebhook()"
+          class="btn-webhook-stop"
+          [disabled]="webhookLoading"
+          title="Arrêter le webhook">
+          {{ webhookLoading ? '⏳ Arrêt...' : '🗑️ Arrêter Webhook' }}
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div *ngIf="loadingData" class="loading">
+    <p>Chargement des données...</p>
+  </div>
+
+  <div *ngIf="error" class="alert alert-error">
+    {{ error }}
+    <button (click)="error = null">✕</button>
+  </div>
+
+  <div *ngIf="!loadingData" class="content">
+    <!-- Workflow 1: Conversation Directe -->
+    <div class="card">
+      <h2>🗣️ Conversation Directe</h2>
+      <p class="subtitle">Client + Agent → Conversation directe</p>
+
+      <div class="form-group">
+        <label for="direct-client">Client (VIRTUAL)</label>
+        <select
+          id="direct-client"
+          [(ngModel)]="selectedClient"
+          class="form-control"
+          [disabled]="loading">
+          <option [ngValue]="null">-- Sélectionner un client --</option>
+          <option *ngFor="let client of clients" [ngValue]="client">
+            {{ client.displayName }} ({{ client.email }})
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="direct-agent">Agent (USER_DB)</label>
+        <select
+          id="direct-agent"
+          [(ngModel)]="selectedAgent"
+          class="form-control"
+          [disabled]="loading">
+          <option [ngValue]="null">-- Sélectionner un agent --</option>
+          <option *ngFor="let agent of agents" [ngValue]="agent">
+            {{ agent.displayName }} ({{ agent.email }})
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="direct-subject">Sujet (optionnel)</label>
+        <input
+          type="text"
+          id="direct-subject"
+          [(ngModel)]="directSubject"
+          class="form-control"
+          placeholder="Conversation directe"
+          [disabled]="loading">
+      </div>
+
+      <div class="button-group">
+        <button
+          (click)="startDirectConversation()"
+          class="btn btn-primary"
+          [disabled]="loading || !selectedClient || !selectedAgent">
+          {{ loading ? 'Création...' : 'Créer Conversation Directe' }}
+        </button>
+        <button
+          (click)="resetDirectForm()"
+          class="btn btn-secondary"
+          [disabled]="loading">
+          Réinitialiser
+        </button>
+      </div>
+
+      <div *ngIf="directResult" class="result">
+        <h3>✅ Conversation créée avec succès!</h3>
+        <p><strong>ID Conversation:</strong> {{ directResult.unbluConversationId }}</p>
+        <p><strong>URL:</strong> <a [href]="directResult.unbluJoinUrl" target="_blank">{{ directResult.unbluJoinUrl }}</a></p>
+      </div>
+    </div>
+
+    <!-- Workflow 2: Conversation avec Team ou Named Area -->
+    <div class="card">
+      <h2>👥 Conversation avec Équipe ou Zone Nommée</h2>
+      <p class="subtitle">Client + Team/Named Area → Conversation routée</p>
+
+      <div class="form-group">
+        <label for="team-client">Client (VIRTUAL)</label>
+        <select
+          id="team-client"
+          [(ngModel)]="selectedClient"
+          class="form-control"
+          [disabled]="loading">
+          <option [ngValue]="null">-- Sélectionner un client --</option>
+          <option *ngFor="let client of clients" [ngValue]="client">
+            {{ client.displayName }} ({{ client.email }})
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Type de destinataire</label>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input
+              type="radio"
+              name="recipientType"
+              value="TEAM"
+              [(ngModel)]="recipientType"
+              (change)="onRecipientTypeChange()"
+              [disabled]="loading">
+            Équipe
+          </label>
+          <label class="radio-label">
+            <input
+              type="radio"
+              name="recipientType"
+              value="NAMED_AREA"
+              [(ngModel)]="recipientType"
+              (change)="onRecipientTypeChange()"
+              [disabled]="loading">
+            Zone Nommée
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group" *ngIf="recipientType === 'TEAM'">
+        <label for="team-select">Équipe</label>
+        <select
+          id="team-select"
+          [(ngModel)]="selectedTeam"
+          class="form-control"
+          [disabled]="loading">
+          <option [ngValue]="null">-- Sélectionner une équipe --</option>
+          <option *ngFor="let team of teams" [ngValue]="team">
+            {{ team.name }} - {{ team.description }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group" *ngIf="recipientType === 'NAMED_AREA'">
+        <label for="named-area-select">Zone Nommée</label>
+        <select
+          id="named-area-select"
+          [(ngModel)]="selectedNamedArea"
+          class="form-control"
+          [disabled]="loading">
+          <option [ngValue]="null">-- Sélectionner une zone nommée --</option>
+          <option *ngFor="let namedArea of namedAreas" [ngValue]="namedArea">
+            {{ namedArea.name }} - {{ namedArea.description }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="team-subject">Sujet (optionnel)</label>
+        <input
+          type="text"
+          id="team-subject"
+          [(ngModel)]="teamSubject"
+          class="form-control"
+          placeholder="Conversation équipe"
+          [disabled]="loading">
+      </div>
+
+      <div class="button-group">
+        <button
+          (click)="startTeamConversation()"
+          class="btn btn-primary"
+          [disabled]="loading || !selectedClient || (recipientType === 'TEAM' && !selectedTeam) || (recipientType === 'NAMED_AREA' && !selectedNamedArea)">
+          {{ loading ? 'Création...' : 'Créer Conversation' }}
+        </button>
+        <button
+          (click)="resetTeamForm()"
+          class="btn btn-secondary"
+          [disabled]="loading">
+          Réinitialiser
+        </button>
+      </div>
+
+      <div *ngIf="teamResult" class="result">
+        <h3>✅ Conversation créée avec succès!</h3>
+        <p><strong>ID Conversation:</strong> {{ teamResult.unbluConversationId }}</p>
+        <p><strong>URL:</strong> <a [href]="teamResult.unbluJoinUrl" target="_blank">{{ teamResult.unbluJoinUrl }}</a></p>
+        <p *ngIf="teamResult.teamId"><strong>Team ID:</strong> {{ teamResult.teamId }}</p>
+        <p *ngIf="teamResult.agentPersonId"><strong>Agent ID:</strong> {{ teamResult.agentPersonId }}</p>
+      </div>
+    </div>
+  </div>
+</div>

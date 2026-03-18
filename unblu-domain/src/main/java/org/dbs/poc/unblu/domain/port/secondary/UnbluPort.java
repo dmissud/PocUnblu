@@ -1,6 +1,7 @@
 package org.dbs.poc.unblu.domain.port.secondary;
 
 import org.dbs.poc.unblu.domain.model.ConversationContext;
+import org.dbs.poc.unblu.domain.model.NamedAreaInfo;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
 import org.dbs.poc.unblu.domain.model.PersonSource;
 import org.dbs.poc.unblu.domain.model.TeamInfo;
@@ -22,6 +23,15 @@ public interface UnbluPort {
     List<PersonInfo> searchPersons(String sourceId, PersonSource personSource);
 
     List<TeamInfo> searchTeams();
+
+    List<NamedAreaInfo> searchNamedAreas();
+
+    /**
+     * Search for agents who have a specific named area in their queue filter configuration.
+     * @param namedAreaId the ID of the named area
+     * @return list of agents (PersonInfo) who have this named area in their queue filter
+     */
+    List<PersonInfo> searchAgentsByNamedArea(String namedAreaId);
 
     /**
      * Creates a direct conversation between a VIRTUAL person and a USER_DB agent.

@@ -31,8 +31,23 @@ build/
 
 ### VS Code ###
 .vscode/
+!unblu-frontend/.vscode/
 
 ### Environment Variables ###
 .env
 *.env
 !.env.example
+
+### Angular Frontend Build Output ###
+unblu-configuration/src/main/resources/static/browser/
+unblu-configuration/src/main/resources/static/3rdpartylicenses.txt
+unblu-configuration/src/main/resources/static/prerendered-routes.json
+
+### Node Modules ###
+unblu-frontend/node_modules/
+unblu-frontend/package-lock.json
+unblu-frontend/.angular/
+
+### Frontend Maven Plugin ###
+unblu-frontend/node/
+unblu-frontend/etc/

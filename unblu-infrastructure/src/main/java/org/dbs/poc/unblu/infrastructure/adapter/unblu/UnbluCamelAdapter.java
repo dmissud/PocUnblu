@@ -22,6 +22,8 @@ public class UnbluCamelAdapter extends RouteBuilder {
     public static final String DIRECT_UNBLU_CREATE_DIRECT_CONVERSATION = "direct:unblu-create-direct-conversation";
     public static final String DIRECT_UNBLU_ADD_SUMMARY = "direct:unblu-add-summary";
     public static final String DIRECT_UNBLU_SEARCH_TEAMS = "direct:unblu-search-teams";
+    public static final String DIRECT_UNBLU_SEARCH_NAMED_AREAS = "direct:unblu-search-named-areas";
+    public static final String DIRECT_UNBLU_SEARCH_AGENTS_BY_NAMED_AREA = "direct:unblu-search-agents-by-named-area";
 
     private final UnbluService unbluService;
 
@@ -33,7 +35,7 @@ public class UnbluCamelAdapter extends RouteBuilder {
         // ==========================================
         from(DIRECT_UNBLU_ADAPTER)
             .routeId("unblu-rest-adapter")
-            .log("Création de la conversation Unblu pour la file d'attente : ${body.routingDecision.unbluAssignedGroupId}")
+            .log("Création de la conversation Unblu")
             .process(this::createConversation);
 
         // ==========================================
@@ -67,6 +69,22 @@ public class UnbluCamelAdapter extends RouteBuilder {
             .routeId("unblu-search-teams")
             .log("Récupération des équipes Unblu")
             .process(this::searchTeams);
+
+        // ==========================================
+        // ADAPTER : Recherche des zones nommées Unblu
+        // ==========================================
+        from(DIRECT_UNBLU_SEARCH_NAMED_AREAS)
+            .routeId("unblu-search-named-areas")
+            .log("Récupération des zones nommées Unblu")
+            .process(this::searchNamedAreas);
+
+        // ==========================================
+        // ADAPTER : Recherche des agents par named area
+        // ==========================================
+        from(DIRECT_UNBLU_SEARCH_AGENTS_BY_NAMED_AREA)
+            .routeId("unblu-search-agents-by-named-area")
+            .log("Recherche des agents ayant une named area dans leur queue")
+            .process(this::searchAgentsByNamedArea);
     }
 
     private void createConversation(org.apache.camel.Exchange exchange) {
@@ -82,8 +100,11 @@ public class UnbluCamelAdapter extends RouteBuilder {
         recipient.setId(ctx.getRoutingDecision().unbluAssignedGroupId());
         creationData.setRecipient(recipient);
 
+        // Récupérer l'ID Unblu de la personne à partir du sourceId
+        PersonData person = unbluService.getPersonBySource(EPersonSource.VIRTUAL, ctx.getInitialClientId());
+
         ConversationCreationParticipantData participant = new ConversationCreationParticipantData();
-        participant.setPersonId(ctx.getInitialClientId());
+        participant.setPersonId(person.getId());
         participant.setParticipationType(EConversationRealParticipationType.CONTEXT_PERSON);
         creationData.addParticipantsItem(participant);
 
@@ -115,5 +136,16 @@ public class UnbluCamelAdapter extends RouteBuilder {
     private void searchTeams(org.apache.camel.Exchange exchange) {
         List<TeamInfo> teams = unbluService.searchTeams();
         exchange.getIn().setBody(teams);
+    }
+
+    private void searchNamedAreas(org.apache.camel.Exchange exchange) {
+        List<org.dbs.poc.unblu.domain.model.NamedAreaInfo> namedAreas = unbluService.searchNamedAreas();
+        exchange.getIn().setBody(namedAreas);
+    }
+
+    private void searchAgentsByNamedArea(org.apache.camel.Exchange exchange) {
+        String namedAreaId = exchange.getIn().getBody(String.class);
+        List<PersonInfo> agents = unbluService.searchAgentsByNamedArea(namedAreaId);
+        exchange.getIn().setBody(agents);
     }
 }

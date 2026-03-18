@@ -5,15 +5,19 @@ import com.unblu.webapi.jersey.v4.invoker.ApiException;
 import com.unblu.webapi.jersey.v4.api.AccountsApi;
 import com.unblu.webapi.jersey.v4.api.BotsApi;
 import com.unblu.webapi.jersey.v4.api.ConversationsApi;
+import com.unblu.webapi.jersey.v4.api.NamedAreasApi;
 import com.unblu.webapi.jersey.v4.api.PersonsApi;
 import com.unblu.webapi.jersey.v4.api.TeamsApi;
+import com.unblu.webapi.jersey.v4.api.UsersApi;
 import com.unblu.webapi.jersey.v4.api.WebhookRegistrationsApi;
 import com.unblu.webapi.model.v4.*;
+import org.dbs.poc.unblu.domain.model.NamedAreaInfo;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
 import org.dbs.poc.unblu.domain.model.TeamInfo;
 import org.dbs.poc.unblu.infrastructure.config.UnbluProperties;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
@@ -28,6 +32,12 @@ public class UnbluService {
 
     private final ApiClient apiClient;
     private final UnbluProperties unbluProperties;
+
+    /**
+     * Constant to indicate no field expansion is needed in Unblu API calls.
+     * When null, only basic data is returned without expanding related entities.
+     */
+    private static final List<ExpandFields> NO_EXPAND_FIELDS = null;
 
     /**
      * Get current account from Unblu
@@ -159,7 +169,7 @@ public class UnbluService {
             TeamQuery query = new TeamQuery();
 
             log.info("Récupération des équipes dans Unblu...");
-            TeamResult result = teamsApi.teamsSearch(query, null);
+            TeamResult result = teamsApi.teamsSearch(query, NO_EXPAND_FIELDS);
             log.info("Trouvé {} équipe(s)", result.getItems().size());
 
             return result.getItems().stream()
@@ -171,6 +181,30 @@ public class UnbluService {
         } catch (ApiException e) {
             log.error("Erreur lors de la récupération des équipes Unblu - Status: {}", e.getCode(), e);
             throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la récupération des équipes : " + e.getMessage());
+        }
+    }
+
+    /**
+     * Search for named areas
+     */
+    public List<NamedAreaInfo> searchNamedAreas() {
+        try {
+            NamedAreasApi namedAreasApi = new NamedAreasApi(apiClient);
+            NamedAreaQuery query = new NamedAreaQuery();
+
+            log.info("Récupération des zones nommées dans Unblu...");
+            NamedAreaResult result = namedAreasApi.namedAreasSearch(query, NO_EXPAND_FIELDS);
+            log.info("Trouvé {} zone(s) nommée(s)", result.getItems().size());
+
+            return result.getItems().stream()
+                    .map(namedArea -> new NamedAreaInfo(
+                            namedArea.getId(),
+                            namedArea.getName(),
+                            namedArea.getDescription()))
+                    .toList();
+        } catch (ApiException e) {
+            log.error("Erreur lors de la récupération des zones nommées Unblu - Status: {}", e.getCode(), e);
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la récupération des zones nommées : " + e.getMessage());
         }
     }
 
@@ -441,6 +475,146 @@ public class UnbluService {
         } catch (Exception e) {
             log.error("Unexpected error getting webhook by name from Unblu", e);
             throw new RuntimeException("Erreur inattendue lors de la récupération du webhook", e);
+        }
+    }
+
+    /**
+     * Create a new webhook registration
+     */
+    public WebhookRegistration createWebhook(String name, String endpoint, List<String> eventTypes) {
+        try {
+            WebhookRegistrationsApi webhookApi = new WebhookRegistrationsApi(apiClient);
+
+            log.info("Creating webhook in Unblu - Name: {}, Endpoint: {}, Events: {}", name, endpoint, eventTypes);
+
+            WebhookRegistration webhookData = new WebhookRegistration();
+            webhookData.setName(name);
+            webhookData.setDescription("Webhook auto-configuré pour le PoC Unblu");
+            webhookData.setEndpoint(endpoint);
+            webhookData.setApiVersion(EWebApiVersion.V4);
+            webhookData.setStatus(ERegistrationStatus.ACTIVE);
+            webhookData.setEvents(eventTypes);
+
+            WebhookRegistration result = webhookApi.webhookRegistrationsCreate(webhookData);
+            log.info("Successfully created webhook: {} with ID: {}", result.getName(), result.getId());
+
+            return result;
+        } catch (ApiException e) {
+            log.error("Error creating webhook in Unblu - Status: {}", e.getCode(), e);
+            if (e.getCode() == 403) {
+                throw new UnbluApiException(403, "Forbidden", "Service non autorisé : vous n'avez pas les permissions nécessaires pour créer un webhook");
+            }
+            if (e.getCode() == 409) {
+                throw new UnbluApiException(409, "Conflict", "Un webhook avec ce nom existe déjà");
+            }
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la création du webhook : " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error creating webhook in Unblu", e);
+            throw new RuntimeException("Erreur inattendue lors de la création du webhook", e);
+        }
+    }
+
+    /**
+     * Update an existing webhook registration
+     */
+    public WebhookRegistration updateWebhook(String webhookId, String endpoint, List<String> eventTypes) {
+        try {
+            WebhookRegistrationsApi webhookApi = new WebhookRegistrationsApi(apiClient);
+
+            log.info("Updating webhook in Unblu - ID: {}, New Endpoint: {}", webhookId, endpoint);
+
+            // First, get the existing webhook
+            WebhookRegistration existing = webhookApi.webhookRegistrationsRead(webhookId);
+
+            // Update the webhook object
+            existing.setEndpoint(endpoint);
+            existing.setStatus(ERegistrationStatus.ACTIVE);
+            if (eventTypes != null) {
+                existing.setEvents(eventTypes);
+            }
+
+            WebhookRegistration result = webhookApi.webhookRegistrationsUpdate(existing);
+            log.info("Successfully updated webhook: {}", result.getId());
+
+            return result;
+        } catch (ApiException e) {
+            log.error("Error updating webhook in Unblu - Status: {}", e.getCode(), e);
+            if (e.getCode() == 404) {
+                throw new UnbluApiException(404, "Not Found", "Webhook non trouvé : aucun webhook trouvé avec cet ID");
+            }
+            if (e.getCode() == 403) {
+                throw new UnbluApiException(403, "Forbidden", "Service non autorisé : vous n'avez pas les permissions nécessaires pour mettre à jour ce webhook");
+            }
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la mise à jour du webhook : " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error updating webhook in Unblu", e);
+            throw new RuntimeException("Erreur inattendue lors de la mise à jour du webhook", e);
+        }
+    }
+
+    /**
+     * Delete a webhook registration
+     */
+    public void deleteWebhook(String webhookId) {
+        try {
+            WebhookRegistrationsApi webhookApi = new WebhookRegistrationsApi(apiClient);
+
+            log.info("Deleting webhook from Unblu - ID: {}", webhookId);
+            webhookApi.webhookRegistrationsDelete(webhookId);
+            log.info("Successfully deleted webhook: {}", webhookId);
+        } catch (ApiException e) {
+            log.error("Error deleting webhook from Unblu - Status: {}", e.getCode(), e);
+            if (e.getCode() == 404) {
+                throw new UnbluApiException(404, "Not Found", "Webhook non trouvé : aucun webhook trouvé avec cet ID");
+            }
+            if (e.getCode() == 403) {
+                throw new UnbluApiException(403, "Forbidden", "Service non autorisé : vous n'avez pas les permissions nécessaires pour supprimer ce webhook");
+            }
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la suppression du webhook : " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error deleting webhook from Unblu", e);
+            throw new RuntimeException("Erreur inattendue lors de la suppression du webhook", e);
+        }
+    }
+
+    /**
+     * Search for agents who have a specific named area in their queue filter configuration
+     */
+    public List<PersonInfo> searchAgentsByNamedArea(String namedAreaId) {
+        try {
+            UsersApi usersApi = new UsersApi(apiClient);
+            UserQuery query = new UserQuery();
+
+            log.info("Recherche des agents ayant la named area {} dans leur configuration de queue...", namedAreaId);
+
+            // Récupérer tous les utilisateurs avec leur configuration
+            List<ExpandFields> expand = List.of(ExpandFields.CONFIGURATION);
+            UserResult result = usersApi.usersSearch(query, expand);
+
+            log.info("Trouvé {} utilisateur(s) au total", result.getItems().size());
+
+            // Filtrer les utilisateurs qui ont cette named area dans leur configuration de queue
+            List<PersonInfo> agents = result.getItems().stream()
+                    .filter(user -> {
+                        Map<String, String> config = user.getConfiguration();
+                        if (config == null) {
+                            return false;
+                        }
+                        String namedAreasFilter = config.get("com.unblu.queue.ui.defaultFilterNamedAreas");
+                        return namedAreasFilter != null && namedAreasFilter.contains(namedAreaId);
+                    })
+                    .map(user -> new PersonInfo(
+                            user.getId(),
+                            user.getUsername(),
+                            user.getDisplayName(),
+                            user.getEmail()))
+                    .toList();
+
+            log.info("Trouvé {} agent(s) avec la named area {} dans leur queue", agents.size(), namedAreaId);
+            return agents;
+        } catch (ApiException e) {
+            log.error("Erreur lors de la recherche des agents par named area - Status: {}", e.getCode(), e);
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la recherche des agents par named area : " + e.getMessage());
         }
     }
 }

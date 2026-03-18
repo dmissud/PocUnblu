@@ -4,12 +4,15 @@ import org.apache.camel.builder.RouteBuilder;
 import org.dbs.poc.unblu.domain.model.ChatRoutingDecision;
 import org.dbs.poc.unblu.domain.model.CustomerProfile;
 import org.dbs.poc.unblu.domain.model.ConversationContext;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Random;
 
 @Component
+@ConditionalOnProperty(name = "mock.rule-engine.enabled", havingValue = "true", matchIfMissing = true)
 public class ExternalSystemsMockAdapters extends RouteBuilder {
 
     public static final String DIRECT_ERP_ADAPTER = "direct:erp-adapter";
@@ -23,6 +26,9 @@ public class ExternalSystemsMockAdapters extends RouteBuilder {
     );
     private static final Random RANDOM = new Random();
 
+    @Value("${mock.rule-engine.default-team-id:cAaYUeKyTZ25_OaA6jUeVA}")
+    private String defaultTeamId;
+
     @Override
     public void configure() throws Exception {
 
@@ -31,7 +37,7 @@ public class ExternalSystemsMockAdapters extends RouteBuilder {
         // ==========================================
         from(DIRECT_ERP_ADAPTER)
             .routeId("mock-erp-adapter")
-            .log("Mock ERP appelé pour le client ID: ${body.initialClientId}")
+            .log("Mock ERP appelé")
             .process(this::mockErpLogic);
 
 
@@ -40,7 +46,7 @@ public class ExternalSystemsMockAdapters extends RouteBuilder {
         // ==========================================
         from(DIRECT_RULE_ENGINE_ADAPTER)
             .routeId("mock-rule-engine-adapter")
-            .log("Mock Moteur de Règles appelé pour le segment: ${body.customerProfile.customerSegment}")
+            .log("Mock Moteur de Règles appelé")
             .process(this::mockRuleEngineLogic);
     }
 
@@ -61,17 +67,16 @@ public class ExternalSystemsMockAdapters extends RouteBuilder {
 
     private void mockRuleEngineLogic(org.apache.camel.Exchange exchange) {
         ConversationContext ctx = exchange.getIn().getBody(ConversationContext.class);
-        String segment = ctx.getCustomerProfile().customerSegment();
-        
+
         ChatRoutingDecision decision;
-        
+
         if (ctx.getCustomerProfile().isBanned()) {
             decision = new ChatRoutingDecision(false, null, "Client blacklisté - Accès au chat refusé.");
         } else {
-            String teamId = HELLO_BANK_TEAM_IDS.get(RANDOM.nextInt(HELLO_BANK_TEAM_IDS.size()));
-            decision = new ChatRoutingDecision(true, teamId, "Client éligible.");
+            // Utilise le teamId configuré au lieu d'un choix aléatoire
+            decision = new ChatRoutingDecision(true, defaultTeamId, "Client éligible.");
         }
-        
+
         exchange.getIn().setBody(decision);
     }
 }
