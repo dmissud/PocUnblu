@@ -23,7 +23,18 @@ public class WebhookEventRoute extends RouteBuilder {
             .log("========== CAMEL ROUTE: Processing Webhook Event ==========")
             .log("=".repeat(100))
             .process(exchange -> {
+                // Debug: Check what we received
+                Object body = exchange.getIn().getBody();
+                log.info("Received body class: {}", body != null ? body.getClass().getName() : "null");
+                log.info("Received body: {}", body);
+
                 Map<String, Object> payload = exchange.getIn().getBody(Map.class);
+
+                if (payload == null) {
+                    log.error("ERROR: Payload is null in webhook-event-processor!");
+                    throw new IllegalArgumentException("Webhook payload cannot be null");
+                }
+
                 String eventType = (String) payload.get("$_type");
 
                 log.info("Event Type from payload: {}", eventType);
