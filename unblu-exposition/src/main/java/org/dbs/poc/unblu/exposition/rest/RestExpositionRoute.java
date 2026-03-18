@@ -17,6 +17,7 @@ import org.dbs.poc.unblu.exposition.rest.mapper.WebhookMapper;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Camel REST DSL route configuration for Unblu API.
@@ -171,12 +172,15 @@ public class RestExpositionRoute extends RouteBuilder {
     private void defineWebhookEndpoints() {
         rest(PATH_WEBHOOKS)
                 .post("/setup")
+                    .description("Setup webhook registration with Unblu")
                     .outType(WebhookSetupResult.class)
                     .to(DIRECT_REST_WEBHOOK_SETUP)
                 .get("/status")
+                    .description("Get current webhook status")
                     .outType(WebhookStatus.class)
                     .to(DIRECT_REST_WEBHOOK_STATUS)
                 .delete("/teardown")
+                    .description("Teardown webhook registration")
                     .param()
                         .name("deleteWebhook")
                         .type(RestParamType.query)
@@ -184,6 +188,26 @@ public class RestExpositionRoute extends RouteBuilder {
                         .description("Whether to delete the webhook from Unblu")
                     .endParam()
                     .to(DIRECT_REST_WEBHOOK_TEARDOWN);
+
+        // Webhook receiver endpoint (called by Unblu)
+        rest("/webhooks")
+                .post("/unblu")
+                    .description("Receive webhook events from Unblu (called by Unblu server)")
+                    .consumes("application/json")
+                    .type(Map.class)
+                    .param()
+                        .name("X-Unblu-Signature")
+                        .type(RestParamType.header)
+                        .description("Webhook signature for verification")
+                        .required(false)
+                    .endParam()
+                    .param()
+                        .name("X-Unblu-Event-Type")
+                        .type(RestParamType.header)
+                        .description("Type of webhook event")
+                        .required(false)
+                    .endParam()
+                    .to("direct:webhook-receiver-internal");
     }
 
     /**
