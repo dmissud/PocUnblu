@@ -44,20 +44,25 @@ public class WebhookReceiverRoute extends RouteBuilder {
                 String signature = exchange.getIn().getHeader(HEADER_UNBLU_SIGNATURE, String.class);
                 String eventType = exchange.getIn().getHeader(HEADER_UNBLU_EVENT_TYPE, String.class);
 
-                // Convert InputStream body to String, then to Map
-                String jsonString = exchange.getIn().getBody(String.class);
-                log.info("Received JSON string: {}", jsonString);
+                // Try to get body as Map first (already deserialized by Camel)
+                Map<String, Object> payload = exchange.getIn().getBody(Map.class);
 
-                // Parse JSON string to Map
-                Map<String, Object> payload = null;
-                if (jsonString != null && !jsonString.isEmpty()) {
-                    try {
-                        payload = objectMapper.readValue(jsonString, Map.class);
-                        log.info("Parsed payload successfully");
-                    } catch (Exception e) {
-                        log.error("Failed to parse JSON payload", e);
-                        throw new RuntimeException("Invalid JSON payload", e);
+                // If null, try parsing as JSON string
+                if (payload == null) {
+                    String jsonString = exchange.getIn().getBody(String.class);
+                    log.info("Received body as String: {}", jsonString);
+
+                    if (jsonString != null && !jsonString.isEmpty()) {
+                        try {
+                            payload = objectMapper.readValue(jsonString, Map.class);
+                            log.info("Parsed payload successfully from JSON");
+                        } catch (Exception e) {
+                            log.error("Failed to parse JSON payload", e);
+                            throw new RuntimeException("Invalid JSON payload", e);
+                        }
                     }
+                } else {
+                    log.info("Received body as Map directly");
                 }
 
                 log.info("Event Type Header: {}", eventType);

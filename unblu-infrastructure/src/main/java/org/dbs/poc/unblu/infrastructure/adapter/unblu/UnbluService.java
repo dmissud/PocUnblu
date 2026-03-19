@@ -1,29 +1,20 @@
 package org.dbs.poc.unblu.infrastructure.adapter.unblu;
 
+import com.unblu.webapi.jersey.v4.api.*;
 import com.unblu.webapi.jersey.v4.invoker.ApiClient;
 import com.unblu.webapi.jersey.v4.invoker.ApiException;
-import com.unblu.webapi.jersey.v4.api.AccountsApi;
-import com.unblu.webapi.jersey.v4.api.BotsApi;
-import com.unblu.webapi.jersey.v4.api.ConversationsApi;
-import com.unblu.webapi.jersey.v4.api.NamedAreasApi;
-import com.unblu.webapi.jersey.v4.api.PersonsApi;
-import com.unblu.webapi.jersey.v4.api.TeamsApi;
-import com.unblu.webapi.jersey.v4.api.UsersApi;
-import com.unblu.webapi.jersey.v4.api.WebhookRegistrationsApi;
 import com.unblu.webapi.model.v4.*;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.dbs.poc.unblu.domain.model.NamedAreaInfo;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
 import org.dbs.poc.unblu.domain.model.TeamInfo;
 import org.dbs.poc.unblu.infrastructure.config.UnbluProperties;
+import org.dbs.poc.unblu.infrastructure.exception.UnbluApiException;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.dbs.poc.unblu.infrastructure.exception.UnbluApiException;
-import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
@@ -157,7 +148,9 @@ public class UnbluService {
                 personData.getId(),
                 personData.getSourceId(),
                 personData.getDisplayName(),
-                personData.getEmail());
+                personData.getEmail(),
+                personData.getFirstName(),
+                personData.getLastName());
     }
 
     /**
@@ -607,7 +600,9 @@ public class UnbluService {
                             user.getId(),
                             user.getUsername(),
                             user.getDisplayName(),
-                            user.getEmail()))
+                            user.getEmail(),
+                            user.getFirstName(),
+                            user.getLastName()))
                     .toList();
 
             log.info("Trouvé {} agent(s) avec la named area {} dans leur queue", agents.size(), namedAreaId);

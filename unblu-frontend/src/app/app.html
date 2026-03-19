@@ -56,7 +56,8 @@
           [disabled]="loading">
           <option [ngValue]="null">-- Sélectionner un client --</option>
           <option *ngFor="let client of clients" [ngValue]="client">
-            {{ client.displayName }} ({{ client.email }})
+            {{ client.firstName && client.lastName ? client.firstName + ' ' + client.lastName : client.displayName }}
+            ({{ client.sourceId }})
           </option>
         </select>
       </div>
@@ -122,7 +123,8 @@
           [disabled]="loading">
           <option [ngValue]="null">-- Sélectionner un client --</option>
           <option *ngFor="let client of clients" [ngValue]="client">
-            {{ client.displayName }} ({{ client.email }})
+            {{ client.firstName && client.lastName ? client.firstName + ' ' + client.lastName : client.displayName }}
+            ({{ client.sourceId }})
           </option>
         </select>
       </div>

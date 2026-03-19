@@ -10,4 +10,6 @@ public class PersonResponse {
     private String sourceId;
     private String displayName;
     private String email;
+    private String firstName;
+    private String lastName;
 }

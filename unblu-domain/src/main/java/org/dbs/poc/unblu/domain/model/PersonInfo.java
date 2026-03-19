@@ -10,7 +10,9 @@ public record PersonInfo(
         String id,
         String sourceId,
         String displayName,
-        String email
+        String email,
+        String firstName,
+        String lastName
 ) {
     public PersonInfo {
         Objects.requireNonNull(id, "Person id cannot be null");
