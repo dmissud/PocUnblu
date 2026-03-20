@@ -19,6 +19,12 @@
             <artifactId>unblu-domain</artifactId>
         </dependency>
 
+        <!-- Application ports (implemented by infrastructure adapters) -->
+        <dependency>
+            <groupId>org.dbs.poc</groupId>
+            <artifactId>unblu-application</artifactId>
+        </dependency>
+
         <!-- Spring Boot Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

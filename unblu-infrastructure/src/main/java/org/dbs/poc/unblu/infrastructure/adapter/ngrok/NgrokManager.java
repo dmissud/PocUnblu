@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.dbs.poc.unblu.application.port.out.TunnelPort;
+import org.dbs.poc.unblu.application.port.out.TunnelPort.TunnelStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -202,6 +203,16 @@ public class NgrokManager implements TunnelPort {
         }
         ngrokProcess = null;
         currentPublicUrl = null;
+    }
+
+    @Override
+    public boolean start() {
+        return startNgrok();
+    }
+
+    @Override
+    public void stop() {
+        stopNgrok();
     }
 
     /**
