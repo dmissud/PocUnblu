@@ -44,7 +44,7 @@ public class UnbluService {
             AccountsApi accountsApi = new AccountsApi(apiClient);
 
             log.info("Fetching current account from Unblu...");
-            Account result = accountsApi.accountsGetCurrentAccount(null);
+            Account result = accountsApi.accountsGetCurrentAccount(NO_EXPAND_FIELDS);
             log.info("Successfully fetched current account");
 
             return result;
@@ -69,7 +69,7 @@ public class UnbluService {
             AccountQuery query = new AccountQuery();
 
             log.info("Fetching accounts from Unblu...");
-            AccountResult result = accountsApi.accountsSearch(query, null);
+            AccountResult result = accountsApi.accountsSearch(query, NO_EXPAND_FIELDS);
             log.info("Successfully fetched {} accounts", result.getItems().size());
 
             return result;
@@ -93,7 +93,7 @@ public class UnbluService {
             ConversationsApi conversationsApi = new ConversationsApi(apiClient);
 
             log.info("Creating conversation in Unblu...");
-            ConversationData result = conversationsApi.conversationsCreate(conversationData, null);
+            ConversationData result = conversationsApi.conversationsCreate(conversationData, NO_EXPAND_FIELDS);
             log.info("Successfully created conversation with ID: {}", result.getId());
 
             return result;
@@ -137,7 +137,7 @@ public class UnbluService {
             }
 
             log.info("Recherche de personnes dans Unblu, sourceId: {}", sourceId);
-            PersonResult result = personsApi.personsSearch(query, null);
+            PersonResult result = personsApi.personsSearch(query, NO_EXPAND_FIELDS);
             log.info("Trouvé {} personne(s)", result.getItems().size());
 
             return result.getItems().stream()
@@ -216,7 +216,7 @@ public class UnbluService {
             PersonsApi personsApi = new PersonsApi(apiClient);
 
             log.info("Searching for agents in Unblu...");
-            PersonResult result = personsApi.personsSearchAgents(query, null);
+            PersonResult result = personsApi.personsSearchAgents(query, NO_EXPAND_FIELDS);
             log.info("Successfully found {} agents", result.getItems().size());
 
             return result;
@@ -264,7 +264,7 @@ public class UnbluService {
             PersonsApi personsApi = new PersonsApi(apiClient);
 
             log.info("Getting person by source from Unblu - Source: {}, SourceId: {}", personSource, sourceId);
-            PersonData result = personsApi.personsGetBySource(personSource, sourceId, null);
+            PersonData result = personsApi.personsGetBySource(personSource, sourceId, NO_EXPAND_FIELDS);
             log.info("Successfully found person with ID: {}", result.getId());
 
             return result;
@@ -335,7 +335,7 @@ public class UnbluService {
             PersonData botPerson = new PersonData();
             botPerson.setDisplayName(name);
             botPerson.setSourceId("bot-" + name.toLowerCase().replaceAll("[^a-z0-9]", "-"));
-            PersonData createdPerson = personsApi.personsCreateOrUpdateBot(botPerson, null);
+            PersonData createdPerson = personsApi.personsCreateOrUpdateBot(botPerson, NO_EXPAND_FIELDS);
             String botPersonId = createdPerson.getId();
             log.info("Personne bot créée: id={}", botPersonId);
 
@@ -386,7 +386,7 @@ public class UnbluService {
             ConversationsAddParticipantBody addParticipantBody = new ConversationsAddParticipantBody();
             addParticipantBody.setPersonId(botPersonId);
             addParticipantBody.setHidden(true);
-            conversationsApi.conversationsAddParticipant(conversationId, addParticipantBody, null);
+            conversationsApi.conversationsAddParticipant(conversationId, addParticipantBody, NO_EXPAND_FIELDS);
 
             log.info("Envoi du résumé comme message bot dans la conversation {}", conversationId);
             botsApi.botsSendMessage(message);
@@ -433,7 +433,7 @@ public class UnbluService {
             data.addParticipantsItem(agentParticipant);
 
             log.info("Création d'une conversation directe dans Unblu - VIRTUAL: {}, Agent: {}", virtualPerson.id(), agentPerson.id());
-            ConversationData result = conversationsApi.conversationsCreate(data, null);
+            ConversationData result = conversationsApi.conversationsCreate(data, NO_EXPAND_FIELDS);
             log.info("Conversation directe créée avec ID: {}", result.getId());
 
             return result;
