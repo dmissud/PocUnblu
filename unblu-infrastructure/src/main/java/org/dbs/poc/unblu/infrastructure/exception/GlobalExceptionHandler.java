@@ -1,5 +1,6 @@
 package org.dbs.poc.unblu.infrastructure.exception;
 
+import org.dbs.poc.unblu.domain.exception.UnbluApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;

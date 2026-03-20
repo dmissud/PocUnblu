@@ -37,11 +37,5 @@
             <groupId>org.apache.camel.springboot</groupId>
             <artifactId>camel-spring-boot-starter</artifactId>
         </dependency>
-        <!-- For DTO sharing with infra if needed (SummaryRequest) -->
-        <dependency>
-            <groupId>org.dbs.poc</groupId>
-            <artifactId>unblu-infrastructure</artifactId>
-            <scope>provided</scope>
-        </dependency>
     </dependencies>
 </project>
