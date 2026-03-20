@@ -4,26 +4,23 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
-import org.dbs.poc.unblu.domain.model.history.ConversationEventHistory;
-import org.dbs.poc.unblu.domain.model.history.ConversationHistory;
-import org.dbs.poc.unblu.domain.model.history.ParticipantHistory;
-import org.dbs.poc.unblu.domain.port.out.ConversationHistoryRepository;
+import org.dbs.poc.unblu.application.service.ConversationHistoryService;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 
 /**
- * Processes conversation-related webhook events and persists them to database.
+ * Camel Processor that dispatches conversation webhook events to the appropriate handler.
+ * Extraction of data from the raw payload and delegation to ConversationHistoryService.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class ConversationEventProcessor implements Processor {
 
-    private final ConversationHistoryRepository conversationHistoryRepository;
+    private final ConversationHistoryService conversationHistoryService;
 
     private static final String EVENT_TYPE_FIELD = "$_type";
     private static final String EVENT_TYPE_FALLBACK_FIELD = "eventType";
@@ -37,7 +34,6 @@ public class ConversationEventProcessor implements Processor {
 
     private static final String FIELD_CONVERSATION_ID = "conversationId";
     private static final String FIELD_TIMESTAMP = "timestamp";
-    private static final String FIELD_MESSAGE = "message";
     private static final String FIELD_CONVERSATION_MESSAGE = "conversationMessage";
     private static final String FIELD_SENDER_PERSON = "senderPerson";
     private static final String FIELD_END_REASON = "endReason";
@@ -49,168 +45,62 @@ public class ConversationEventProcessor implements Processor {
         Map<String, Object> payload = exchange.getIn().getBody(Map.class);
         String eventType = extractEventType(payload);
 
-        log.info("🔔 Conversation Event Received!");
-        log.info("   Type: {}", eventType);
-        log.info("   Conversation ID: {}", payload.get(FIELD_CONVERSATION_ID));
-        log.info("   Full Details:");
-
+        log.info("Conversation Event Received - Type: {}", eventType);
         logPayloadFields(payload);
 
-        if (isConversationCreatedEvent(eventType)) {
+        if (isEvent(eventType, CONVERSATION_CREATED_EVENT, CONVERSATION_CREATED_EVENT_TYPE)) {
             handleConversationCreated(payload);
-        } else if (isConversationNewMessageEvent(eventType)) {
+        } else if (isEvent(eventType, CONVERSATION_NEW_MESSAGE_EVENT, CONVERSATION_NEW_MESSAGE_EVENT_TYPE)) {
             handleNewMessage(payload);
-        } else if (isConversationEndedEvent(eventType)) {
+        } else if (isEvent(eventType, CONVERSATION_ENDED_EVENT, CONVERSATION_ENDED_EVENT_TYPE)) {
             handleConversationEnded(payload);
+        } else {
+            log.debug("Unhandled conversation event type: {}", eventType);
         }
     }
 
-    private String extractEventType(Map<String, Object> payload) {
-        return Optional.ofNullable((String) payload.get(EVENT_TYPE_FIELD))
-                .orElseGet(() -> (String) payload.get(EVENT_TYPE_FALLBACK_FIELD));
-    }
-
-    private void logPayloadFields(Map<String, Object> payload) {
-        payload.forEach((key, value) -> {
-            if (value != null) {
-                log.info("      • {}: {}", key, value);
-            }
-        });
-    }
-
-    private boolean isConversationCreatedEvent(String eventType) {
-        return CONVERSATION_CREATED_EVENT.equals(eventType)
-                || CONVERSATION_CREATED_EVENT_TYPE.equals(eventType);
-    }
-
-    /**
-     * Extract conversation ID from webhook payload.
-     * Tries nested conversation object first, then falls back to root level.
-     */
-    private String extractConversationId(Map<String, Object> payload) {
-        String conversationId = null;
-
-        // Try to get from nested conversation object
-        Object conversationObj = payload.get(FIELD_CONVERSATION);
-        if (conversationObj instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> conversationData = (Map<String, Object>) conversationObj;
-            conversationId = (String) conversationData.get("id");
-        }
-
-        // Fallback to root level if present
-        if (conversationId == null) {
-            conversationId = (String) payload.get(FIELD_CONVERSATION_ID);
-        }
-
-        return conversationId;
-    }
-
-    @Transactional
     private void handleConversationCreated(Map<String, Object> payload) {
-        log.info("");
-        log.info("🎉 NEW CONVERSATION CREATED!");
-        log.info("   This is the event you configured in the webhook!");
-        log.info("");
+        log.info("NEW CONVERSATION CREATED");
 
-        // Extract conversation ID and topic from nested conversation object
         String conversationId = extractConversationId(payload);
-        String topic = null;
-        Object conversationObjForTopic = payload.get(FIELD_CONVERSATION);
-        if (conversationObjForTopic instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> conversationData = (Map<String, Object>) conversationObjForTopic;
-            topic = (String) conversationData.get("topic");
-        }
-
-        Long timestamp = (Long) payload.get(FIELD_TIMESTAMP);
-        Instant createdAt = timestamp != null ? Instant.ofEpochMilli(timestamp) : Instant.now();
-
-        log.info("🔍 Persisting conversation: {} (topic: {})", conversationId, topic);
-
         if (conversationId == null) {
-            log.error("❌ Cannot persist conversation: conversationId is null!");
+            log.error("Cannot persist conversation: conversationId is null");
             return;
         }
 
-        // Create conversation history
-        ConversationHistory history = ConversationHistory.builder()
-                .conversationId(conversationId)
-                .topic(topic)
-                .createdAt(createdAt)
-                .build();
-
-        // Extract participants from conversation object if present
+        String topic = null;
         Object conversationObj = payload.get(FIELD_CONVERSATION);
         if (conversationObj instanceof Map) {
             @SuppressWarnings("unchecked")
             Map<String, Object> conversationData = (Map<String, Object>) conversationObj;
-            Object participantsObj = conversationData.get(FIELD_PARTICIPANTS);
+            topic = (String) conversationData.get("topic");
 
+            Object participantsObj = conversationData.get(FIELD_PARTICIPANTS);
             if (participantsObj != null) {
-                log.info("   Extracting participants...");
-                // TODO: Parse participants properly when structure is known
+                log.debug("Participants present in payload (parsing not yet implemented)");
             }
         }
 
-        // Add creation event
-        ConversationEventHistory createdEvent = ConversationEventHistory.builder()
-                .eventType(ConversationEventHistory.EventType.CREATED)
-                .eventTime(createdAt)
-                .build();
-        history.addEvent(createdEvent);
-
-        // Save to database
-        try {
-            ConversationHistory saved = conversationHistoryRepository.save(history);
-            log.info("✅ Conversation history saved to database with ID: {}", saved.getConversationId());
-        } catch (Exception e) {
-            log.error("❌ Failed to save conversation history", e);
-            throw e;
-        }
+        Instant createdAt = extractTimestamp(payload);
+        conversationHistoryService.onConversationCreated(conversationId, topic, createdAt);
     }
 
-    private boolean isConversationNewMessageEvent(String eventType) {
-        return CONVERSATION_NEW_MESSAGE_EVENT.equals(eventType)
-                || CONVERSATION_NEW_MESSAGE_EVENT_TYPE.equals(eventType);
-    }
-
-    private boolean isConversationEndedEvent(String eventType) {
-        return CONVERSATION_ENDED_EVENT.equals(eventType)
-                || CONVERSATION_ENDED_EVENT_TYPE.equals(eventType);
-    }
-
-    @Transactional
     private void handleNewMessage(Map<String, Object> payload) {
-        log.info("");
-        log.info("💬 NEW MESSAGE IN CONVERSATION!");
+        log.info("NEW MESSAGE IN CONVERSATION");
 
-        // Extract conversation ID from conversationMessage object
         String conversationId = null;
-        Object conversationMessageObj = payload.get(FIELD_CONVERSATION_MESSAGE);
-        if (conversationMessageObj instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> conversationMessageData = (Map<String, Object>) conversationMessageObj;
-            conversationId = (String) conversationMessageData.get(FIELD_CONVERSATION_ID);
-        }
-
-        Long timestamp = (Long) payload.get(FIELD_TIMESTAMP);
-        Instant messageTime = timestamp != null ? Instant.ofEpochMilli(timestamp) : Instant.now();
-
-        // Message and sender are also in conversationMessage
         String messageText = null;
         String senderPersonId = null;
         String senderDisplayName = null;
 
+        Object conversationMessageObj = payload.get(FIELD_CONVERSATION_MESSAGE);
         if (conversationMessageObj instanceof Map) {
             @SuppressWarnings("unchecked")
-            Map<String, Object> conversationMessageData = (Map<String, Object>) conversationMessageObj;
+            Map<String, Object> messageData = (Map<String, Object>) conversationMessageObj;
+            conversationId = (String) messageData.get(FIELD_CONVERSATION_ID);
+            messageText = (String) messageData.get("text");
 
-            // Extract text
-            messageText = (String) conversationMessageData.get("text");
-
-            // Extract sender person info
-            Object senderPersonObj = conversationMessageData.get(FIELD_SENDER_PERSON);
+            Object senderPersonObj = messageData.get(FIELD_SENDER_PERSON);
             if (senderPersonObj instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> senderData = (Map<String, Object>) senderPersonObj;
@@ -219,103 +109,67 @@ public class ConversationEventProcessor implements Processor {
             }
         }
 
-        log.info("   Conversation ID: {}", conversationId);
-        log.info("   Message Text: {}", messageText);
-        log.info("   Sender: {} ({})", senderDisplayName, senderPersonId);
+        log.info("  Conversation: {}, Sender: {} ({})", conversationId, senderDisplayName, senderPersonId);
 
         if (conversationId == null) {
-            log.error("❌ Cannot persist message: conversationId is null!");
+            log.error("Cannot persist message: conversationId is null");
             return;
         }
 
-        // Find existing conversation
-        Optional<ConversationHistory> historyOpt = conversationHistoryRepository.findByConversationId(conversationId);
-
-        if (historyOpt.isPresent()) {
-            ConversationHistory history = historyOpt.get();
-            
-            // Add message event
-            ConversationEventHistory messageEvent = ConversationEventHistory.builder()
-                    .eventType(ConversationEventHistory.EventType.MESSAGE)
-                    .eventTime(messageTime)
-                    .messageText(messageText)
-                    .senderPersonId(senderPersonId)
-                    .senderDisplayName(senderDisplayName)
-                    .build();
-            history.addEvent(messageEvent);
-            
-            // Update participant if new
-            final String finalSenderPersonId = senderPersonId;
-            if (senderPersonId != null && senderDisplayName != null) {
-                boolean participantExists = history.getParticipants().stream()
-                        .anyMatch(p -> p.getPersonId().equals(finalSenderPersonId));
-                
-                if (!participantExists) {
-                    ParticipantHistory participant = ParticipantHistory.builder()
-                            .personId(senderPersonId)
-                            .displayName(senderDisplayName)
-                            .type(ParticipantHistory.ParticipantType.VISITOR) // Default, will be refined
-                            .build();
-                    history.addParticipant(participant);
-                    log.info("   New participant added: {}", senderDisplayName);
-                }
-            }
-            
-            try {
-                conversationHistoryRepository.save(history);
-                log.info("✅ Message saved to database!");
-            } catch (Exception e) {
-                log.error("❌ Failed to save message", e);
-                throw e;
-            }
-        } else {
-            log.warn("⚠️  Conversation {} not found in database!", conversationId);
-        }
-
-        log.info("");
+        Instant messageTime = extractTimestamp(payload);
+        conversationHistoryService.onNewMessage(conversationId, messageText, senderPersonId, senderDisplayName, messageTime);
     }
 
-    @Transactional
     private void handleConversationEnded(Map<String, Object> payload) {
-        log.info("");
-        log.info("🏁 CONVERSATION ENDED!");
+        log.info("CONVERSATION ENDED");
 
-        // Extract conversation ID from nested conversation object
         String conversationId = extractConversationId(payload);
-        Long timestamp = (Long) payload.get(FIELD_TIMESTAMP);
-        Instant endedAt = timestamp != null ? Instant.ofEpochMilli(timestamp) : Instant.now();
+        if (conversationId == null) {
+            log.error("Cannot persist conversation end: conversationId is null");
+            return;
+        }
 
         Object endReason = payload.get(FIELD_END_REASON);
-
         if (endReason != null) {
-            log.info("   End Reason: {}", endReason);
+            log.info("  End reason: {}", endReason);
         }
 
-        // Find existing conversation and update end time
-        Optional<ConversationHistory> historyOpt = conversationHistoryRepository.findByConversationId(conversationId);
-        
-        if (historyOpt.isPresent()) {
-            ConversationHistory history = historyOpt.get();
-            history.setEndedAt(endedAt);
-            
-            // Add ended event
-            ConversationEventHistory endedEvent = ConversationEventHistory.builder()
-                    .eventType(ConversationEventHistory.EventType.ENDED)
-                    .eventTime(endedAt)
-                    .build();
-            history.addEvent(endedEvent);
-            
-            try {
-                conversationHistoryRepository.save(history);
-                log.info("✅ Conversation end saved to database!");
-            } catch (Exception e) {
-                log.error("❌ Failed to save conversation end", e);
-                throw e;
+        Instant endedAt = extractTimestamp(payload);
+        conversationHistoryService.onConversationEnded(conversationId, endedAt);
+    }
+
+    // --- Extraction helpers ---
+
+    private String extractEventType(Map<String, Object> payload) {
+        return Optional.ofNullable((String) payload.get(EVENT_TYPE_FIELD))
+                .orElseGet(() -> (String) payload.get(EVENT_TYPE_FALLBACK_FIELD));
+    }
+
+    private String extractConversationId(Map<String, Object> payload) {
+        Object conversationObj = payload.get(FIELD_CONVERSATION);
+        if (conversationObj instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> conversationData = (Map<String, Object>) conversationObj;
+            String id = (String) conversationData.get("id");
+            if (id != null) return id;
+        }
+        return (String) payload.get(FIELD_CONVERSATION_ID);
+    }
+
+    private Instant extractTimestamp(Map<String, Object> payload) {
+        Long timestamp = (Long) payload.get(FIELD_TIMESTAMP);
+        return timestamp != null ? Instant.ofEpochMilli(timestamp) : Instant.now();
+    }
+
+    private boolean isEvent(String eventType, String typeByClass, String typeByField) {
+        return typeByClass.equals(eventType) || typeByField.equals(eventType);
+    }
+
+    private void logPayloadFields(Map<String, Object> payload) {
+        payload.forEach((key, value) -> {
+            if (value != null) {
+                log.debug("  {}: {}", key, value);
             }
-        } else {
-            log.warn("⚠️  Conversation {} not found in database!", conversationId);
-        }
-
-        log.info("");
+        });
     }
 }
