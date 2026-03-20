@@ -3,6 +3,7 @@ package org.dbs.poc.unblu.infrastructure.adapter.ngrok;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.dbs.poc.unblu.application.port.out.TunnelPort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -18,7 +19,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 @Service
-public class NgrokManager {
+public class NgrokManager implements TunnelPort {
 
     @Value("${unblu.webhook.local-port:8081}")
     private int localPort;
@@ -206,14 +207,10 @@ public class NgrokManager {
     /**
      * Get ngrok status information
      */
-    public NgrokStatus getStatus() {
+    @Override
+    public TunnelStatus getStatus() {
         boolean running = isNgrokRunning();
         String url = running ? getPublicUrl() : null;
-        return new NgrokStatus(running, url);
+        return new TunnelStatus(running, url);
     }
-
-    /**
-     * Status record for ngrok
-     */
-    public record NgrokStatus(boolean running, String publicUrl) {}
 }
