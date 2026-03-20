@@ -405,6 +405,15 @@ public class UnbluService {
             org.dbs.poc.unblu.domain.model.PersonInfo agentPerson,
             String subject) {
         try {
+            // Validation: l'assigné doit être un agent
+            if (agentPerson == null || !agentPerson.isAgent()) {
+                String errorMsg = String.format("L'assigné doit être un agent. Person ID: %s, Type: %s",
+                    agentPerson != null ? agentPerson.id() : "null",
+                    agentPerson != null ? agentPerson.personType() : "null");
+                log.error(errorMsg);
+                throw new UnbluApiException(400, "Bad Request", errorMsg);
+            }
+
             ConversationsApi conversationsApi = new ConversationsApi(apiClient);
 
             ConversationCreationData data = new ConversationCreationData();
