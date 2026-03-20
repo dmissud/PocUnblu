@@ -1,11 +1,13 @@
 package org.dbs.poc.unblu.application.route;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
 import org.dbs.poc.unblu.application.route.processor.ConversationEventProcessor;
 import org.dbs.poc.unblu.application.route.processor.PersonEventProcessor;
 import org.dbs.poc.unblu.application.route.processor.UnknownEventProcessor;
 import org.dbs.poc.unblu.application.route.processor.WebhookEventTypeExtractor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
 /**
@@ -60,10 +62,36 @@ public class WebhookEventRoute extends RouteBuilder {
 
     @Override
     public void configure() {
+        configureExceptionHandlers();
         configureMainWebhookRoute();
         configureConversationHandler();
         configurePersonHandler();
         configureUnknownHandler();
+    }
+
+    private void configureExceptionHandlers() {
+        // Duplicate event received (idempotency) — absorb silently
+        onException(DataIntegrityViolationException.class)
+            .handled(true)
+            .log(LoggingLevel.WARN, "webhook-event-processor",
+                "Duplicate webhook event ignored (already persisted): ${exception.message}");
+
+        // Business validation failure (e.g. person not found) — log and absorb
+        onException(IllegalArgumentException.class)
+            .handled(true)
+            .log(LoggingLevel.ERROR, "webhook-event-processor",
+                "Webhook event rejected due to invalid data: ${exception.message}");
+
+        // Transient infrastructure failure — retry 3 times then dead-letter
+        onException(Exception.class)
+            .maximumRedeliveries(3)
+            .redeliveryDelay(2000)
+            .backOffMultiplier(2)
+            .useExponentialBackOff()
+            .retryAttemptedLogLevel(LoggingLevel.WARN)
+            .handled(true)
+            .log(LoggingLevel.ERROR, "webhook-dead-letter",
+                "Webhook event processing failed after retries — event lost: ${exception.message}\nPayload: ${body}");
     }
 
     private void configureMainWebhookRoute() {
