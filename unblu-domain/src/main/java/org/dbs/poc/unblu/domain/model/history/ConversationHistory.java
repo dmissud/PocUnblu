@@ -19,6 +19,7 @@ import java.util.List;
 public class ConversationHistory {
 
     private String conversationId;
+    private String topic;
     private Instant createdAt;
     private Instant endedAt;
 

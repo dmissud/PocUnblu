@@ -23,6 +23,7 @@ public class ConversationHistoryMapper {
 
         ConversationHistoryEntity entity = ConversationHistoryEntity.builder()
                 .conversationId(domain.getConversationId())
+                .topic(domain.getTopic())
                 .createdAt(domain.getCreatedAt())
                 .endedAt(domain.getEndedAt())
                 .build();
@@ -53,6 +54,7 @@ public class ConversationHistoryMapper {
 
         return ConversationHistory.builder()
                 .conversationId(entity.getConversationId())
+                .topic(entity.getTopic())
                 .createdAt(entity.getCreatedAt())
                 .endedAt(entity.getEndedAt())
                 .participants(entity.getParticipants().stream()

@@ -113,12 +113,20 @@ public class ConversationEventProcessor implements Processor {
         log.info("   This is the event you configured in the webhook!");
         log.info("");
 
-        // Extract conversation ID from nested conversation object
+        // Extract conversation ID and topic from nested conversation object
         String conversationId = extractConversationId(payload);
+        String topic = null;
+        Object conversationObjForTopic = payload.get(FIELD_CONVERSATION);
+        if (conversationObjForTopic instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> conversationData = (Map<String, Object>) conversationObjForTopic;
+            topic = (String) conversationData.get("topic");
+        }
+
         Long timestamp = (Long) payload.get(FIELD_TIMESTAMP);
         Instant createdAt = timestamp != null ? Instant.ofEpochMilli(timestamp) : Instant.now();
 
-        log.info("🔍 Persisting conversation: {}", conversationId);
+        log.info("🔍 Persisting conversation: {} (topic: {})", conversationId, topic);
 
         if (conversationId == null) {
             log.error("❌ Cannot persist conversation: conversationId is null!");
@@ -128,6 +136,7 @@ public class ConversationEventProcessor implements Processor {
         // Create conversation history
         ConversationHistory history = ConversationHistory.builder()
                 .conversationId(conversationId)
+                .topic(topic)
                 .createdAt(createdAt)
                 .build();
 

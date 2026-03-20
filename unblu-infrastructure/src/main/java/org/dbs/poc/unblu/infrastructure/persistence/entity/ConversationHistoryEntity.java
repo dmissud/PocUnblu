@@ -26,6 +26,9 @@ public class ConversationHistoryEntity {
     @Column(name = "conversation_id", nullable = false, unique = true)
     private String conversationId;
 
+    @Column(name = "topic")
+    private String topic;
+
     @Column(name = "created_at")
     private Instant createdAt;
 

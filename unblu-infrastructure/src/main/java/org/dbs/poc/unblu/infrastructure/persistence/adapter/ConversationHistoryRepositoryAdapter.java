@@ -33,6 +33,9 @@ public class ConversationHistoryRepositoryAdapter implements ConversationHistory
         if (existingOpt.isPresent()) {
             ConversationHistoryEntity existing = existingOpt.get();
             existing.setEndedAt(conversationHistory.getEndedAt());
+            if (conversationHistory.getTopic() != null) {
+                existing.setTopic(conversationHistory.getTopic());
+            }
 
             // Add only new participants (by personId)
             Set<String> existingPersonIds = existing.getParticipants().stream()
