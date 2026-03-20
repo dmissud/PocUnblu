@@ -15,7 +15,10 @@ import static org.junit.jupiter.api.Assertions.*;
     "unblu.api.proxy.host=myproxy.com",
     "unblu.api.proxy.port=8888",
     "unblu.api.proxy.username=proxyuser",
-    "unblu.api.proxy.password=proxypass"
+    "unblu.api.proxy.password=proxypass",
+    "spring.datasource.url=jdbc:h2:mem:testdb",
+    "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 class UnbluProxyConfigTest {
 
