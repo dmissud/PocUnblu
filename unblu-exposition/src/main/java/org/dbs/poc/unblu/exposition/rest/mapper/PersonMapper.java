@@ -38,6 +38,7 @@ public class PersonMapper {
                 .email(personInfo.email())
                 .firstName(personInfo.firstName())
                 .lastName(personInfo.lastName())
+                .personType(personInfo.personType())
                 .build();
     }
 

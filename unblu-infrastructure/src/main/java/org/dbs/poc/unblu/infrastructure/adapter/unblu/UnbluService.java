@@ -31,6 +31,12 @@ public class UnbluService {
     private static final List<ExpandFields> NO_EXPAND_FIELDS = null;
 
     /**
+     * Constant to indicate no custom request parameters are needed in Unblu API calls.
+     * When null, the API will use default parameters.
+     */
+    private static final String NO_CUSTOM_REQUEST_PARAMS = null;
+
+    /**
      * Get current account from Unblu
      */
     public Account getCurrentAccount() {
@@ -150,7 +156,8 @@ public class UnbluService {
                 personData.getDisplayName(),
                 personData.getEmail(),
                 personData.getFirstName(),
-                personData.getLastName());
+                personData.getLastName(),
+                personData.getPersonType() != null ? personData.getPersonType().name() : null);
     }
 
     /**
@@ -274,6 +281,43 @@ public class UnbluService {
             log.error("Unexpected error getting person by source from Unblu", e);
             throw new RuntimeException("Erreur inattendue lors de la recherche de la personne", e);
         }
+    }
+
+    /**
+     * Check if a bot with the given sourceId already exists
+     */
+    public String getBotPersonIdBySourceId(String sourceId) {
+        try {
+            PersonsApi personsApi = new PersonsApi(apiClient);
+            PersonData person = personsApi.personsGetBySource(EPersonSource.VIRTUAL, sourceId, NO_EXPAND_FIELDS);
+            log.info("Bot trouvé avec sourceId={}, personId={}", sourceId, person.getId());
+            return person.getId();
+        } catch (ApiException e) {
+            if (e.getCode() == 404) {
+                log.info("Aucun bot trouvé avec sourceId={}", sourceId);
+                return null;
+            }
+            log.error("Erreur lors de la recherche du bot - Status: {}", e.getCode(), e);
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la recherche du bot : " + e.getMessage());
+        }
+    }
+
+    /**
+     * Creates or retrieves a bot in Unblu. If a bot with the same sourceId already exists, returns its ID.
+     * Otherwise, creates a new bot and returns its botPersonId.
+     */
+    public String createOrGetBot(String name, String description) {
+        String sourceId = "bot-" + name.toLowerCase().replaceAll("[^a-z0-9]", "-");
+
+        // Check if bot already exists
+        String existingBotId = getBotPersonIdBySourceId(sourceId);
+        if (existingBotId != null) {
+            log.info("Bot déjà existant avec name={}, sourceId={}, botPersonId={}", name, sourceId, existingBotId);
+            return existingBotId;
+        }
+
+        // Create new bot
+        return createBot(name, description);
     }
 
     /**
@@ -602,7 +646,8 @@ public class UnbluService {
                             user.getDisplayName(),
                             user.getEmail(),
                             user.getFirstName(),
-                            user.getLastName()))
+                            user.getLastName(),
+                            "AGENT"))
                     .toList();
 
             log.info("Trouvé {} agent(s) avec la named area {} dans leur queue", agents.size(), namedAreaId);

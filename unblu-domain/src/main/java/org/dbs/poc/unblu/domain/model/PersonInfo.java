@@ -12,11 +12,16 @@ public record PersonInfo(
         String displayName,
         String email,
         String firstName,
-        String lastName
+        String lastName,
+        String personType
 ) {
     public PersonInfo {
         Objects.requireNonNull(id, "Person id cannot be null");
         Objects.requireNonNull(sourceId, "Person sourceId cannot be null");
         Objects.requireNonNull(displayName, "Person displayName cannot be null");
+    }
+
+    public boolean isAgent() {
+        return "AGENT".equals(personType);
     }
 }
