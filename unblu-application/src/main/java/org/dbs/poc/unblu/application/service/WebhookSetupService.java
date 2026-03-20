@@ -22,14 +22,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WebhookSetupService implements SetupWebhookUseCase {
 
+    private static final List<String> WEBHOOK_EVENTS = List.of(
+        "conversation.created",
+        "conversation.new_message",
+        "conversation.ended"
+    );
+
     private final NgrokManager ngrokManager;
     private final UnbluService unbluService;
 
     @Value("${unblu.webhook.name:unblu-poc-webhook}")
     private String webhookName;
-
-    @Value("${unblu.webhook.events:CONVERSATION.CREATED}")
-    private String webhookEvents;
 
     @Value("${unblu.webhook.endpoint-path:/api/webhooks/unblu}")
     private String webhookEndpointPath;
@@ -58,9 +61,8 @@ public class WebhookSetupService implements SetupWebhookUseCase {
             String webhookEndpoint = ngrokUrl + webhookEndpointPath;
             log.info("Webhook endpoint will be: {}", webhookEndpoint);
 
-            // Step 4: Parse event types
-            List<String> eventTypes = List.of(webhookEvents.split(","));
-            log.info("Webhook will listen to events: {}", eventTypes);
+            // Step 4: Log event types
+            log.info("Webhook will listen to events: {}", WEBHOOK_EVENTS);
 
             // Step 5: Check if webhook already exists
             WebhookRegistration webhook = null;
@@ -70,7 +72,7 @@ public class WebhookSetupService implements SetupWebhookUseCase {
                 log.info("Webhook '{}' already exists with ID: {}, updating endpoint...", webhookName, webhook.getId());
 
                 // Update existing webhook
-                webhook = unbluService.updateWebhook(webhook.getId(), webhookEndpoint, eventTypes);
+                webhook = unbluService.updateWebhook(webhook.getId(), webhookEndpoint, WEBHOOK_EVENTS);
                 log.info("Webhook updated successfully");
 
             } catch (UnbluApiException e) {
@@ -79,7 +81,7 @@ public class WebhookSetupService implements SetupWebhookUseCase {
                     // Webhook doesn't exist, create it
                     log.info("Webhook '{}' doesn't exist (404), creating new webhook...", webhookName);
                     try {
-                        webhook = unbluService.createWebhook(webhookName, webhookEndpoint, eventTypes);
+                        webhook = unbluService.createWebhook(webhookName, webhookEndpoint, WEBHOOK_EVENTS);
                         log.info("Webhook created successfully with ID: {}", webhook.getId());
                     } catch (Exception createEx) {
                         log.error("Failed to create webhook", createEx);
