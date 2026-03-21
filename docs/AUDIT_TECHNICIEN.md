@@ -288,133 +288,57 @@ Cette section s'adresse à une éventuelle montée en charge du PoC vers un syst
 
 ### 7.1 Idempotence des webhooks
 
-**Priorité : Haute si production**
+**Priorité : dépend de l'architecture cible**
 
 Les webhooks Unblu peuvent être re-livrés en cas d'échec réseau. Le `onException(DataIntegrityViolationException)` actuel est un garde-fou, mais il repose sur une contrainte de base de données — ce n'est pas une gestion d'idempotence explicite.
 
-#### Pourquoi le mécanisme actuel est insuffisant
+#### Deux scénarios cibles, deux réponses différentes
 
-Aujourd'hui, un doublon provoque une `DataIntegrityViolationException` qui est attrapée et loguée. C'est défensif : on laisse la base "exploser" puis on rattrape. L'idempotence explicite consiste à vérifier **avant** tout traitement, de façon intentionnelle et lisible.
+**Scénario A — Traitement direct (architecture actuelle)**
 
-#### Implémentation complète dans l'architecture hexagonale
-
-**Étape 1 — Port secondaire dans le domaine**
-
-```java
-// unblu-domain/.../port/out/ProcessedEventRepository.java
-public interface ProcessedEventRepository {
-    boolean alreadyProcessed(String eventId);
-    void markAsProcessed(String eventId);
-}
+La route traite le webhook synchroniquement jusqu'à la persistence :
+```
+Unblu → WebhookReceiverRoute → ConversationEventProcessor → ConversationHistoryService → DB
 ```
 
-Ce port est dans `domain.port.out` comme `ConversationHistoryRepository`. Le domaine définit le contrat, l'infrastructure l'implémente.
+Dans ce cas, l'idempotence explicite est nécessaire. Le pattern complet :
 
-**Étape 2 — Entité JPA dans l'infrastructure**
-
-```java
-// unblu-infrastructure/.../persistence/entity/ProcessedEventEntity.java
-@Entity
-@Table(name = "webhook_processed_events")
-public class ProcessedEventEntity {
-    @Id
-    private String eventId;
-    private Instant processedAt;
-}
-```
-
-**Étape 3 — Migration Liquibase**
-
-```sql
--- unblu-infrastructure/.../db/changelog/migrations/002-webhook-idempotency.sql
-CREATE TABLE webhook_processed_events (
-    event_id     VARCHAR(255) PRIMARY KEY,
-    processed_at TIMESTAMP NOT NULL
-);
-```
-
-**Étape 4 — Adaptateur dans l'infrastructure**
+- Un port secondaire `ProcessedEventRepository` dans `domain.port.out` (même pattern que `ConversationHistoryRepository`)
+- Une table `webhook_processed_events(event_id PK, processed_at)`
+- Un adaptateur JPA dans `infrastructure`
+- Une vérification **avant** traitement dans `WebhookEventRoute` avec `exchange.setRouteStop(true)` si déjà traité, et un marquage **après** succès
 
 ```java
-// unblu-infrastructure/.../adapter/idempotency/ProcessedEventRepositoryAdapter.java
-@Component
-@RequiredArgsConstructor
-public class ProcessedEventRepositoryAdapter implements ProcessedEventRepository {
-
-    private final ProcessedEventJpaRepository jpaRepository;
-
-    @Override
-    public boolean alreadyProcessed(String eventId) {
-        return jpaRepository.existsById(eventId);
+// Dans WebhookEventRoute — vérification avant traitement
+.process(exchange -> {
+    String eventId = exchange.getIn().getHeader("X-Unblu-Event-Id", String.class);
+    if (eventId != null && processedEventRepository.alreadyProcessed(eventId)) {
+        exchange.setRouteStop(true);
     }
-
-    @Override
-    @Transactional
-    public void markAsProcessed(String eventId) {
-        jpaRepository.save(new ProcessedEventEntity(eventId, Instant.now()));
-    }
-}
+})
 ```
 
-**Étape 5 — Utilisation dans `WebhookEventRoute` (application)**
+**Scénario B — Architecture cible avec Kafka** ← cas de ce projet
 
-`WebhookEventRoute` injecte le port `ProcessedEventRepository` (interface domaine, pas l'adaptateur) :
-
-```java
-// unblu-application/.../route/webhook/WebhookEventRoute.java
-@Component
-@RequiredArgsConstructor
-public class WebhookEventRoute extends RouteBuilder {
-
-    private final ProcessedEventRepository processedEventRepository;
-
-    @Override
-    public void configure() {
-        from("direct:webhook-event")
-            .routeId("webhook-event-router")
-
-            // Idempotence : court-circuit si déjà traité
-            .process(exchange -> {
-                String eventId = exchange.getIn()
-                    .getHeader("X-Unblu-Event-Id", String.class);
-                if (eventId != null && processedEventRepository.alreadyProcessed(eventId)) {
-                    log.info("Webhook event already processed, skipping: {}", eventId);
-                    exchange.setRouteStop(true);
-                }
-            })
-
-            // Traitement normal...
-            .choice()
-                .when(/* eventType */)...
-            .end()
-
-            // Marquer comme traité après succès
-            .process(exchange -> {
-                String eventId = exchange.getIn()
-                    .getHeader("X-Unblu-Event-Id", String.class);
-                if (eventId != null) {
-                    processedEventRepository.markAsProcessed(eventId);
-                }
-            });
-    }
-}
+La route webhook devient un simple pont HTTP → Kafka :
+```
+Unblu → WebhookReceiverRoute → produce(kafka:unblu-events) → 200 OK
+                                        ↓
+                              Consumer Kafka → ConversationHistoryService → DB
 ```
 
-#### Résumé de la chaîne
+`WebhookReceiverRoute` ne fait plus aucun traitement métier. **La table `webhook_processed_events` dans la route webhook n'a plus de sens** — ne pas l'implémenter.
 
-```
-WebhookReceiverRoute          ← reçoit le HTTP POST Unblu
-    ↓ header X-Unblu-Event-Id
-WebhookEventRoute             ← vérifie ProcessedEventRepository (port domaine)
-    ↓ si nouveau
-ConversationEventProcessor    ← dispatch vers le bon handler
-    ↓
-ConversationHistoryService    ← logique métier @Transactional
-    ↓
-ProcessedEventRepositoryAdapter ← marque l'eventId en base (adaptateur infra)
-```
+L'idempotence se déplace dans le **consumer Kafka**, qui peut recevoir le même message deux fois (rebalance de partition, crash entre traitement et commit d'offset). Deux options :
 
-`idempotencyStore` dans le snippet initial était un raccourci pour `ProcessedEventRepository` — le port secondaire qui suit exactement le même pattern que `ConversationHistoryRepository` déjà en place.
+| Option | Complexité | Quand choisir |
+|--------|-----------|--------------|
+| **Exactly-once Kafka** (transactions producer + `isolation.level=read_committed` consumer) | Haute | Si le volume est élevé et la latence critique |
+| **Table de déduplication côté consumer** (même pattern que Scénario A, mais dans le consumer) | Faible | Recommandé pour démarrer — simple et suffisant |
+
+#### Recommandation pour ce projet
+
+Ne pas implémenter §7.1 maintenant. Quand Kafka est introduit, ajouter la déduplication directement dans le consumer avec la table `webhook_processed_events` — le même port `ProcessedEventRepository` sera réutilisable tel quel, seul le point d'appel change.
 
 ---
 
