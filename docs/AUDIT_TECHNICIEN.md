@@ -292,27 +292,129 @@ Cette section s'adresse à une éventuelle montée en charge du PoC vers un syst
 
 Les webhooks Unblu peuvent être re-livrés en cas d'échec réseau. Le `onException(DataIntegrityViolationException)` actuel est un garde-fou, mais il repose sur une contrainte de base de données — ce n'est pas une gestion d'idempotence explicite.
 
-**Ce qu'il manque :**
+#### Pourquoi le mécanisme actuel est insuffisant
+
+Aujourd'hui, un doublon provoque une `DataIntegrityViolationException` qui est attrapée et loguée. C'est défensif : on laisse la base "exploser" puis on rattrape. L'idempotence explicite consiste à vérifier **avant** tout traitement, de façon intentionnelle et lisible.
+
+#### Implémentation complète dans l'architecture hexagonale
+
+**Étape 1 — Port secondaire dans le domaine**
+
+```java
+// unblu-domain/.../port/out/ProcessedEventRepository.java
+public interface ProcessedEventRepository {
+    boolean alreadyProcessed(String eventId);
+    void markAsProcessed(String eventId);
+}
+```
+
+Ce port est dans `domain.port.out` comme `ConversationHistoryRepository`. Le domaine définit le contrat, l'infrastructure l'implémente.
+
+**Étape 2 — Entité JPA dans l'infrastructure**
+
+```java
+// unblu-infrastructure/.../persistence/entity/ProcessedEventEntity.java
+@Entity
+@Table(name = "webhook_processed_events")
+public class ProcessedEventEntity {
+    @Id
+    private String eventId;
+    private Instant processedAt;
+}
+```
+
+**Étape 3 — Migration Liquibase**
 
 ```sql
--- Migration à ajouter
+-- unblu-infrastructure/.../db/changelog/migrations/002-webhook-idempotency.sql
 CREATE TABLE webhook_processed_events (
     event_id     VARCHAR(255) PRIMARY KEY,
     processed_at TIMESTAMP NOT NULL
 );
 ```
 
+**Étape 4 — Adaptateur dans l'infrastructure**
+
 ```java
-// Dans WebhookEventRoute, avant tout traitement
-.process(exchange -> {
-    String eventId = exchange.getIn().getHeader("X-Unblu-Event-Id", String.class);
-    if (idempotencyStore.alreadyProcessed(eventId)) {
-        exchange.setRouteStop(true); // court-circuit propre
+// unblu-infrastructure/.../adapter/idempotency/ProcessedEventRepositoryAdapter.java
+@Component
+@RequiredArgsConstructor
+public class ProcessedEventRepositoryAdapter implements ProcessedEventRepository {
+
+    private final ProcessedEventJpaRepository jpaRepository;
+
+    @Override
+    public boolean alreadyProcessed(String eventId) {
+        return jpaRepository.existsById(eventId);
     }
-})
+
+    @Override
+    @Transactional
+    public void markAsProcessed(String eventId) {
+        jpaRepository.save(new ProcessedEventEntity(eventId, Instant.now()));
+    }
+}
 ```
 
-Cela remplace la gestion d'erreur défensive par une politique explicite, plus lisible et plus fiable.
+**Étape 5 — Utilisation dans `WebhookEventRoute` (application)**
+
+`WebhookEventRoute` injecte le port `ProcessedEventRepository` (interface domaine, pas l'adaptateur) :
+
+```java
+// unblu-application/.../route/webhook/WebhookEventRoute.java
+@Component
+@RequiredArgsConstructor
+public class WebhookEventRoute extends RouteBuilder {
+
+    private final ProcessedEventRepository processedEventRepository;
+
+    @Override
+    public void configure() {
+        from("direct:webhook-event")
+            .routeId("webhook-event-router")
+
+            // Idempotence : court-circuit si déjà traité
+            .process(exchange -> {
+                String eventId = exchange.getIn()
+                    .getHeader("X-Unblu-Event-Id", String.class);
+                if (eventId != null && processedEventRepository.alreadyProcessed(eventId)) {
+                    log.info("Webhook event already processed, skipping: {}", eventId);
+                    exchange.setRouteStop(true);
+                }
+            })
+
+            // Traitement normal...
+            .choice()
+                .when(/* eventType */)...
+            .end()
+
+            // Marquer comme traité après succès
+            .process(exchange -> {
+                String eventId = exchange.getIn()
+                    .getHeader("X-Unblu-Event-Id", String.class);
+                if (eventId != null) {
+                    processedEventRepository.markAsProcessed(eventId);
+                }
+            });
+    }
+}
+```
+
+#### Résumé de la chaîne
+
+```
+WebhookReceiverRoute          ← reçoit le HTTP POST Unblu
+    ↓ header X-Unblu-Event-Id
+WebhookEventRoute             ← vérifie ProcessedEventRepository (port domaine)
+    ↓ si nouveau
+ConversationEventProcessor    ← dispatch vers le bon handler
+    ↓
+ConversationHistoryService    ← logique métier @Transactional
+    ↓
+ProcessedEventRepositoryAdapter ← marque l'eventId en base (adaptateur infra)
+```
+
+`idempotencyStore` dans le snippet initial était un raccourci pour `ProcessedEventRepository` — le port secondaire qui suit exactement le même pattern que `ConversationHistoryRepository` déjà en place.
 
 ---
 
