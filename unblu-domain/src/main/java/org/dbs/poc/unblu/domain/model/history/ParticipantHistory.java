@@ -2,13 +2,11 @@ package org.dbs.poc.unblu.domain.model.history;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Domain entity representing a conversation participant.
+ * Value object representing a participant in a conversation history.
  */
-@Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -23,4 +21,12 @@ public class ParticipantHistory {
         AGENT,
         BOT
     }
+
+    // --- Accessors ---
+
+    public String personId() { return personId; }
+
+    public String displayName() { return displayName; }
+
+    public ParticipantType participantType() { return type; }
 }
