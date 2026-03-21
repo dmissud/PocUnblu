@@ -2,7 +2,7 @@ package org.dbs.poc.unblu.infrastructure.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.dbs.poc.unblu.infrastructure.adapter.unblu.UnbluService;
+import org.dbs.poc.unblu.infrastructure.adapter.unblu.UnbluBotService;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class BotInitializer {
 
-    private final UnbluService unbluService;
+    private final UnbluBotService unbluBotService;
     private final UnbluProperties unbluProperties;
 
     /**
@@ -34,7 +34,7 @@ public class BotInitializer {
 
             log.info("Initializing Unblu bot with name: {}", botName);
 
-            String botPersonId = unbluService.createOrGetBot(
+            String botPersonId = unbluBotService.createOrGetBot(
                 botName,
                 "Bot automatique pour l'envoi de résumés de conversation"
             );
