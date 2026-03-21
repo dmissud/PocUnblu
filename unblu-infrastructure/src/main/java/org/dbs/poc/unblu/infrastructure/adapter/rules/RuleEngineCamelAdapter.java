@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.camel.ProducerTemplate;
 import org.dbs.poc.unblu.domain.model.ChatRoutingDecision;
 import org.dbs.poc.unblu.domain.model.ConversationContext;
-import org.dbs.poc.unblu.domain.port.secondary.RuleEnginePort;
+import org.dbs.poc.unblu.domain.port.out.RuleEnginePort;
 import org.springframework.stereotype.Component;
 
 @Component
