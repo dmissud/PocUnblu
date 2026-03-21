@@ -1,4 +1,4 @@
-package org.dbs.poc.unblu.domain.port.secondary;
+package org.dbs.poc.unblu.domain.port.out;
 
 import org.dbs.poc.unblu.domain.model.CustomerProfile;
 
