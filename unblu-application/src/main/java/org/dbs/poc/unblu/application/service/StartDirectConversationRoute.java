@@ -9,8 +9,6 @@ import org.dbs.poc.unblu.domain.model.ConversationContext;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
 import org.dbs.poc.unblu.domain.model.PersonSource;
 import org.dbs.poc.unblu.domain.model.UnbluConversationInfo;
-import org.dbs.poc.unblu.domain.port.secondary.ConversationSummaryPort;
-import org.dbs.poc.unblu.domain.port.secondary.UnbluPort;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
