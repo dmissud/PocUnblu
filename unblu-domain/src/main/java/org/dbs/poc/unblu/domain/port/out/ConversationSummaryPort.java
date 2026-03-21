@@ -1,4 +1,4 @@
-package org.dbs.poc.unblu.domain.port.secondary;
+package org.dbs.poc.unblu.domain.port.out;
 
 public interface ConversationSummaryPort {
     /**
