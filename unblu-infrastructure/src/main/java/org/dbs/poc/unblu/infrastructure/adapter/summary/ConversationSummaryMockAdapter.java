@@ -2,7 +2,7 @@ package org.dbs.poc.unblu.infrastructure.adapter.summary;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.camel.builder.RouteBuilder;
-import org.dbs.poc.unblu.domain.port.secondary.ConversationSummaryPort;
+import org.dbs.poc.unblu.domain.port.out.ConversationSummaryPort;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
