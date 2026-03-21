@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.camel.ProducerTemplate;
 import org.dbs.poc.unblu.domain.model.ConversationContext;
 import org.dbs.poc.unblu.domain.model.CustomerProfile;
-import org.dbs.poc.unblu.domain.port.secondary.ErpPort;
+import org.dbs.poc.unblu.domain.port.out.ErpPort;
 import org.springframework.stereotype.Component;
 
 @Component
