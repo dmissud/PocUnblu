@@ -5,8 +5,6 @@ import org.apache.camel.builder.RouteBuilder;
 import org.dbs.poc.unblu.application.port.in.StartConversationCommand;
 import org.dbs.poc.unblu.domain.model.ChatRoutingDecision;
 import org.dbs.poc.unblu.domain.model.ConversationContext;
-import org.dbs.poc.unblu.domain.port.out.ConversationSummaryPort;
-import org.dbs.poc.unblu.domain.port.out.UnbluPort;
 import org.springframework.stereotype.Component;
 
 import static org.dbs.poc.unblu.application.service.OrchestratorEndpoints.*;
@@ -14,12 +12,10 @@ import static org.dbs.poc.unblu.application.service.OrchestratorEndpoints.*;
 @Component
 public class StartConversationRoute extends RouteBuilder {
 
-    private final UnbluPort unbluPort;
-    private final ConversationSummaryPort summaryPort;
+    private final ConversationWorkflowService workflowService;
 
-    public StartConversationRoute(UnbluPort unbluPort, ConversationSummaryPort summaryPort) {
-        this.unbluPort = unbluPort;
-        this.summaryPort = summaryPort;
+    public StartConversationRoute(ConversationWorkflowService workflowService) {
+        this.workflowService = workflowService;
     }
 
     @Override
@@ -27,7 +23,6 @@ public class StartConversationRoute extends RouteBuilder {
         from(DIRECT_START_CONVERSATION)
             .routeId("main-orchestrator-start-conversation")
             .log("Démarrage de l'orchestration Camel")
-
             .process(this::initConversationContext)
             .log("Context initialisé, appel de l'adapter Unblu pour créer la conversation")
             .to(DIRECT_UNBLU_ADAPTER_RESILIENT)
@@ -46,8 +41,6 @@ public class StartConversationRoute extends RouteBuilder {
 
     private void generateAndAddSummary(Exchange exchange) {
         ConversationContext ctx = exchange.getIn().getBody(ConversationContext.class);
-        String convId = ctx.getUnbluConversationId();
-        String summary = summaryPort.generateSummary(convId);
-        unbluPort.addSummaryToConversation(convId, summary);
+        workflowService.addSummary(ctx.getUnbluConversationId());
     }
 }

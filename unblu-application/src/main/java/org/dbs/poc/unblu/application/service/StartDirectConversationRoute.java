@@ -3,17 +3,12 @@ package org.dbs.poc.unblu.application.service;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.dbs.poc.unblu.application.port.in.StartDirectConversationCommand;
-import org.dbs.poc.unblu.domain.model.ChatAccessDeniedException;
 import org.dbs.poc.unblu.domain.model.ChatRoutingDecision;
 import org.dbs.poc.unblu.domain.model.ConversationContext;
+import org.dbs.poc.unblu.domain.model.CustomerProfile;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
-import org.dbs.poc.unblu.domain.model.PersonSource;
 import org.dbs.poc.unblu.domain.model.UnbluConversationInfo;
-import org.dbs.poc.unblu.domain.port.out.ConversationSummaryPort;
-import org.dbs.poc.unblu.domain.port.out.UnbluPort;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 import static org.dbs.poc.unblu.application.service.OrchestratorEndpoints.DIRECT_ERP_ADAPTER;
 import static org.dbs.poc.unblu.application.service.OrchestratorEndpoints.DIRECT_RULE_ENGINE_ADAPTER;
@@ -22,17 +17,15 @@ import static org.dbs.poc.unblu.application.service.OrchestratorEndpoints.DIRECT
 @Component
 public class StartDirectConversationRoute extends RouteBuilder {
 
-    private final UnbluPort unbluPort;
-    private final ConversationSummaryPort summaryPort;
+    private final ConversationWorkflowService workflowService;
 
     private static final String PROP_ORIGINAL_COMMAND = "originalCommand";
     private static final String PROP_CONV_ID = "convId";
     private static final String PROP_VIRTUAL_PERSON = "virtualPerson";
     private static final String PROP_AGENT_PERSON = "agentPerson";
 
-    public StartDirectConversationRoute(UnbluPort unbluPort, ConversationSummaryPort summaryPort) {
-        this.unbluPort = unbluPort;
-        this.summaryPort = summaryPort;
+    public StartDirectConversationRoute(ConversationWorkflowService workflowService) {
+        this.workflowService = workflowService;
     }
 
     @Override
@@ -72,11 +65,12 @@ public class StartDirectConversationRoute extends RouteBuilder {
             .log("Conversation directe finalisée");
     }
 
+    // --- Camel processors (Exchange wiring only — business logic in ConversationWorkflowService) ---
+
     private void searchVirtualPerson(Exchange exchange) {
         StartDirectConversationCommand cmd = exchange.getProperty(PROP_ORIGINAL_COMMAND, StartDirectConversationCommand.class);
-        List<PersonInfo> persons = unbluPort.searchPersons(cmd.virtualParticipantSourceId(), PersonSource.VIRTUAL);
-        if (persons == null || persons.isEmpty()) throw new IllegalArgumentException("VIRTUAL introuvable");
-        exchange.setProperty(PROP_VIRTUAL_PERSON, persons.getFirst());
+        PersonInfo virtualPerson = workflowService.findVirtualPerson(cmd.virtualParticipantSourceId());
+        exchange.setProperty(PROP_VIRTUAL_PERSON, virtualPerson);
         exchange.getIn().setBody(null);
     }
 
@@ -88,7 +82,7 @@ public class StartDirectConversationRoute extends RouteBuilder {
 
     private Exchange aggregateCustomerProfile(Exchange oldExchange, Exchange newExchange) {
         ConversationContext ctx = oldExchange.getIn().getBody(ConversationContext.class);
-        ctx.setCustomerProfile(newExchange.getIn().getBody(org.dbs.poc.unblu.domain.model.CustomerProfile.class));
+        ctx.setCustomerProfile(newExchange.getIn().getBody(CustomerProfile.class));
         return oldExchange;
     }
 
@@ -96,33 +90,27 @@ public class StartDirectConversationRoute extends RouteBuilder {
         ConversationContext ctx = oldEx.getIn().getBody(ConversationContext.class);
         ChatRoutingDecision decision = newEx.getIn().getBody(ChatRoutingDecision.class);
         ctx.setRoutingDecision(decision);
-        if (!ctx.isChatAuthorized()) {
-            throw new ChatAccessDeniedException("Accès refusé", decision.routingReason());
-        }
+        workflowService.validateAuthorization(decision);
         return oldEx;
     }
 
     private void searchAgentPerson(Exchange exchange) {
         StartDirectConversationCommand cmd = exchange.getProperty(PROP_ORIGINAL_COMMAND, StartDirectConversationCommand.class);
-        List<PersonInfo> persons = unbluPort.searchPersons(cmd.agentParticipantSourceId(), PersonSource.USER_DB);
-        if (persons == null || persons.isEmpty()) throw new IllegalArgumentException("Agent introuvable");
-        exchange.setProperty(PROP_AGENT_PERSON, persons.getFirst());
+        PersonInfo agentPerson = workflowService.findAgentPerson(cmd.agentParticipantSourceId());
+        exchange.setProperty(PROP_AGENT_PERSON, agentPerson);
     }
 
     private void createDirectConversation(Exchange exchange) {
         StartDirectConversationCommand cmd = exchange.getProperty(PROP_ORIGINAL_COMMAND, StartDirectConversationCommand.class);
         PersonInfo virtualPerson = exchange.getProperty(PROP_VIRTUAL_PERSON, PersonInfo.class);
         PersonInfo agentPerson = exchange.getProperty(PROP_AGENT_PERSON, PersonInfo.class);
-        UnbluConversationInfo info = unbluPort.createDirectConversation(virtualPerson, agentPerson, cmd.subject());
+        UnbluConversationInfo info = workflowService.createDirectConversation(virtualPerson, agentPerson, cmd.subject());
         exchange.setProperty(PROP_CONV_ID, info.unbluConversationId());
         exchange.getIn().setBody(info);
     }
 
     private void generateAndAddSummary(Exchange exchange) {
-        String convId = exchange.getProperty(PROP_CONV_ID, String.class);
-        String summary = summaryPort.generateSummary(convId);
-        log.info("Summary généré: {}", summary);
-        unbluPort.addSummaryToConversation(convId, summary);
+        workflowService.addSummary(exchange.getProperty(PROP_CONV_ID, String.class));
     }
 
     private void finalizeConversationInfo(Exchange exchange) {
