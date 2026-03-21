@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dbs.poc.unblu.application.route.webhook.ConversationMessageData;
 import org.dbs.poc.unblu.application.route.webhook.UnbluWebhookPayload;
-import org.dbs.poc.unblu.domain.model.history.ConversationEventHistory;
 import org.dbs.poc.unblu.domain.model.history.ConversationHistory;
 import org.dbs.poc.unblu.domain.model.history.ParticipantHistory;
 import org.dbs.poc.unblu.domain.port.out.ConversationHistoryRepository;
@@ -16,8 +15,7 @@ import java.util.Optional;
 
 /**
  * Application service responsible for persisting conversation history events.
- * Each method accepts a typed {@link UnbluWebhookPayload} and is responsible
- * for both extracting the relevant fields and persisting the state change.
+ * Delegates state transitions to domain methods on {@link ConversationHistory}.
  */
 @Slf4j
 @Service
@@ -39,19 +37,10 @@ public class ConversationHistoryService {
 
         log.info("Persisting new conversation: {} (topic: {})", conversationId, topic);
 
-        ConversationHistory history = ConversationHistory.builder()
-                .conversationId(conversationId)
-                .topic(topic)
-                .createdAt(createdAt)
-                .build();
-
-        history.addEvent(ConversationEventHistory.builder()
-                .eventType(ConversationEventHistory.EventType.CREATED)
-                .eventTime(createdAt)
-                .build());
+        ConversationHistory history = ConversationHistory.create(conversationId, topic, createdAt);
 
         ConversationHistory saved = conversationHistoryRepository.save(history);
-        log.info("Conversation history saved: {}", saved.getConversationId());
+        log.info("Conversation history saved: {}", saved.conversationId());
     }
 
     @Transactional
@@ -68,7 +57,6 @@ public class ConversationHistoryService {
             return;
         }
 
-        String messageText = message.text();
         String senderPersonId = message.senderPerson() != null ? message.senderPerson().id() : null;
         String senderDisplayName = message.senderPerson() != null ? message.senderPerson().displayName() : null;
         Instant messageTime = extractTimestamp(payload);
@@ -82,26 +70,11 @@ public class ConversationHistoryService {
         }
 
         ConversationHistory history = historyOpt.get();
-
-        history.addEvent(ConversationEventHistory.builder()
-                .eventType(ConversationEventHistory.EventType.MESSAGE)
-                .eventTime(messageTime)
-                .messageText(messageText)
-                .senderPersonId(senderPersonId)
-                .senderDisplayName(senderDisplayName)
-                .build());
+        history.recordMessage(message.text(), senderPersonId, senderDisplayName, messageTime);
 
         if (senderPersonId != null && senderDisplayName != null) {
-            boolean participantExists = history.getParticipants().stream()
-                    .anyMatch(p -> p.getPersonId().equals(senderPersonId));
-            if (!participantExists) {
-                history.addParticipant(ParticipantHistory.builder()
-                        .personId(senderPersonId)
-                        .displayName(senderDisplayName)
-                        .type(ParticipantHistory.ParticipantType.VISITOR)
-                        .build());
-                log.info("New participant added: {}", senderDisplayName);
-            }
+            history.registerParticipant(senderPersonId, senderDisplayName, ParticipantHistory.ParticipantType.VISITOR);
+            log.info("Participant registered: {}", senderDisplayName);
         }
 
         conversationHistoryRepository.save(history);
@@ -120,8 +93,6 @@ public class ConversationHistoryService {
             log.info("  End reason: {}", payload.endReason());
         }
 
-        Instant endedAt = extractTimestamp(payload);
-
         Optional<ConversationHistory> historyOpt = conversationHistoryRepository.findByConversationId(conversationId);
         if (historyOpt.isEmpty()) {
             log.warn("Conversation {} not found in database, cannot persist end", conversationId);
@@ -129,11 +100,7 @@ public class ConversationHistoryService {
         }
 
         ConversationHistory history = historyOpt.get();
-        history.setEndedAt(endedAt);
-        history.addEvent(ConversationEventHistory.builder()
-                .eventType(ConversationEventHistory.EventType.ENDED)
-                .eventTime(endedAt)
-                .build());
+        history.end(extractTimestamp(payload));
 
         conversationHistoryRepository.save(history);
         log.info("Conversation end saved: {}", conversationId);
