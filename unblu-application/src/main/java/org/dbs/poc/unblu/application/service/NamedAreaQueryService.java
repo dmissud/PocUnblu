@@ -6,7 +6,7 @@ import org.dbs.poc.unblu.application.port.in.SearchAgentsByNamedAreaUseCase;
 import org.dbs.poc.unblu.application.port.in.SearchNamedAreasUseCase;
 import org.dbs.poc.unblu.domain.model.NamedAreaInfo;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
-import org.dbs.poc.unblu.domain.port.secondary.UnbluPort;
+import org.dbs.poc.unblu.domain.port.out.UnbluPort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

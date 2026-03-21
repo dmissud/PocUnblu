@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dbs.poc.unblu.application.port.in.SearchTeamsUseCase;
 import org.dbs.poc.unblu.domain.model.TeamInfo;
-import org.dbs.poc.unblu.domain.port.secondary.UnbluPort;
+import org.dbs.poc.unblu.domain.port.out.UnbluPort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
