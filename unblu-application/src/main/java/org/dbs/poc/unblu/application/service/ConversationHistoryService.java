@@ -2,6 +2,8 @@ package org.dbs.poc.unblu.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.dbs.poc.unblu.application.route.webhook.ConversationMessageData;
+import org.dbs.poc.unblu.application.route.webhook.UnbluWebhookPayload;
 import org.dbs.poc.unblu.domain.model.history.ConversationEventHistory;
 import org.dbs.poc.unblu.domain.model.history.ConversationHistory;
 import org.dbs.poc.unblu.domain.model.history.ParticipantHistory;
@@ -14,7 +16,8 @@ import java.util.Optional;
 
 /**
  * Application service responsible for persisting conversation history events.
- * Each method is transactional and called from the webhook event processor.
+ * Each method accepts a typed {@link UnbluWebhookPayload} and is responsible
+ * for both extracting the relevant fields and persisting the state change.
  */
 @Slf4j
 @Service
@@ -24,7 +27,16 @@ public class ConversationHistoryService {
     private final ConversationHistoryRepository conversationHistoryRepository;
 
     @Transactional
-    public void onConversationCreated(String conversationId, String topic, Instant createdAt) {
+    public void onConversationCreated(UnbluWebhookPayload payload) {
+        String conversationId = extractConversationId(payload);
+        if (conversationId == null) {
+            log.error("Cannot persist conversation: conversationId is null");
+            return;
+        }
+
+        String topic = payload.conversation() != null ? payload.conversation().topic() : null;
+        Instant createdAt = extractTimestamp(payload);
+
         log.info("Persisting new conversation: {} (topic: {})", conversationId, topic);
 
         ConversationHistory history = ConversationHistory.builder()
@@ -43,10 +55,27 @@ public class ConversationHistoryService {
     }
 
     @Transactional
-    public void onNewMessage(String conversationId, String messageText,
-                             String senderPersonId, String senderDisplayName, Instant messageTime) {
-        Optional<ConversationHistory> historyOpt = conversationHistoryRepository.findByConversationId(conversationId);
+    public void onNewMessage(UnbluWebhookPayload payload) {
+        ConversationMessageData message = payload.conversationMessage();
+        if (message == null) {
+            log.error("Cannot persist message: conversationMessage is null");
+            return;
+        }
 
+        String conversationId = message.conversationId();
+        if (conversationId == null) {
+            log.error("Cannot persist message: conversationId is null");
+            return;
+        }
+
+        String messageText = message.text();
+        String senderPersonId = message.senderPerson() != null ? message.senderPerson().id() : null;
+        String senderDisplayName = message.senderPerson() != null ? message.senderPerson().displayName() : null;
+        Instant messageTime = extractTimestamp(payload);
+
+        log.info("  Conversation: {}, Sender: {} ({})", conversationId, senderDisplayName, senderPersonId);
+
+        Optional<ConversationHistory> historyOpt = conversationHistoryRepository.findByConversationId(conversationId);
         if (historyOpt.isEmpty()) {
             log.warn("Conversation {} not found in database, cannot persist message", conversationId);
             return;
@@ -80,9 +109,20 @@ public class ConversationHistoryService {
     }
 
     @Transactional
-    public void onConversationEnded(String conversationId, Instant endedAt) {
-        Optional<ConversationHistory> historyOpt = conversationHistoryRepository.findByConversationId(conversationId);
+    public void onConversationEnded(UnbluWebhookPayload payload) {
+        String conversationId = extractConversationId(payload);
+        if (conversationId == null) {
+            log.error("Cannot persist conversation end: conversationId is null");
+            return;
+        }
 
+        if (payload.endReason() != null) {
+            log.info("  End reason: {}", payload.endReason());
+        }
+
+        Instant endedAt = extractTimestamp(payload);
+
+        Optional<ConversationHistory> historyOpt = conversationHistoryRepository.findByConversationId(conversationId);
         if (historyOpt.isEmpty()) {
             log.warn("Conversation {} not found in database, cannot persist end", conversationId);
             return;
@@ -97,5 +137,18 @@ public class ConversationHistoryService {
 
         conversationHistoryRepository.save(history);
         log.info("Conversation end saved: {}", conversationId);
+    }
+
+    // --- Extraction helpers (payload → primitives) ---
+
+    private String extractConversationId(UnbluWebhookPayload payload) {
+        if (payload.conversation() != null && payload.conversation().id() != null) {
+            return payload.conversation().id();
+        }
+        return payload.conversationId();
+    }
+
+    private Instant extractTimestamp(UnbluWebhookPayload payload) {
+        return payload.timestamp() != null ? Instant.ofEpochMilli(payload.timestamp()) : Instant.now();
     }
 }
