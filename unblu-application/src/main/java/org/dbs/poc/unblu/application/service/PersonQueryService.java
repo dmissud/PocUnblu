@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.dbs.poc.unblu.application.port.in.SearchPersonsQuery;
 import org.dbs.poc.unblu.application.port.in.SearchPersonsUseCase;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
-import org.dbs.poc.unblu.domain.port.secondary.UnbluPort;
+import org.dbs.poc.unblu.domain.port.out.UnbluPort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
