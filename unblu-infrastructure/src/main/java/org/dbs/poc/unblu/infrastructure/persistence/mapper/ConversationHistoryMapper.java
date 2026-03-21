@@ -22,27 +22,17 @@ public class ConversationHistoryMapper {
         }
 
         ConversationHistoryEntity entity = ConversationHistoryEntity.builder()
-                .conversationId(domain.getConversationId())
-                .topic(domain.getTopic())
-                .createdAt(domain.getCreatedAt())
-                .endedAt(domain.getEndedAt())
+                .conversationId(domain.conversationId())
+                .topic(domain.topic())
+                .createdAt(domain.startedAt())
+                .endedAt(domain.endedAt())
                 .build();
 
-        // Map participants
-        if (domain.getParticipants() != null) {
-            domain.getParticipants().forEach(participant -> {
-                ParticipantHistoryEntity participantEntity = toParticipantEntity(participant);
-                entity.addParticipant(participantEntity);
-            });
-        }
+        domain.participants().forEach(participant ->
+                entity.addParticipant(toParticipantEntity(participant)));
 
-        // Map events
-        if (domain.getEvents() != null) {
-            domain.getEvents().forEach(event -> {
-                ConversationEventHistoryEntity eventEntity = toEventEntity(event);
-                entity.addEvent(eventEntity);
-            });
-        }
+        domain.events().forEach(event ->
+                entity.addEvent(toEventEntity(event)));
 
         return entity;
     }
@@ -68,9 +58,9 @@ public class ConversationHistoryMapper {
 
     private ParticipantHistoryEntity toParticipantEntity(ParticipantHistory domain) {
         return ParticipantHistoryEntity.builder()
-                .personId(domain.getPersonId())
-                .displayName(domain.getDisplayName())
-                .type(ParticipantHistoryEntity.ParticipantType.valueOf(domain.getType().name()))
+                .personId(domain.personId())
+                .displayName(domain.displayName())
+                .type(ParticipantHistoryEntity.ParticipantType.valueOf(domain.participantType().name()))
                 .build();
     }
 
@@ -84,11 +74,11 @@ public class ConversationHistoryMapper {
 
     private ConversationEventHistoryEntity toEventEntity(ConversationEventHistory domain) {
         return ConversationEventHistoryEntity.builder()
-                .eventType(ConversationEventHistoryEntity.EventType.valueOf(domain.getEventType().name()))
-                .eventTime(domain.getEventTime())
-                .messageText(domain.getMessageText())
-                .senderPersonId(domain.getSenderPersonId())
-                .senderDisplayName(domain.getSenderDisplayName())
+                .eventType(ConversationEventHistoryEntity.EventType.valueOf(domain.eventType().name()))
+                .eventTime(domain.occurredAt())
+                .messageText(domain.messageText())
+                .senderPersonId(domain.senderPersonId())
+                .senderDisplayName(domain.senderDisplayName())
                 .build();
     }
 
