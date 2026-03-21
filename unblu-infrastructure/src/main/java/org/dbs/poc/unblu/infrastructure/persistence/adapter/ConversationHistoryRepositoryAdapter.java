@@ -28,38 +28,38 @@ public class ConversationHistoryRepositoryAdapter implements ConversationHistory
     @Override
     @Transactional
     public ConversationHistory save(ConversationHistory conversationHistory) {
-        Optional<ConversationHistoryEntity> existingOpt = jpaRepository.findByConversationId(conversationHistory.getConversationId());
+        Optional<ConversationHistoryEntity> existingOpt = jpaRepository.findByConversationId(conversationHistory.conversationId());
 
         if (existingOpt.isPresent()) {
             ConversationHistoryEntity existing = existingOpt.get();
-            existing.setEndedAt(conversationHistory.getEndedAt());
-            if (conversationHistory.getTopic() != null) {
-                existing.setTopic(conversationHistory.getTopic());
+            existing.setEndedAt(conversationHistory.endedAt());
+            if (conversationHistory.topic() != null) {
+                existing.setTopic(conversationHistory.topic());
             }
 
             // Add only new participants (by personId)
             Set<String> existingPersonIds = existing.getParticipants().stream()
                     .map(ParticipantHistoryEntity::getPersonId)
                     .collect(Collectors.toSet());
-            conversationHistory.getParticipants().stream()
-                    .filter(p -> !existingPersonIds.contains(p.getPersonId()))
+            conversationHistory.participants().stream()
+                    .filter(p -> !existingPersonIds.contains(p.personId()))
                     .forEach(p -> existing.addParticipant(ParticipantHistoryEntity.builder()
-                            .personId(p.getPersonId())
-                            .displayName(p.getDisplayName())
-                            .type(ParticipantHistoryEntity.ParticipantType.valueOf(p.getType().name()))
+                            .personId(p.personId())
+                            .displayName(p.displayName())
+                            .type(ParticipantHistoryEntity.ParticipantType.valueOf(p.participantType().name()))
                             .build()));
 
-            // Add only new events (by eventTime + eventType to avoid duplicates)
+            // Add only new events (by offset to avoid duplicates)
             int existingEventCount = existing.getEvents().size();
-            int domainEventCount = conversationHistory.getEvents().size();
+            int domainEventCount = conversationHistory.events().size();
             if (domainEventCount > existingEventCount) {
-                conversationHistory.getEvents().subList(existingEventCount, domainEventCount)
+                conversationHistory.events().subList(existingEventCount, domainEventCount)
                         .forEach(e -> existing.addEvent(ConversationEventHistoryEntity.builder()
-                                .eventType(ConversationEventHistoryEntity.EventType.valueOf(e.getEventType().name()))
-                                .eventTime(e.getEventTime())
-                                .messageText(e.getMessageText())
-                                .senderPersonId(e.getSenderPersonId())
-                                .senderDisplayName(e.getSenderDisplayName())
+                                .eventType(ConversationEventHistoryEntity.EventType.valueOf(e.eventType().name()))
+                                .eventTime(e.occurredAt())
+                                .messageText(e.messageText())
+                                .senderPersonId(e.senderPersonId())
+                                .senderDisplayName(e.senderDisplayName())
                                 .build()));
             }
 
@@ -87,7 +87,6 @@ public class ConversationHistoryRepositoryAdapter implements ConversationHistory
         entity.getParticipants().size();
         entity.getEvents().size();
 
-        // Map to domain with both collections loaded
         return Optional.of(mapper.toDomain(entity));
     }
 
