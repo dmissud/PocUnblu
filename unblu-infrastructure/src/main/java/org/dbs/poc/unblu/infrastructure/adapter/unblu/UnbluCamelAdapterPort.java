@@ -2,6 +2,7 @@ package org.dbs.poc.unblu.infrastructure.adapter.unblu;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.camel.ProducerTemplate;
+import org.dbs.poc.unblu.application.model.ConversationOrchestrationState;
 import org.dbs.poc.unblu.domain.model.ConversationContext;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
 import org.dbs.poc.unblu.domain.model.PersonSource;
@@ -21,8 +22,10 @@ public class UnbluCamelAdapterPort implements UnbluPort {
 
     @Override
     public UnbluConversationInfo createConversation(ConversationContext context) {
-        ConversationContext result = producerTemplate.requestBody(UnbluResilientRoute.DIRECT_UNBLU_ADAPTER_RESILIENT, context, ConversationContext.class);
-        return new UnbluConversationInfo(result.getUnbluConversationId(), result.getUnbluJoinUrl());
+        ConversationOrchestrationState state = new ConversationOrchestrationState(context);
+        ConversationOrchestrationState result = producerTemplate.requestBody(
+                UnbluResilientRoute.DIRECT_UNBLU_ADAPTER_RESILIENT, state, ConversationOrchestrationState.class);
+        return new UnbluConversationInfo(result.unbluConversationId(), result.unbluJoinUrl());
     }
 
     @Override

@@ -3,6 +3,7 @@ package org.dbs.poc.unblu.infrastructure.adapter.unblu;
 import com.unblu.webapi.model.v4.*;
 import lombok.RequiredArgsConstructor;
 import org.apache.camel.builder.RouteBuilder;
+import org.dbs.poc.unblu.application.model.ConversationOrchestrationState;
 import org.dbs.poc.unblu.domain.model.ConversationContext;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
 import org.dbs.poc.unblu.domain.model.TeamInfo;
@@ -90,20 +91,20 @@ public class UnbluCamelAdapter extends RouteBuilder {
     }
 
     private void createConversation(org.apache.camel.Exchange exchange) {
-        ConversationContext ctx = exchange.getIn().getBody(ConversationContext.class);
+        ConversationOrchestrationState state = exchange.getIn().getBody(ConversationOrchestrationState.class);
+        ConversationContext ctx = state.context();
 
         ConversationCreationData creationData = new ConversationCreationData();
-        creationData.setTopic("Contact depuis " + ctx.getOriginApplication());
-        creationData.setVisitorData(ctx.getInitialClientId());
+        creationData.setTopic("Contact depuis " + ctx.originApplication());
+        creationData.setVisitorData(ctx.initialClientId());
         creationData.setInitialEngagementType(EInitialEngagementType.CHAT_REQUEST);
 
         com.unblu.webapi.model.v4.ConversationCreationRecipientData recipient = new com.unblu.webapi.model.v4.ConversationCreationRecipientData();
         recipient.setType(com.unblu.webapi.model.v4.EConversationRecipientType.TEAM);
-        recipient.setId(ctx.getRoutingDecision().unbluAssignedGroupId());
+        recipient.setId(ctx.routingDecision().unbluAssignedGroupId());
         creationData.setRecipient(recipient);
 
-        // Récupérer l'ID Unblu de la personne à partir du sourceId
-        PersonData person = unbluPersonService.getPersonBySource(EPersonSource.VIRTUAL, ctx.getInitialClientId());
+        PersonData person = unbluPersonService.getPersonBySource(EPersonSource.VIRTUAL, ctx.initialClientId());
 
         ConversationCreationParticipantData participant = new ConversationCreationParticipantData();
         participant.setPersonId(person.getId());
@@ -112,9 +113,9 @@ public class UnbluCamelAdapter extends RouteBuilder {
 
         ConversationData response = unbluConversationService.createConversation(creationData);
 
-        ctx.updateUnbluConversation(response.getId(), "https://server.unblu.com/join/" + response.getId());
+        state.updateUnbluConversation(response.getId(), "https://server.unblu.com/join/" + response.getId());
 
-        exchange.getIn().setBody(ctx);
+        exchange.getIn().setBody(state);
     }
 
     private void searchPersons(org.apache.camel.Exchange exchange) {

@@ -1,9 +1,9 @@
 package org.dbs.poc.unblu.exposition.rest.mapper;
 
 import org.apache.camel.Exchange;
+import org.dbs.poc.unblu.application.model.ConversationOrchestrationState;
 import org.dbs.poc.unblu.application.port.in.StartConversationCommand;
 import org.dbs.poc.unblu.application.port.in.StartDirectConversationCommand;
-import org.dbs.poc.unblu.domain.model.ConversationContext;
 import org.dbs.poc.unblu.domain.model.UnbluConversationInfo;
 import org.dbs.poc.unblu.exposition.rest.dto.StartConversationRequest;
 import org.dbs.poc.unblu.exposition.rest.dto.StartConversationResponse;
@@ -51,12 +51,12 @@ public class ConversationMapper {
     }
 
     /**
-     * Maps a ConversationContext to a StartConversationResponse.
+     * Maps a ConversationOrchestrationState to a StartConversationResponse.
      */
-    public StartConversationResponse toResponse(ConversationContext context) {
+    public StartConversationResponse toResponse(ConversationOrchestrationState state) {
         return StartConversationResponse.builder()
-                .unbluConversationId(context.getUnbluConversationId())
-                .unbluJoinUrl(context.getUnbluJoinUrl())
+                .unbluConversationId(state.unbluConversationId())
+                .unbluJoinUrl(state.unbluJoinUrl())
                 .status(STATUS_CREATED)
                 .message(MESSAGE_TEAM_CONVERSATION_CREATED)
                 .build();
@@ -91,11 +91,11 @@ public class ConversationMapper {
     }
 
     /**
-     * Extracts and maps ConversationContext from Camel Exchange to Response.
+     * Extracts and maps ConversationOrchestrationState from Camel Exchange to Response.
      */
     public void mapContextToResponse(Exchange exchange) {
-        ConversationContext context = exchange.getIn().getBody(ConversationContext.class);
-        exchange.getIn().setBody(toResponse(context));
+        ConversationOrchestrationState state = exchange.getIn().getBody(ConversationOrchestrationState.class);
+        exchange.getIn().setBody(toResponse(state));
     }
 
     /**

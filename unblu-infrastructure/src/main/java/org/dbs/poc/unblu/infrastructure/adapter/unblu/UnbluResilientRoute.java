@@ -2,7 +2,7 @@ package org.dbs.poc.unblu.infrastructure.adapter.unblu;
 
 
 import org.apache.camel.builder.RouteBuilder;
-import org.dbs.poc.unblu.domain.model.ConversationContext;
+import org.dbs.poc.unblu.application.model.ConversationOrchestrationState;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -25,8 +25,8 @@ public class UnbluResilientRoute extends RouteBuilder {
     }
 
     private void handleFallback(org.apache.camel.Exchange exchange) {
-        ConversationContext ctx = exchange.getIn().getBody(ConversationContext.class);
-        ctx.updateUnbluConversation("OFFLINE-PENDING", "Le service de chat est temporairement indisponible.");
-        exchange.getIn().setBody(ctx);
+        ConversationOrchestrationState state = exchange.getIn().getBody(ConversationOrchestrationState.class);
+        state.updateUnbluConversation("OFFLINE-PENDING", "Le service de chat est temporairement indisponible.");
+        exchange.getIn().setBody(state);
     }
 }
