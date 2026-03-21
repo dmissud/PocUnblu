@@ -31,7 +31,7 @@ public class UnbluCamelAdapterPort implements UnbluPort {
     @Override
     @SuppressWarnings("unchecked")
     public List<PersonInfo> searchPersons(String sourceId, PersonSource personSource) {
-        return producerTemplate.requestBody(UnbluCamelAdapter.DIRECT_UNBLU_SEARCH_PERSONS,
+        return producerTemplate.requestBody(UnbluResilientRoute.DIRECT_UNBLU_SEARCH_PERSONS_RESILIENT,
                 new PersonSearchRequest(sourceId, personSource), List.class);
     }
 
@@ -41,7 +41,7 @@ public class UnbluCamelAdapterPort implements UnbluPort {
     public UnbluConversationInfo createDirectConversation(PersonInfo virtualPerson, PersonInfo agentPerson, String subject) {
         DirectConversationRequest req = new DirectConversationRequest(virtualPerson, agentPerson, subject);
         com.unblu.webapi.model.v4.ConversationData result =
-                producerTemplate.requestBody(UnbluCamelAdapter.DIRECT_UNBLU_CREATE_DIRECT_CONVERSATION, req,
+                producerTemplate.requestBody(UnbluResilientRoute.DIRECT_UNBLU_CREATE_DIRECT_CONVERSATION_RESILIENT, req,
                         com.unblu.webapi.model.v4.ConversationData.class);
         return new UnbluConversationInfo(result.getId(), result.getId());
     }
@@ -50,7 +50,7 @@ public class UnbluCamelAdapterPort implements UnbluPort {
 
     @Override
     public void addSummaryToConversation(String conversationId, String summary) {
-        producerTemplate.sendBody(UnbluCamelAdapter.DIRECT_UNBLU_ADD_SUMMARY, new SummaryRequest(conversationId, summary));
+        producerTemplate.sendBody(UnbluResilientRoute.DIRECT_UNBLU_ADD_SUMMARY_RESILIENT, new SummaryRequest(conversationId, summary));
     }
 
     public record SummaryRequest(String conversationId, String summary) {}
