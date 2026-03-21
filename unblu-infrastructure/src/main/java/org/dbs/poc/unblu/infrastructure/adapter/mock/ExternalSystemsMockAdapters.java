@@ -52,7 +52,7 @@ public class ExternalSystemsMockAdapters extends RouteBuilder {
 
     private void mockErpLogic(org.apache.camel.Exchange exchange) {
         ConversationContext ctx = exchange.getIn().getBody(ConversationContext.class);
-        String clientId = ctx.getInitialClientId();
+        String clientId = ctx.initialClientId();
         
         // Simulation d'une logique métier ERP
         CustomerProfile profile = new CustomerProfile(
@@ -70,7 +70,7 @@ public class ExternalSystemsMockAdapters extends RouteBuilder {
 
         ChatRoutingDecision decision;
 
-        if (ctx.getCustomerProfile().isBanned()) {
+        if (ctx.customerProfile().isBanned()) {
             decision = new ChatRoutingDecision(false, null, "Client blacklisté - Accès au chat refusé.");
         } else {
             // Utilise le teamId configuré au lieu d'un choix aléatoire

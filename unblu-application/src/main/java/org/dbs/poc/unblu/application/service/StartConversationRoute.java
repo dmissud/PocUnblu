@@ -2,6 +2,7 @@ package org.dbs.poc.unblu.application.service;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
+import org.dbs.poc.unblu.application.model.ConversationOrchestrationState;
 import org.dbs.poc.unblu.application.port.in.StartConversationCommand;
 import org.dbs.poc.unblu.domain.model.ChatRoutingDecision;
 import org.dbs.poc.unblu.domain.model.ConversationContext;
@@ -36,11 +37,11 @@ public class StartConversationRoute extends RouteBuilder {
         ConversationContext context = new ConversationContext(command.clientId(), command.origin());
         ChatRoutingDecision decision = new ChatRoutingDecision(true, command.teamId(), "Team fournie par le front");
         context.setRoutingDecision(decision);
-        exchange.getIn().setBody(context);
+        exchange.getIn().setBody(new ConversationOrchestrationState(context));
     }
 
     private void generateAndAddSummary(Exchange exchange) {
-        ConversationContext ctx = exchange.getIn().getBody(ConversationContext.class);
-        workflowService.addSummary(ctx.getUnbluConversationId());
+        ConversationOrchestrationState state = exchange.getIn().getBody(ConversationOrchestrationState.class);
+        workflowService.addSummary(state.unbluConversationId());
     }
 }
