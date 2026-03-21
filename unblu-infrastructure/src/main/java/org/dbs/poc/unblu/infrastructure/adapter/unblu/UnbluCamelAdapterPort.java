@@ -17,7 +17,7 @@ import java.util.List;
 public class UnbluCamelAdapterPort implements UnbluPort {
 
     private final ProducerTemplate producerTemplate;
-    private final UnbluService unbluService;
+    private final UnbluBotService unbluBotService;
 
     @Override
     public UnbluConversationInfo createConversation(ConversationContext context) {
@@ -54,7 +54,7 @@ public class UnbluCamelAdapterPort implements UnbluPort {
 
     @Override
     public String createBot(String name, String description) {
-        return unbluService.createBot(name, description);
+        return unbluBotService.createBot(name, description);
     }
 
     @Override

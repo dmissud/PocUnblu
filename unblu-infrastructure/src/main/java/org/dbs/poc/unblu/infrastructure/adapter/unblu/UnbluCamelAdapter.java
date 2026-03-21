@@ -25,6 +25,8 @@ public class UnbluCamelAdapter extends RouteBuilder {
     public static final String DIRECT_UNBLU_SEARCH_NAMED_AREAS = "direct:unblu-search-named-areas";
     public static final String DIRECT_UNBLU_SEARCH_AGENTS_BY_NAMED_AREA = "direct:unblu-search-agents-by-named-area";
 
+    private final UnbluPersonService unbluPersonService;
+    private final UnbluConversationService unbluConversationService;
     private final UnbluService unbluService;
 
     @Override
@@ -101,14 +103,14 @@ public class UnbluCamelAdapter extends RouteBuilder {
         creationData.setRecipient(recipient);
 
         // Récupérer l'ID Unblu de la personne à partir du sourceId
-        PersonData person = unbluService.getPersonBySource(EPersonSource.VIRTUAL, ctx.getInitialClientId());
+        PersonData person = unbluPersonService.getPersonBySource(EPersonSource.VIRTUAL, ctx.getInitialClientId());
 
         ConversationCreationParticipantData participant = new ConversationCreationParticipantData();
         participant.setPersonId(person.getId());
         participant.setParticipationType(EConversationRealParticipationType.CONTEXT_PERSON);
         creationData.addParticipantsItem(participant);
 
-        ConversationData response = unbluService.createConversation(creationData);
+        ConversationData response = unbluConversationService.createConversation(creationData);
 
         ctx.updateUnbluConversation(response.getId(), "https://server.unblu.com/join/" + response.getId());
 
@@ -117,20 +119,20 @@ public class UnbluCamelAdapter extends RouteBuilder {
 
     private void searchPersons(org.apache.camel.Exchange exchange) {
         PersonSearchRequest req = exchange.getIn().getBody(PersonSearchRequest.class);
-        List<PersonInfo> persons = unbluService.searchPersons(req.sourceId(), req.personSource());
+        List<PersonInfo> persons = unbluPersonService.searchPersons(req.sourceId(), req.personSource());
         exchange.getIn().setBody(persons);
     }
 
     private void createDirectConversation(org.apache.camel.Exchange exchange) {
         DirectConversationRequest req = exchange.getIn().getBody(DirectConversationRequest.class);
-        ConversationData result = unbluService.createDirectConversation(
+        ConversationData result = unbluConversationService.createDirectConversation(
                 req.virtualPerson(), req.agentPerson(), req.subject());
         exchange.getIn().setBody(result);
     }
 
     private void addSummaryToConversation(org.apache.camel.Exchange exchange) {
         SummaryRequest req = exchange.getIn().getBody(SummaryRequest.class);
-        unbluService.addSummaryToConversation(req.conversationId(), req.summary());
+        unbluConversationService.addSummaryToConversation(req.conversationId(), req.summary());
     }
 
     private void searchTeams(org.apache.camel.Exchange exchange) {
@@ -145,7 +147,7 @@ public class UnbluCamelAdapter extends RouteBuilder {
 
     private void searchAgentsByNamedArea(org.apache.camel.Exchange exchange) {
         String namedAreaId = exchange.getIn().getBody(String.class);
-        List<PersonInfo> agents = unbluService.searchAgentsByNamedArea(namedAreaId);
+        List<PersonInfo> agents = unbluPersonService.searchAgentsByNamedArea(namedAreaId);
         exchange.getIn().setBody(agents);
     }
 }
