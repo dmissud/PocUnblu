@@ -2,15 +2,13 @@ package org.dbs.poc.unblu.domain.model.history;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
 /**
- * Domain entity representing a conversation event.
+ * Value object representing a single event that occurred during a conversation.
  */
-@Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,7 +16,7 @@ public class ConversationEventHistory {
 
     private EventType eventType;
     private Instant eventTime;
-    
+
     // For MESSAGE events
     private String messageText;
     private String senderPersonId;
@@ -29,4 +27,16 @@ public class ConversationEventHistory {
         MESSAGE,
         ENDED
     }
+
+    // --- Accessors ---
+
+    public EventType eventType() { return eventType; }
+
+    public Instant occurredAt() { return eventTime; }
+
+    public String messageText() { return messageText; }
+
+    public String senderPersonId() { return senderPersonId; }
+
+    public String senderDisplayName() { return senderDisplayName; }
 }
