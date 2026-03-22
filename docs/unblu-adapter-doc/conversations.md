@@ -72,6 +72,8 @@ Utilisé en fin de parcours pour laisser une trace textuelle dans la conversatio
 
 Récupère la liste complète des conversations présentes dans Unblu pour alimenter la synchronisation en base.
 
+> **Pagination** : l'API Unblu retourne au maximum 250 résultats par défaut. La méthode boucle sur toutes les pages (taille 100) via `hasMoreItems` / `nextOffset` jusqu'à avoir récupéré l'intégralité des conversations.
+
 **Flux de séquence :**
 
 ```mermaid
@@ -87,8 +89,10 @@ sequenceDiagram
     Port->>CB: requestBody(DIRECT_UNBLU_LIST_CONVERSATIONS_RESILIENT, null)
     CB->>Adapter: process(exchange)
     Adapter->>ConvSvc: listAllConversations()
-    ConvSvc->>Unblu: POST /v4/conversations/search (ConversationQuery vide)
-    Unblu-->>ConvSvc: ConversationResult (List<ConversationData>)
+    loop tant que hasMoreItems == true
+        ConvSvc->>Unblu: POST /v4/conversations/search (offset, limit=100)
+        Unblu-->>ConvSvc: ConversationResult (items, hasMoreItems, nextOffset)
+    end
     Note right of ConvSvc: Mapping ConversationData → UnbluConversationSummary\ncreationTimestamp → Instant, endTimestamp → Instant (nullable)
     ConvSvc-->>Port: List<UnbluConversationSummary>
     Port-->>App: List<UnbluConversationSummary>
