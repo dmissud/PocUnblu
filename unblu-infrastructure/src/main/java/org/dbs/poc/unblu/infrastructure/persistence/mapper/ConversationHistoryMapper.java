@@ -18,6 +18,25 @@ import java.util.stream.Collectors;
 public class ConversationHistoryMapper {
 
     /**
+     * Convertit une entité JPA en objet domaine allégé, sans charger les collections lazy.
+     * Utilisé pour le listing paginé où seules les données d'en-tête sont nécessaires.
+     *
+     * @param entity l'entité JPA à convertir
+     * @return l'objet domaine avec collections vides (participants et événements non chargés)
+     */
+    public ConversationHistory toDomainSummary(ConversationHistoryEntity entity) {
+        if (entity == null) {
+            return null;
+        }
+        return ConversationHistory.builder()
+                .conversationId(entity.getConversationId())
+                .topic(entity.getTopic())
+                .createdAt(entity.getCreatedAt())
+                .endedAt(entity.getEndedAt())
+                .build();
+    }
+
+    /**
      * Convertit un objet domaine {@link ConversationHistory} en entité JPA, incluant
      * les participants et les événements associés.
      *

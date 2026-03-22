@@ -53,7 +53,23 @@
     <button (click)="syncResult = null">✕</button>
   </div>
 
-  <div *ngIf="loadingData" class="loading">
+  <!-- Tab navigation -->
+  <nav class="tab-nav">
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'conversations'"
+      (click)="activeTab = 'conversations'">
+      💬 Conversations
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'history'"
+      (click)="activeTab = 'history'">
+      📋 Historique
+    </button>
+  </nav>
+
+  <div *ngIf="loadingData && activeTab === 'conversations'" class="loading">
     <p>Chargement des données...</p>
   </div>
 
@@ -62,7 +78,12 @@
     <button (click)="error = null">✕</button>
   </div>
 
-  <div *ngIf="!loadingData" class="content">
+  <!-- Tab: Historique -->
+  <div *ngIf="activeTab === 'history'" class="tab-content">
+    <app-conversation-history></app-conversation-history>
+  </div>
+
+  <div *ngIf="!loadingData && activeTab === 'conversations'" class="content">
     <!-- Workflow 1: Conversation Directe -->
     <div class="card">
       <h2>🗣️ Conversation Directe</h2>

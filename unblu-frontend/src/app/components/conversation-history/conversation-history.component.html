@@ -1,0 +1,203 @@
+<div class="history-container">
+
+  <!-- Error banner -->
+  <div *ngIf="listError" class="alert alert-error">
+    {{ listError }}
+    <button (click)="listError = null">✕</button>
+  </div>
+
+  <!-- Loading spinner -->
+  <div *ngIf="loadingList" class="loading-overlay">
+    <div class="spinner"></div>
+    <p>Chargement des conversations...</p>
+  </div>
+
+  <!-- Main layout: table + detail panel -->
+  <div class="history-layout" *ngIf="!loadingList">
+
+    <!-- Left: Conversations table -->
+    <div class="table-section" [class.with-detail]="selectedConversation">
+
+      <!-- Stats bar -->
+      <div class="stats-bar" *ngIf="currentPage">
+        <span class="stat">
+          <strong>{{ currentPage.totalItems }}</strong> conversation(s) au total
+        </span>
+        <span class="stat">
+          Page <strong>{{ currentPage.page + 1 }}</strong> / <strong>{{ currentPage.totalPages || 1 }}</strong>
+        </span>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrapper">
+        <table class="conversations-table" *ngIf="currentPage && currentPage.items.length > 0">
+          <thead>
+            <tr>
+              <th>Statut</th>
+              <th>Sujet</th>
+              <th>Début</th>
+              <th>Fin</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let conv of currentPage.items"
+              [class.selected]="isSelected(conv)"
+              (click)="selectConversation(conv)"
+              class="conversation-row">
+              <td>
+                <span class="status-badge" [class.status-active]="conv.status === 'ACTIVE'" [class.status-ended]="conv.status === 'ENDED'">
+                  {{ conv.status === 'ACTIVE' ? 'Actif' : 'Terminé' }}
+                </span>
+              </td>
+              <td class="topic-cell" [title]="conv.conversationId">
+                {{ topicLabel(conv.topic) }}
+                <span class="conv-id">{{ conv.conversationId | slice:0:12 }}…</span>
+              </td>
+              <td class="date-cell">{{ conv.createdAt | date:'dd/MM/yy HH:mm' }}</td>
+              <td class="date-cell">{{ conv.endedAt ? (conv.endedAt | date:'dd/MM/yy HH:mm') : '—' }}</td>
+              <td class="action-cell">
+                <span class="arrow-icon">{{ isSelected(conv) ? '◀' : '▶' }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Empty state -->
+        <div *ngIf="currentPage && currentPage.items.length === 0" class="empty-state">
+          <p>Aucune conversation en base de données.</p>
+          <p class="hint">Utilisez le bouton "Sync Conversations" pour importer les conversations depuis Unblu.</p>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" *ngIf="currentPage && currentPage.totalPages > 1">
+        <button
+          class="page-btn"
+          [disabled]="currentPage.page === 0"
+          (click)="loadPage(0)"
+          title="Première page">
+          «
+        </button>
+        <button
+          class="page-btn"
+          [disabled]="currentPage.page === 0"
+          (click)="loadPage(currentPage.page - 1)"
+          title="Page précédente">
+          ‹
+        </button>
+
+        <button
+          *ngFor="let p of visiblePages"
+          class="page-btn"
+          [class.active]="p === currentPage.page"
+          (click)="loadPage(p)">
+          {{ p + 1 }}
+        </button>
+
+        <button
+          class="page-btn"
+          [disabled]="currentPage.page >= currentPage.totalPages - 1"
+          (click)="loadPage(currentPage.page + 1)"
+          title="Page suivante">
+          ›
+        </button>
+        <button
+          class="page-btn"
+          [disabled]="currentPage.page >= currentPage.totalPages - 1"
+          (click)="loadPage(currentPage.totalPages - 1)"
+          title="Dernière page">
+          »
+        </button>
+      </div>
+    </div>
+
+    <!-- Right: Detail panel -->
+    <div class="detail-panel" *ngIf="selectedConversation || loadingDetail">
+
+      <!-- Loading detail -->
+      <div *ngIf="loadingDetail" class="detail-loading">
+        <div class="spinner"></div>
+        <p>Chargement du détail...</p>
+      </div>
+
+      <div *ngIf="selectedConversation && !loadingDetail">
+
+        <!-- Detail header -->
+        <div class="detail-header">
+          <div class="detail-title">
+            <h3>{{ topicLabel(selectedConversation.topic) }}</h3>
+            <span class="status-badge" [class.status-active]="selectedConversation.status === 'ACTIVE'" [class.status-ended]="selectedConversation.status === 'ENDED'">
+              {{ selectedConversation.status === 'ACTIVE' ? 'Actif' : 'Terminé' }}
+            </span>
+          </div>
+          <button class="close-btn" (click)="closeDetail()" title="Fermer">✕</button>
+        </div>
+
+        <div class="detail-meta">
+          <span><strong>ID :</strong> <code>{{ selectedConversation.conversationId }}</code></span>
+          <span><strong>Début :</strong> {{ selectedConversation.createdAt | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+          <span *ngIf="selectedConversation.endedAt">
+            <strong>Fin :</strong> {{ selectedConversation.endedAt | date:'dd/MM/yyyy HH:mm:ss' }}
+          </span>
+        </div>
+
+        <!-- Participants -->
+        <div class="detail-section" *ngIf="selectedConversation.participants.length > 0">
+          <h4>Participants ({{ selectedConversation.participants.length }})</h4>
+          <div class="participants-list">
+            <div class="participant-chip" *ngFor="let p of selectedConversation.participants">
+              <span class="participant-icon">{{ participantIcon(p.participantType) }}</span>
+              <span class="participant-name">{{ p.displayName || p.personId }}</span>
+              <span class="participant-type">{{ p.participantType }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="detail-section">
+          <h4>Événements ({{ selectedConversation.events.length }})</h4>
+
+          <div class="timeline" *ngIf="selectedConversation.events.length > 0">
+            <div
+              class="timeline-event"
+              [class.event-created]="event.eventType === 'CREATED'"
+              [class.event-message]="event.eventType === 'MESSAGE'"
+              [class.event-ended]="event.eventType === 'ENDED'"
+              *ngFor="let event of selectedConversation.events">
+
+              <div class="event-marker">{{ eventIcon(event) }}</div>
+
+              <div class="event-body">
+                <div class="event-header">
+                  <span class="event-type">{{ event.eventType }}</span>
+                  <span class="event-time">{{ event.occurredAt | date:'HH:mm:ss' }}</span>
+                  <span class="event-date">{{ event.occurredAt | date:'dd/MM/yyyy' }}</span>
+                </div>
+                <div class="event-sender" *ngIf="event.senderDisplayName">
+                  {{ event.senderDisplayName }}
+                </div>
+                <div class="event-message" *ngIf="event.messageText">
+                  {{ event.messageText }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="selectedConversation.events.length === 0" class="empty-state">
+            Aucun événement enregistré.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Detail error -->
+      <div *ngIf="detailError" class="alert alert-error">
+        {{ detailError }}
+        <button (click)="detailError = null">✕</button>
+      </div>
+    </div>
+
+  </div>
+</div>

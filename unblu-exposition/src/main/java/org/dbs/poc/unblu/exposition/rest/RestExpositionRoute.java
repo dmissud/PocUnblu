@@ -9,7 +9,10 @@ import org.dbs.poc.unblu.domain.model.webhook.WebhookStatus;
 import org.dbs.poc.unblu.exposition.rest.dto.StartConversationRequest;
 import org.dbs.poc.unblu.exposition.rest.dto.StartConversationResponse;
 import org.dbs.poc.unblu.exposition.rest.dto.StartDirectConversationRequest;
+import org.dbs.poc.unblu.exposition.rest.dto.ConversationHistoryDetailResponse;
+import org.dbs.poc.unblu.exposition.rest.dto.ConversationHistoryPageResponse;
 import org.dbs.poc.unblu.exposition.rest.dto.SyncConversationsResponse;
+import org.dbs.poc.unblu.exposition.rest.mapper.ConversationHistoryQueryMapper;
 import org.dbs.poc.unblu.exposition.rest.mapper.ConversationMapper;
 import org.dbs.poc.unblu.exposition.rest.mapper.NamedAreaMapper;
 import org.dbs.poc.unblu.exposition.rest.mapper.PersonMapper;
@@ -47,6 +50,8 @@ public class RestExpositionRoute extends RouteBuilder {
     private static final String ROUTE_REST_WEBHOOK_STATUS = "rest-webhook-status";
     private static final String ROUTE_REST_WEBHOOK_TEARDOWN = "rest-webhook-teardown";
     private static final String ROUTE_REST_SYNC_CONVERSATIONS = "rest-sync-conversations";
+    private static final String ROUTE_REST_LIST_CONVERSATION_HISTORY = "rest-list-conversation-history";
+    private static final String ROUTE_REST_GET_CONVERSATION_HISTORY = "rest-get-conversation-history";
 
     // Internal route URIs
     private static final String DIRECT_REST_START_CONVERSATION = "direct:rest-start-conversation";
@@ -58,6 +63,8 @@ public class RestExpositionRoute extends RouteBuilder {
     private static final String DIRECT_REST_WEBHOOK_STATUS = "direct:rest-webhook-status";
     private static final String DIRECT_REST_WEBHOOK_TEARDOWN = "direct:rest-webhook-teardown";
     private static final String DIRECT_REST_SYNC_CONVERSATIONS = "direct:rest-sync-conversations";
+    private static final String DIRECT_REST_LIST_CONVERSATION_HISTORY = "direct:rest-list-conversation-history";
+    private static final String DIRECT_REST_GET_CONVERSATION_HISTORY = "direct:rest-get-conversation-history";
 
     // REST path segments
     private static final String PATH_CONVERSATIONS = "/v1/conversations";
@@ -78,6 +85,7 @@ public class RestExpositionRoute extends RouteBuilder {
     private final NamedAreaMapper namedAreaMapper;
     private final WebhookMapper webhookMapper;
     private final SyncConversationsMapper syncConversationsMapper;
+    private final ConversationHistoryQueryMapper conversationHistoryQueryMapper;
 
     public RestExpositionRoute(
             ConversationMapper conversationMapper,
@@ -85,13 +93,15 @@ public class RestExpositionRoute extends RouteBuilder {
             TeamMapper teamMapper,
             NamedAreaMapper namedAreaMapper,
             WebhookMapper webhookMapper,
-            SyncConversationsMapper syncConversationsMapper) {
+            SyncConversationsMapper syncConversationsMapper,
+            ConversationHistoryQueryMapper conversationHistoryQueryMapper) {
         this.conversationMapper = conversationMapper;
         this.personMapper = personMapper;
         this.teamMapper = teamMapper;
         this.namedAreaMapper = namedAreaMapper;
         this.webhookMapper = webhookMapper;
         this.syncConversationsMapper = syncConversationsMapper;
+        this.conversationHistoryQueryMapper = conversationHistoryQueryMapper;
     }
 
     @Override
@@ -143,7 +153,27 @@ public class RestExpositionRoute extends RouteBuilder {
                 .post("/sync")
                     .description("Scan toutes les conversations Unblu et synchronise la base de données")
                     .outType(SyncConversationsResponse.class)
-                    .to(DIRECT_REST_SYNC_CONVERSATIONS);
+                    .to(DIRECT_REST_SYNC_CONVERSATIONS)
+                .get("/history")
+                    .description("Liste paginée des conversations historisées en base de données")
+                    .outType(ConversationHistoryPageResponse.class)
+                    .param()
+                        .name("page").type(RestParamType.query)
+                        .defaultValue("0").description("Numéro de page (0-indexé)")
+                    .endParam()
+                    .param()
+                        .name("size").type(RestParamType.query)
+                        .defaultValue("10").description("Nombre d'éléments par page")
+                    .endParam()
+                    .to(DIRECT_REST_LIST_CONVERSATION_HISTORY)
+                .get("/history/{conversationId}")
+                    .description("Détail complet d'une conversation avec les événements chronologiques")
+                    .outType(ConversationHistoryDetailResponse.class)
+                    .param()
+                        .name("conversationId").type(RestParamType.path)
+                        .description("Identifiant Unblu de la conversation")
+                    .endParam()
+                    .to(DIRECT_REST_GET_CONVERSATION_HISTORY);
     }
 
     private void definePersonEndpoints() {
@@ -258,6 +288,19 @@ public class RestExpositionRoute extends RouteBuilder {
                 .to(OrchestratorEndpoints.DIRECT_SYNC_CONVERSATIONS)
                 .process(syncConversationsMapper::mapResultToResponse)
                 .log("Synchronisation terminée: ${body}");
+
+        from(DIRECT_REST_LIST_CONVERSATION_HISTORY)
+                .routeId(ROUTE_REST_LIST_CONVERSATION_HISTORY)
+                .log("Listing conversation history — page: ${header.page}, size: ${header.size}")
+                .to(OrchestratorEndpoints.DIRECT_LIST_CONVERSATION_HISTORY)
+                .process(conversationHistoryQueryMapper::mapPageToResponse)
+                .log("Listed ${body.totalItems} conversation(s)");
+
+        from(DIRECT_REST_GET_CONVERSATION_HISTORY)
+                .routeId(ROUTE_REST_GET_CONVERSATION_HISTORY)
+                .log("Loading conversation detail: ${header.conversationId}")
+                .to(OrchestratorEndpoints.DIRECT_GET_CONVERSATION_HISTORY)
+                .process(conversationHistoryQueryMapper::mapDetailToResponse);
     }
 
     private void definePersonRoutes() {
