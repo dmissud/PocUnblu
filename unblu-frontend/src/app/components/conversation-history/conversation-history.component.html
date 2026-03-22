@@ -26,6 +26,7 @@
         <span class="stat">
           Page <strong>{{ currentPage.page + 1 }}</strong> / <strong>{{ currentPage.totalPages || 1 }}</strong>
         </span>
+        <button class="btn-reload" (click)="reloadList()" title="Recharger la liste">&#8635;</button>
       </div>
 
       <!-- Table -->
@@ -138,7 +139,10 @@
               {{ selectedConversation.status === 'ACTIVE' ? 'Actif' : 'Terminé' }}
             </span>
           </div>
-          <button class="close-btn" (click)="closeDetail()" title="Fermer">✕</button>
+          <div class="detail-actions">
+            <button class="btn-reload" (click)="reloadDetail()" title="Recharger le détail">&#8635;</button>
+            <button class="close-btn" (click)="closeDetail()" title="Fermer">✕</button>
+          </div>
         </div>
 
         <div class="detail-meta">

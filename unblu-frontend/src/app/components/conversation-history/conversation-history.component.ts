@@ -38,6 +38,16 @@ export class ConversationHistoryComponent implements OnInit {
     this.loadPage(0);
   }
 
+  reloadList(): void {
+    this.loadPage(this.currentPage?.page ?? 0);
+  }
+
+  reloadDetail(): void {
+    if (this.selectedConversation) {
+      this.loadDetail(this.selectedConversation.conversationId);
+    }
+  }
+
   loadPage(page: number): void {
     this.loadingList = true;
     this.listError = null;
@@ -75,10 +85,14 @@ export class ConversationHistoryComponent implements OnInit {
       this.selectedConversation = null;
       return;
     }
+    this.loadDetail(item.conversationId);
+  }
+
+  private loadDetail(conversationId: string): void {
     this.loadingDetail = true;
     this.detailError = null;
 
-    this.apiService.getConversationDetail(item.conversationId).subscribe({
+    this.apiService.getConversationDetail(conversationId).subscribe({
       next: (detail) => {
         this.selectedConversation = detail;
         this.loadingDetail = false;
