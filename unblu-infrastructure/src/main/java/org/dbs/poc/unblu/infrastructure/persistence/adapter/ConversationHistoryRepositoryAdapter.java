@@ -125,9 +125,25 @@ public class ConversationHistoryRepositoryAdapter implements ConversationHistory
     @Override
     @Transactional(readOnly = true)
     public ConversationHistoryPage findPage(int page, int size, ConversationSortField sortField, ConversationSortDirection sortDir) {
-        Sort sort = buildSort(sortField, sortDir);
-        PageRequest pageRequest = PageRequest.of(page, size, sort);
-        Page<ConversationHistoryEntity> entityPage = jpaRepository.findAll(pageRequest);
+        // CREATED_AT is non-nullable: standard Sort works fine with Criteria API.
+        // ENDED_AT and TOPIC are nullable: NULLS LAST requires explicit JPQL queries
+        // because Criteria API does not support Sort.NullHandling (Spring Data JPA 3.x).
+        PageRequest unsorted = PageRequest.of(page, size);
+        boolean asc = sortDir == ConversationSortDirection.ASC;
+
+        Page<ConversationHistoryEntity> entityPage = switch (sortField) {
+            case CREATED_AT -> {
+                Sort sort = asc ? Sort.by("createdAt").ascending() : Sort.by("createdAt").descending();
+                yield jpaRepository.findAll(PageRequest.of(page, size, sort));
+            }
+            case ENDED_AT -> asc
+                    ? jpaRepository.findAllOrderByEndedAtAsc(unsorted)
+                    : jpaRepository.findAllOrderByEndedAtDesc(unsorted);
+            case TOPIC    -> asc
+                    ? jpaRepository.findAllOrderByTopicAsc(unsorted)
+                    : jpaRepository.findAllOrderByTopicDesc(unsorted);
+        };
+
         List<ConversationHistory> items = entityPage.getContent().stream()
                 .map(mapper::toDomainSummary)
                 .toList();
@@ -137,18 +153,6 @@ public class ConversationHistoryRepositoryAdapter implements ConversationHistory
                 page,
                 size,
                 entityPage.getTotalPages());
-    }
-
-    private Sort buildSort(ConversationSortField sortField, ConversationSortDirection sortDir) {
-        String column = switch (sortField) {
-            case CREATED_AT -> "createdAt";
-            case ENDED_AT   -> "endedAt";
-            case TOPIC      -> "topic";
-        };
-        Sort.Order order = sortDir == ConversationSortDirection.ASC
-                ? Sort.Order.asc(column).with(Sort.NullHandling.NULLS_LAST)
-                : Sort.Order.desc(column).with(Sort.NullHandling.NULLS_LAST);
-        return Sort.by(order);
     }
 
     /**
