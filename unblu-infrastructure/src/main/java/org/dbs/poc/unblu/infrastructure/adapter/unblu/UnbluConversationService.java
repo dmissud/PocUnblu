@@ -100,8 +100,12 @@ public class UnbluConversationService {
         }
     }
 
+    private static final int PAGE_SIZE = 100;
+
     /**
      * Retourne la liste de toutes les conversations présentes dans Unblu.
+     * Parcourt toutes les pages via {@code hasMoreItems} / {@code nextOffset}
+     * pour dépasser la limite par défaut de l'API (250 items).
      *
      * @return liste des résumés de conversations mappés en objets domaine
      * @throws org.dbs.poc.unblu.infrastructure.exception.UnbluApiException en cas d'erreur API
@@ -109,11 +113,25 @@ public class UnbluConversationService {
     public List<UnbluConversationSummary> listAllConversations() {
         try {
             ConversationsApi conversationsApi = new ConversationsApi(apiClient);
-            ConversationQuery query = new ConversationQuery();
-            log.info("Récupération de toutes les conversations dans Unblu...");
-            ConversationResult result = conversationsApi.conversationsSearch(query, NO_EXPAND);
-            log.info("Trouvé {} conversation(s)", result.getItems().size());
-            return result.getItems().stream()
+            List<ConversationData> all = new java.util.ArrayList<>();
+            int offset = 0;
+            boolean hasMore = true;
+
+            log.info("Récupération de toutes les conversations dans Unblu (page size: {})...", PAGE_SIZE);
+            while (hasMore) {
+                ConversationQuery query = new ConversationQuery();
+                query.setOffset(offset);
+                query.setLimit(PAGE_SIZE);
+                ConversationResult result = conversationsApi.conversationsSearch(query, NO_EXPAND);
+                all.addAll(result.getItems());
+                hasMore = Boolean.TRUE.equals(result.isHasMoreItems());
+                offset = hasMore ? result.getNextOffset() : offset;
+                log.debug("Page chargée — {} conversation(s) récupérée(s), hasMore: {}, nextOffset: {}",
+                        result.getItems().size(), hasMore, result.getNextOffset());
+            }
+
+            log.info("Trouvé {} conversation(s) au total", all.size());
+            return all.stream()
                     .map(this::toConversationSummary)
                     .toList();
         } catch (ApiException e) {
