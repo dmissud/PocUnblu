@@ -7,15 +7,18 @@ import {TeamInfo} from './models/team.model';
 import {NamedAreaInfo} from './models/named-area.model';
 import {ConversationSyncResult} from './models/conversation.model';
 import {WebhookStatus} from './models/webhook.model';
+import {ConversationHistoryComponent} from './components/conversation-history/conversation-history.component';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConversationHistoryComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
 export class App implements OnInit {
   title = 'Unblu Conversation Manager';
+
+  activeTab: 'conversations' | 'history' = 'conversations';
 
   // Lists
   clients: PersonInfo[] = [];

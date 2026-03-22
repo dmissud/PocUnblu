@@ -10,6 +10,7 @@ import {
   StartConversationResponse,
   TeamConversationRequest
 } from '../models/conversation.model';
+import {ConversationHistoryDetail, ConversationHistoryPage} from '../models/conversation-history.model';
 import {WebhookSetupResult, WebhookStatus} from '../models/webhook.model';
 
 @Injectable({
@@ -55,6 +56,23 @@ export class ApiService {
 
   syncConversations(): Observable<ConversationSyncResult> {
     return this.http.post<ConversationSyncResult>(`${this.baseUrl}/conversations/sync`, {});
+  }
+
+  getConversationHistory(
+    page: number = 0,
+    size: number = 10,
+    sortField: string = 'CREATED_AT',
+    sortDir: string = 'DESC'
+  ): Observable<ConversationHistoryPage> {
+    return this.http.get<ConversationHistoryPage>(
+      `${this.baseUrl}/conversations/history?page=${page}&size=${size}&sortField=${sortField}&sortDir=${sortDir}`
+    );
+  }
+
+  getConversationDetail(conversationId: string): Observable<ConversationHistoryDetail> {
+    return this.http.get<ConversationHistoryDetail>(
+      `${this.baseUrl}/conversations/history/${conversationId}`
+    );
   }
 
   // Webhook setup methods

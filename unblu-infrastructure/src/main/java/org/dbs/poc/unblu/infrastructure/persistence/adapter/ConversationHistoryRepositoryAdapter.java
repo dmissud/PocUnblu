@@ -2,15 +2,22 @@ package org.dbs.poc.unblu.infrastructure.persistence.adapter;
 
 import lombok.RequiredArgsConstructor;
 import org.dbs.poc.unblu.domain.model.history.ConversationHistory;
+import org.dbs.poc.unblu.domain.model.history.ConversationHistoryPage;
+import org.dbs.poc.unblu.domain.model.history.ConversationSortDirection;
+import org.dbs.poc.unblu.domain.model.history.ConversationSortField;
 import org.dbs.poc.unblu.domain.port.out.ConversationHistoryRepository;
 import org.dbs.poc.unblu.infrastructure.persistence.entity.ConversationEventHistoryEntity;
 import org.dbs.poc.unblu.infrastructure.persistence.entity.ConversationHistoryEntity;
 import org.dbs.poc.unblu.infrastructure.persistence.entity.ParticipantHistoryEntity;
 import org.dbs.poc.unblu.infrastructure.persistence.mapper.ConversationHistoryMapper;
 import org.dbs.poc.unblu.infrastructure.persistence.repository.ConversationHistoryJpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -102,6 +109,50 @@ public class ConversationHistoryRepositoryAdapter implements ConversationHistory
         entity.getEvents().size();
 
         return Optional.of(mapper.toDomain(entity));
+    }
+
+    /**
+     * Returns a paginated list of conversation headers, sorted by the given field and direction.
+     * Nullable columns ({@code endedAt}, {@code topic}) are always sorted NULLS LAST.
+     * Collections (events, participants) are intentionally not loaded for performance.
+     *
+     * @param page      zero-indexed page number
+     * @param size      number of items per page
+     * @param sortField the field to sort by
+     * @param sortDir   the sort direction
+     * @return the page of conversation summaries
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public ConversationHistoryPage findPage(int page, int size, ConversationSortField sortField, ConversationSortDirection sortDir) {
+        // CREATED_AT is non-nullable: standard Sort works fine with Criteria API.
+        // ENDED_AT and TOPIC are nullable: NULLS LAST requires explicit JPQL queries
+        // because Criteria API does not support Sort.NullHandling (Spring Data JPA 3.x).
+        PageRequest unsorted = PageRequest.of(page, size);
+        boolean asc = sortDir == ConversationSortDirection.ASC;
+
+        Page<ConversationHistoryEntity> entityPage = switch (sortField) {
+            case CREATED_AT -> {
+                Sort sort = asc ? Sort.by("createdAt").ascending() : Sort.by("createdAt").descending();
+                yield jpaRepository.findAll(PageRequest.of(page, size, sort));
+            }
+            case ENDED_AT -> asc
+                    ? jpaRepository.findAllOrderByEndedAtAsc(unsorted)
+                    : jpaRepository.findAllOrderByEndedAtDesc(unsorted);
+            case TOPIC    -> asc
+                    ? jpaRepository.findAllOrderByTopicAsc(unsorted)
+                    : jpaRepository.findAllOrderByTopicDesc(unsorted);
+        };
+
+        List<ConversationHistory> items = entityPage.getContent().stream()
+                .map(mapper::toDomainSummary)
+                .toList();
+        return new ConversationHistoryPage(
+                items,
+                entityPage.getTotalElements(),
+                page,
+                size,
+                entityPage.getTotalPages());
     }
 
     /**

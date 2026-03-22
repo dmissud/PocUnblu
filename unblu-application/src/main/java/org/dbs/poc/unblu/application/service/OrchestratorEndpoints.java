@@ -47,4 +47,10 @@ public final class OrchestratorEndpoints {
 
     /** Endpoint de synchronisation des conversations Unblu vers la base de données. */
     public static final String DIRECT_SYNC_CONVERSATIONS = "direct:sync-conversations";
+
+    /** Endpoint de listing paginé des conversations historisées. */
+    public static final String DIRECT_LIST_CONVERSATION_HISTORY = "direct:list-conversation-history";
+
+    /** Endpoint de consultation du détail d'une conversation historisée. */
+    public static final String DIRECT_GET_CONVERSATION_HISTORY = "direct:get-conversation-history";
 }
