@@ -146,6 +146,50 @@ header p {
   border: 1px solid #c5221f;
 }
 
+.alert-sync {
+  background-color: #e8f5e9;
+  color: #1b5e20;
+  border: 1px solid #4caf50;
+}
+
+.sync-errors {
+  display: block;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+  color: #c5221f;
+}
+
+.sync-controls {
+  display: flex;
+  align-items: center;
+}
+
+.btn-sync {
+  padding: 0.75rem 1.5rem;
+  background-color: #f57c00;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+}
+
+.btn-sync:hover:not(:disabled) {
+  background-color: #e65100;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.btn-sync:disabled {
+  background-color: #dadce0;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .alert button {
   background: none;
   border: none;

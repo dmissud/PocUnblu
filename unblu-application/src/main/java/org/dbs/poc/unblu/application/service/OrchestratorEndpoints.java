@@ -44,4 +44,7 @@ public final class OrchestratorEndpoints {
 
     /** Endpoint de création d'une conversation directe dans Unblu. */
     public static final String DIRECT_UNBLU_CREATE_DIRECT_CONVERSATION = "direct:unblu-create-direct-conversation";
+
+    /** Endpoint de synchronisation des conversations Unblu vers la base de données. */
+    public static final String DIRECT_SYNC_CONVERSATIONS = "direct:sync-conversations";
 }

@@ -5,6 +5,7 @@ import {ApiService} from './services/api.service';
 import {PersonInfo} from './models/person.model';
 import {TeamInfo} from './models/team.model';
 import {NamedAreaInfo} from './models/named-area.model';
+import {ConversationSyncResult} from './models/conversation.model';
 import {WebhookStatus} from './models/webhook.model';
 
 @Component({
@@ -45,6 +46,10 @@ export class App implements OnInit {
   // Webhook status
   webhookStatus: WebhookStatus | null = null;
   webhookLoading = false;
+
+  // Sync conversations
+  syncResult: ConversationSyncResult | null = null;
+  syncLoading = false;
 
   constructor(private apiService: ApiService) {}
 
@@ -216,6 +221,23 @@ export class App implements OnInit {
       error: (err) => {
         this.webhookLoading = false;
         this.error = 'Erreur lors du teardown webhook: ' + err.message;
+      }
+    });
+  }
+
+  syncConversations(): void {
+    this.syncLoading = true;
+    this.syncResult = null;
+    this.error = null;
+
+    this.apiService.syncConversations().subscribe({
+      next: (result) => {
+        this.syncResult = result;
+        this.syncLoading = false;
+      },
+      error: (err) => {
+        this.syncLoading = false;
+        this.error = 'Erreur lors de la synchronisation : ' + err.message;
       }
     });
   }
