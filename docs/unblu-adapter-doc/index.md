@@ -1,88 +1,113 @@
 # Guide de l'Adaptateur Unblu (Infrastructure)
 
-Bienvenue dans la documentation de l'adaptateur Unblu. En tant que Tech Lead, mon objectif est de vous expliquer comment nous avons structuré notre pont vers la solution Unblu et comment l'utiliser correctement.
+Ce guide est le point d'entrée de la documentation technique de l'adaptateur Unblu.
+Il couvre l'ensemble des fonctionnalités disponibles : création de conversations, listing et synchronisation depuis Unblu, gestion des personnes et entités, ainsi que la consultation IHM de l'historique persisté.
 
 ## 🧱 Organisation Générale
 
-L'adaptateur Unblu suit les principes de l'**Architecture Hexagonale**. Il se situe dans la couche `infrastructure` et implémente le port de sortie défini dans le domaine.
+L'adaptateur suit les principes de l'**Architecture Hexagonale**. Il se situe dans le module `unblu-infrastructure` et implémente les ports de sortie définis dans `unblu-domain`.
 
-### Diagramme de Classe (Architecture Globale)
-
-Voici comment nos classes interagissent. Notez comment `UnbluCamelAdapterPort` sert de façade propre, cachant la complexité de Camel et des appels SDK directs.
+### Diagramme de classes (Architecture Globale)
 
 ```mermaid
 classDiagram
     class UnbluPort {
         <<interface>>
         +createConversation(context)
-        +searchPersons(sourceId, personSource)
         +createDirectConversation(virtualPerson, agentPerson, subject)
+        +searchPersons(sourceId, personSource)
+        +searchTeams()
+        +searchNamedAreas()
+        +searchAgentsByNamedArea(namedAreaId)
         +addSummaryToConversation(conversationId, summary)
+        +createBot(name, description)
+        +listAllConversations()
     }
 
     class UnbluCamelAdapterPort {
         -ProducerTemplate producerTemplate
         -UnbluBotService unbluBotService
         +createConversation(context)
-        +searchPersons(sourceId, personSource)
+        +createDirectConversation(...)
+        +searchPersons(...)
+        +searchTeams()
+        +searchNamedAreas()
+        +searchAgentsByNamedArea(namedAreaId)
+        +addSummaryToConversation(...)
+        +createBot(...)
+        +listAllConversations()
+    }
+
+    class UnbluResilientRoute {
+        <<Camel RouteBuilder>>
+        DIRECT_UNBLU_ADAPTER_RESILIENT
+        DIRECT_UNBLU_SEARCH_PERSONS_RESILIENT
+        DIRECT_UNBLU_CREATE_DIRECT_CONVERSATION_RESILIENT
+        DIRECT_UNBLU_ADD_SUMMARY_RESILIENT
+        DIRECT_UNBLU_LIST_CONVERSATIONS_RESILIENT
     }
 
     class UnbluCamelAdapter {
+        <<Camel RouteBuilder>>
         -UnbluPersonService unbluPersonService
         -UnbluConversationService unbluConversationService
         -UnbluService unbluService
-        +configure()
-        -createConversation(exchange)
-        -searchPersons(exchange)
     }
 
     class UnbluConversationService {
-        -ApiClient apiClient
         +createConversation(data)
-        +createDirectConversation(virtualPerson, agentPerson, subject)
-        +addSummaryToConversation(conversationId, summary)
+        +createDirectConversation(...)
+        +addSummaryToConversation(...)
+        +listAllConversations()
     }
 
     class UnbluPersonService {
-        -ApiClient apiClient
-        +searchPersons(sourceId, personSource)
-        +getPersonBySource(personSource, sourceId)
-        +searchAgentsByNamedArea(namedAreaId)
+        +searchPersons(...)
+        +getPersonBySource(...)
+        +searchAgentsByNamedArea(...)
     }
 
     class UnbluBotService {
-        -ApiClient apiClient
         +createBot(name, description)
         +createOrGetBot(name, description)
     }
 
     UnbluPort <|.. UnbluCamelAdapterPort : implements
-    UnbluCamelAdapterPort ..> UnbluCamelAdapter : delegates via Camel
-    UnbluCamelAdapterPort --> UnbluBotService : uses (direct)
+    UnbluCamelAdapterPort ..> UnbluResilientRoute : via ProducerTemplate
+    UnbluResilientRoute ..> UnbluCamelAdapter : délègue (circuit breaker)
+    UnbluCamelAdapterPort --> UnbluBotService : direct (sans Camel)
     UnbluCamelAdapter --> UnbluConversationService : uses
     UnbluCamelAdapter --> UnbluPersonService : uses
-    UnbluCamelAdapter --> UnbluService : uses
-    UnbluConversationService --> UnbluPersonService : uses for virtual person
+    UnbluConversationService --> UnbluPersonService : uses (conversation directe)
 ```
 
-### Les couches de l'adaptateur :
+### Les couches de l'adaptateur
 
-1.  **Le Port (Interface)** : `UnbluPort` (dans le domaine) définit *ce que* l'application peut faire avec Unblu.
-2.  **L'Adaptateur de Point d'Entrée** : `UnbluCamelAdapterPort` est la classe principale. Elle implémente `UnbluPort` et délègue le travail à des routes Apache Camel pour la résilience.
-3.  **La Couche de Résilience** : `UnbluResilientRoute` utilise des mécanismes comme les retries ou les disjoncteurs (Circuit Breaker) avant d'appeler les services réels.
-4.  **Le Cœur de l'Adaptateur Camel** : `UnbluCamelAdapter` définit les routes techniques et fait le lien avec les services spécialisés.
-5.  **Les Services Unblu (SDK)** : Ce sont des classes qui utilisent directement le SDK Unblu (via `ApiClient`) pour parler à l'API REST d'Unblu.
+| # | Couche | Classe principale | Rôle |
+|---|--------|------------------|------|
+| 1 | **Port de sortie** | `UnbluPort` | Contrat défini par le domaine — ce que l'application peut faire avec Unblu |
+| 2 | **Façade d'implémentation** | `UnbluCamelAdapterPort` | Implémente `UnbluPort`, délègue à Camel via `ProducerTemplate` |
+| 3 | **Couche de résilience** | `UnbluResilientRoute` | Circuit breaker Resilience4j (timeout 3 000 ms), fallback par opération |
+| 4 | **Routes techniques** | `UnbluCamelAdapter` | Routes Camel `direct:` qui invoquent les services SDK |
+| 5 | **Services SDK** | `UnbluConversationService`, `UnbluPersonService`, `UnbluBotService`, `UnbluService` | Appels directs à l'API REST Unblu via le SDK jersey3 |
 
-## 📂 Documentation par Service
+---
 
-Pour plus de clarté, la documentation est découpée par domaine de responsabilité. Chaque document détaille les services, les endpoints Unblu touchés, et les scénarios d'usage (nominaux et erreurs) :
+## 📂 Documentation par domaine de responsabilité
 
-- [**Gestion des Conversations**](./conversations.md) : Création de chats, conversations directes 1-à-1, ajout de résumés.
-- [**Gestion des Personnes et Agents**](./persons.md) : Recherche d'utilisateurs, d'agents par zone géographique ou disponibilité.
-- [**Configuration et Entités**](./core-services.md) : Gestion des équipes (Teams), des zones (Named Areas) et des Bots.
+| Document | Périmètre |
+|----------|-----------|
+| [Gestion des Conversations](./conversations.md) | Création standard, directe (1-à-1), résumé bot, listing de toutes les conversations |
+| [Gestion des Personnes et Agents](./persons.md) | Recherche d'utilisateurs, agents par zone, disponibilité |
+| [Configuration et Entités](./core-services.md) | Teams, Named Areas, Bots (création idempotente) |
+| [Synchronisation des Conversations](./sync-conversations.md) | Scan Unblu → persistance en base, idempotence, rapport de résultat |
+| [Consultation IHM — Historique](./history-ihm.md) | API de consultation paginée + triée, interface Angular |
 
-## 💡 Concepts Clés pour les Débutants
+---
 
-- **Immutabilité** : Nous utilisons des `record` Java pour les requêtes entre les couches. Cela garantit que les données ne sont pas modifiées par surprise.
-- **Conversion de modèles** : Le domaine ne connaît pas les classes du SDK Unblu (comme `ConversationData`). C'est le rôle de l'adaptateur de transformer les objets Unblu en objets de notre domaine (`UnbluConversationInfo`).
-- **Gestion des erreurs** : Toutes les erreurs du SDK Unblu (`ApiException`) sont interceptées et transformées en `UnbluApiException` (une exception de notre infrastructure) pour être traitées proprement par notre système.
+## 💡 Concepts Clés
+
+- **Immutabilité** : Les échanges entre couches utilisent des `record` Java. Aucune donnée ne peut être modifiée par effet de bord.
+- **Conversion de modèles** : Le domaine ne connaît jamais les classes du SDK Unblu (`ConversationData`, `PersonData`…). Les adaptateurs sont seuls responsables du mapping vers les objets domaine.
+- **Résilience par opération** : Chaque appel Unblu passe par un circuit breaker dédié avec un fallback adapté à la criticité. La création de conversation retourne `OFFLINE-PENDING` ; le listing retourne une liste vide.
+- **Gestion des erreurs** : Toutes les `ApiException` du SDK sont encapsulées en `UnbluApiException` (infrastructure) pour être gérées proprement par la couche application.

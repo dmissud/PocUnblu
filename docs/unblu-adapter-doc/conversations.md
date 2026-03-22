@@ -1,88 +1,129 @@
 # 🗨️ Gestion des Conversations Unblu
 
-Ce document détaille comment nous gérons les interactions de chat via Unblu. En tant que développeur, c'est ici que vous viendrez pour tout ce qui touche au cycle de vie d'une conversation.
+Ce document détaille tout ce qui touche au cycle de vie des conversations Unblu : création, liaison 1-à-1, ajout de résumé, et listing pour synchronisation.
 
 ## 🧱 Service Principal : `UnbluConversationService`
 
-Ce service est le cœur de la manipulation des conversations. Il utilise le SDK Unblu et appelle l'API REST via `ConversationsApi`.
-
-### Flux de création de conversation
-
-Voici le diagramme de séquence pour le cas nominal de création de conversation. Ce diagramme illustre bien l'orchestration à travers les différentes couches :
-
-```mermaid
-sequenceDiagram
-    participant App as Application Core
-    participant AdapterPort as UnbluCamelAdapterPort
-    participant Camel as Camel Route (Resilience)
-    participant Adapter as UnbluCamelAdapter
-    participant PersonSvc as UnbluPersonService
-    participant ConvSvc as UnbluConversationService
-    participant SDK as Unblu SDK (WebApi)
-    participant Unblu as Unblu API (REST)
-
-    App->>AdapterPort: createConversation(context)
-    AdapterPort->>Camel: producer.requestBody(DIRECT_UNBLU_ADAPTER, state)
-    Note over Camel: Retries & Resilience (Optionnel)
-    Camel->>Adapter: process(createConversation)
-    
-    Adapter->>PersonSvc: getPersonBySource(VIRTUAL, clientId)
-    PersonSvc->>SDK: personsGetBySource(...)
-    SDK->>Unblu: GET /v4/persons/getBySource
-    Unblu-->>SDK: 200 OK (PersonData)
-    SDK-->>PersonSvc: PersonData
-    PersonSvc-->>Adapter: PersonData
-
-    Adapter->>ConvSvc: createConversation(creationData)
-    ConvSvc->>SDK: conversationsCreate(creationData)
-    SDK->>Unblu: POST /v4/conversations/create
-    Unblu-->>SDK: 201 Created (ConversationData)
-    SDK-->>ConvSvc: ConversationData
-    ConvSvc-->>Adapter: ConversationData
-
-    Adapter-->>Camel: Updated State
-    Camel-->>AdapterPort: Updated State
-    AdapterPort-->>App: UnbluConversationInfo (ID & URL)
-```
-
-### Endpoints Unblu sous-jacents
-
-- `POST /v4/conversations/create` : Création de tout type de conversation (standard ou directe).
-- `POST /v4/conversations/{conversationId}/addParticipant` : Ajout d'un participant (ex: un Bot pour envoyer un résumé).
-- `POST /v4/bots/sendMessage` : Envoi d'un message technique ou de bot.
+Ce service utilise le SDK Unblu via `ConversationsApi` et `BotsApi`. Toutes les `ApiException` levées par le SDK sont interceptées et retransformées en `UnbluApiException`.
 
 ---
 
 ## 🏃 Scénarios d'Usage
 
-### 1. Création d'une conversation standard
-C'est le cas nominal d'un client qui demande un chat.
-- **Entrée** : `ConversationContext` (contenant le type de routing, l'ID client, etc.).
-- **Processus** :
-  1. On identifie le destinataire (Equipe/Team).
-  2. On récupère la personne virtuelle (Client) via `UnbluPersonService`.
-  3. On appelle `createConversation` sur le SDK Unblu.
-- **Sortie** : `UnbluConversationInfo` (ID de conversation et URL de join).
+### 1. Création d'une conversation standard (vers une équipe)
+
+Cas nominal : un visiteur demande un chat ; le système le route vers une équipe d'agents.
+
+**Flux de séquence :**
+
+```mermaid
+sequenceDiagram
+    participant App as Application Core
+    participant Port as UnbluCamelAdapterPort
+    participant CB as UnbluResilientRoute (CB)
+    participant Adapter as UnbluCamelAdapter
+    participant PersonSvc as UnbluPersonService
+    participant ConvSvc as UnbluConversationService
+    participant Unblu as Unblu REST API
+
+    App->>Port: createConversation(context)
+    Port->>CB: requestBody(DIRECT_UNBLU_ADAPTER_RESILIENT, state)
+    CB->>Adapter: process(exchange)
+    Adapter->>PersonSvc: getPersonBySource(VIRTUAL, clientId)
+    PersonSvc->>Unblu: GET /v4/persons/getBySource
+    Unblu-->>PersonSvc: PersonData
+    Adapter->>ConvSvc: createConversation(creationData)
+    ConvSvc->>Unblu: POST /v4/conversations/create
+    Unblu-->>ConvSvc: ConversationData (id, joinUrl)
+    ConvSvc-->>Adapter: ConversationData
+    Adapter-->>CB: Updated State
+    CB-->>Port: Updated State
+    Port-->>App: UnbluConversationInfo(id, joinUrl)
+```
+
+- **Fallback circuit breaker** : retourne un `ConversationOrchestrationState` avec l'ID `OFFLINE-PENDING`.
+
+---
 
 ### 2. Création d'une conversation directe (1-à-1)
-Utilisé pour mettre directement en relation deux personnes connues.
-- **Entrée** : `virtualPerson`, `agentPerson`, `subject`.
-- **Cas Nominal** : L'agent est bien de type `AGENT`, la conversation est créée et les deux sont ajoutés comme participants.
-- **Cas d'Erreur (Validation)** : Si l'agent fourni n'est pas un agent (ex: une autre personne virtuelle), une `UnbluApiException` (400 Bad Request) est lancée.
 
-### 3. Ajout d'un résumé via un Bot
-Souvent utilisé en fin de parcours pour laisser une trace textuelle.
-- **Entrée** : `conversationId`, `summary`.
-- **Cas Nominal** : 
-  1. Le bot "résumé" est ajouté de manière invisible à la conversation.
-  2. Un message de type "Text Post" est envoyé par ce bot.
-- **Cas Particulier** : Si l'identifiant du bot n'est pas configuré dans `application.properties`, l'opération est ignorée avec un avertissement (Warning) dans les logs.
+Met directement en relation un visiteur et un agent connu.
+
+- **Validation métier** : si l'`agentPerson` fourni n'est pas de type `AGENT`, une `UnbluApiException(400)` est levée avant même d'appeler l'API.
+- **Participants** : le visiteur est ajouté avec le rôle `CONTEXT_PERSON`, l'agent avec `ASSIGNED_AGENT`.
+- **Endpoint Unblu** : `POST /v4/conversations/create` (même endpoint, paramètres différents).
+- **Fallback** : retourne un `ConversationData` avec l'ID `OFFLINE-PENDING`.
+
+---
+
+### 3. Ajout d'un résumé via Bot
+
+Utilisé en fin de parcours pour laisser une trace textuelle dans la conversation.
+
+- **Prérequis** : `unblu.api.summary-bot-person-id` doit être configuré. Si absent → warning loggé, opération silencieusement ignorée.
+- **Processus** :
+  1. `POST /v4/conversations/{id}/addParticipant` — ajout du bot en mode `hidden: true`.
+  2. `POST /v4/bots/sendMessage` — envoi du résumé sous forme de `TextPostMessageData`.
+- **Fallback** : résumé ignoré silencieusement (non critique).
+
+---
+
+### 4. Listing de toutes les conversations (`listAllConversations`)
+
+Récupère la liste complète des conversations présentes dans Unblu pour alimenter la synchronisation en base.
+
+**Flux de séquence :**
+
+```mermaid
+sequenceDiagram
+    participant App as SyncConversationsService
+    participant Port as UnbluCamelAdapterPort
+    participant CB as UnbluResilientRoute (CB)
+    participant Adapter as UnbluCamelAdapter
+    participant ConvSvc as UnbluConversationService
+    participant Unblu as Unblu REST API
+
+    App->>Port: listAllConversations()
+    Port->>CB: requestBody(DIRECT_UNBLU_LIST_CONVERSATIONS_RESILIENT, null)
+    CB->>Adapter: process(exchange)
+    Adapter->>ConvSvc: listAllConversations()
+    ConvSvc->>Unblu: POST /v4/conversations/search (ConversationQuery vide)
+    Unblu-->>ConvSvc: ConversationResult (List<ConversationData>)
+    Note right of ConvSvc: Mapping ConversationData → UnbluConversationSummary\ncreationTimestamp → Instant, endTimestamp → Instant (nullable)
+    ConvSvc-->>Port: List<UnbluConversationSummary>
+    Port-->>App: List<UnbluConversationSummary>
+```
+
+**Modèle de sortie `UnbluConversationSummary` :**
+
+| Champ | Type | Source Unblu |
+|-------|------|-------------|
+| `id` | `String` | `ConversationData.getId()` |
+| `topic` | `String` | `ConversationData.getTopic()` |
+| `state` | `String` | `ConversationData.getState().name()` |
+| `createdAt` | `Instant` | `getCreationTimestamp()` → `Instant.ofEpochMilli()` |
+| `endedAt` | `Instant` (nullable) | `getEndTimestamp()` → `null` si absent |
+
+- **Fallback** : retourne `List.of()` — la synchronisation est sautée sans erreur.
+
+---
+
+## 📡 Endpoints Unblu utilisés
+
+| Méthode | Endpoint | Utilisation |
+|---------|----------|-------------|
+| `POST` | `/v4/conversations/create` | Création conversation standard et directe |
+| `POST` | `/v4/conversations/{id}/addParticipant` | Ajout du bot résumé |
+| `POST` | `/v4/bots/sendMessage` | Envoi du message de résumé |
+| `POST` | `/v4/conversations/search` | Listing de toutes les conversations |
 
 ---
 
 ## ⚠️ Gestion des Erreurs
 
-En cas de problème avec l'API Unblu, nous gérons plusieurs cas :
-1.  **403 Forbidden** : Souvent un problème de droits d'accès au niveau de la clé API Unblu. Message : "Permissions insuffisantes".
-2.  **400 Bad Request** : Paramètres invalides (ex: ID d'agent inexistant ou incorrect).
-3.  **Autres Erreurs API** : Toutes les autres exceptions du SDK Unblu sont encapsulées dans une `UnbluApiException` générique qui porte le code HTTP original.
+| Code HTTP | Cause | Comportement |
+|-----------|-------|-------------|
+| `400` | Agent fourni n'est pas de type `AGENT` | `UnbluApiException(400)` levée avant l'appel API |
+| `403` | Droits insuffisants sur la clé API | `UnbluApiException(403)` avec message explicite |
+| `404` | Ressource inexistante (personne, conversation) | `UnbluApiException(404)` propagée |
+| Autres | Erreur technique SDK | `UnbluApiException` avec code HTTP d'origine |
