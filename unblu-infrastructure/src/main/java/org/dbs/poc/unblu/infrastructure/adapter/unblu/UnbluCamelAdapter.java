@@ -14,6 +14,11 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+/**
+ * Route Camel définissant les endpoints {@code direct:} de l'adaptateur Unblu.
+ * Chaque route délègue à un service Unblu spécialisé ({@link UnbluPersonService},
+ * {@link UnbluConversationService}, {@link UnbluService}).
+ */
 @Component
 @RequiredArgsConstructor
 public class UnbluCamelAdapter extends RouteBuilder {
@@ -30,6 +35,11 @@ public class UnbluCamelAdapter extends RouteBuilder {
     private final UnbluConversationService unbluConversationService;
     private final UnbluService unbluService;
 
+    /**
+     * Déclare toutes les routes Camel de l'adaptateur Unblu :
+     * création de conversation, recherche de personnes, conversation directe,
+     * ajout de résumé, équipes, zones nommées et agents par zone nommée.
+     */
     @Override
     public void configure() throws Exception {
 
@@ -90,6 +100,12 @@ public class UnbluCamelAdapter extends RouteBuilder {
             .process(this::searchAgentsByNamedArea);
     }
 
+    /**
+     * Processeur Camel : crée une conversation Unblu à partir de l'état d'orchestration et met à jour
+     * l'identifiant et l'URL de la conversation dans cet état.
+     *
+     * @param exchange l'échange Camel portant un {@link ConversationOrchestrationState}
+     */
     private void createConversation(org.apache.camel.Exchange exchange) {
         ConversationOrchestrationState state = exchange.getIn().getBody(ConversationOrchestrationState.class);
         ConversationContext ctx = state.context();
@@ -118,12 +134,23 @@ public class UnbluCamelAdapter extends RouteBuilder {
         exchange.getIn().setBody(state);
     }
 
+    /**
+     * Processeur Camel : recherche des personnes Unblu à partir d'une {@link UnbluCamelAdapterPort.PersonSearchRequest}.
+     *
+     * @param exchange l'échange Camel portant la requête de recherche
+     */
     private void searchPersons(org.apache.camel.Exchange exchange) {
         PersonSearchRequest req = exchange.getIn().getBody(PersonSearchRequest.class);
         List<PersonInfo> persons = unbluPersonService.searchPersons(req.sourceId(), req.personSource());
         exchange.getIn().setBody(persons);
     }
 
+    /**
+     * Processeur Camel : crée une conversation directe Unblu à partir d'une
+     * {@link UnbluCamelAdapterPort.DirectConversationRequest}.
+     *
+     * @param exchange l'échange Camel portant la requête de conversation directe
+     */
     private void createDirectConversation(org.apache.camel.Exchange exchange) {
         DirectConversationRequest req = exchange.getIn().getBody(DirectConversationRequest.class);
         ConversationData result = unbluConversationService.createDirectConversation(
@@ -131,21 +158,43 @@ public class UnbluCamelAdapter extends RouteBuilder {
         exchange.getIn().setBody(result);
     }
 
+    /**
+     * Processeur Camel : ajoute un résumé textuel à une conversation Unblu via une
+     * {@link UnbluCamelAdapterPort.SummaryRequest}.
+     *
+     * @param exchange l'échange Camel portant la requête de résumé
+     */
     private void addSummaryToConversation(org.apache.camel.Exchange exchange) {
         SummaryRequest req = exchange.getIn().getBody(SummaryRequest.class);
         unbluConversationService.addSummaryToConversation(req.conversationId(), req.summary());
     }
 
+    /**
+     * Processeur Camel : récupère toutes les équipes Unblu et les place dans le corps de l'échange.
+     *
+     * @param exchange l'échange Camel courant
+     */
     private void searchTeams(org.apache.camel.Exchange exchange) {
         List<TeamInfo> teams = unbluService.searchTeams();
         exchange.getIn().setBody(teams);
     }
 
+    /**
+     * Processeur Camel : récupère toutes les zones nommées Unblu et les place dans le corps de l'échange.
+     *
+     * @param exchange l'échange Camel courant
+     */
     private void searchNamedAreas(org.apache.camel.Exchange exchange) {
         List<org.dbs.poc.unblu.domain.model.NamedAreaInfo> namedAreas = unbluService.searchNamedAreas();
         exchange.getIn().setBody(namedAreas);
     }
 
+    /**
+     * Processeur Camel : recherche les agents Unblu associés à une zone nommée.
+     * L'identifiant de la zone est lu depuis le corps de l'échange.
+     *
+     * @param exchange l'échange Camel portant l'identifiant de la zone nommée
+     */
     private void searchAgentsByNamedArea(org.apache.camel.Exchange exchange) {
         String namedAreaId = exchange.getIn().getBody(String.class);
         List<PersonInfo> agents = unbluPersonService.searchAgentsByNamedArea(namedAreaId);

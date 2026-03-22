@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.dbs.poc.unblu.application.port.out.TunnelPort;
-import org.dbs.poc.unblu.application.port.out.TunnelPort.TunnelStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +15,13 @@ import java.net.URL;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Service to manage ngrok tunnel lifecycle
+ * Adapter implementing {@link TunnelPort} using ngrok as the underlying tunnel provider.
+ *
+ * <p>Manages the full lifecycle of an ngrok process: install check, start, public URL discovery
+ * via ngrok's local API ({@code http://localhost:4040/api/tunnels}), and graceful shutdown.
+ *
+ * <p>Used during local development to expose the webhook callback endpoint ({@code /api/webhooks/unblu})
+ * to the Unblu cloud service.
  */
 @Slf4j
 @Service

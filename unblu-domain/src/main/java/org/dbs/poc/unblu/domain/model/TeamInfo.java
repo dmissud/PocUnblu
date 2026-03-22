@@ -4,6 +4,10 @@ import java.util.Objects;
 
 /**
  * Informations sur une équipe (Team) Unblu.
+ *
+ * @param id          identifiant Unblu de l'équipe
+ * @param name        nom affiché de l'équipe
+ * @param description description optionnelle
  */
 public record TeamInfo(
         String id,

@@ -24,6 +24,11 @@ public class ConversationHistoryService {
 
     private final ConversationHistoryRepository conversationHistoryRepository;
 
+    /**
+     * Persiste une nouvelle conversation à partir d'un événement webhook {@code conversation.created}.
+     *
+     * @param payload le payload du webhook reçu depuis Unblu
+     */
     @Transactional
     public void onConversationCreated(UnbluWebhookPayload payload) {
         String conversationId = extractConversationId(payload);
@@ -43,6 +48,12 @@ public class ConversationHistoryService {
         log.info("Conversation history saved: {}", saved.conversationId());
     }
 
+    /**
+     * Persiste un nouveau message reçu via un événement webhook {@code conversation.new_message}.
+     * Enregistre également le participant émetteur s'il n'est pas encore connu.
+     *
+     * @param payload le payload du webhook contenant les données du message
+     */
     @Transactional
     public void onNewMessage(UnbluWebhookPayload payload) {
         ConversationMessageData message = payload.conversationMessage();
@@ -81,6 +92,11 @@ public class ConversationHistoryService {
         log.info("Message saved for conversation: {}", conversationId);
     }
 
+    /**
+     * Marque une conversation comme terminée à partir d'un événement webhook {@code conversation.ended}.
+     *
+     * @param payload le payload du webhook contenant l'identifiant et la raison de fin de la conversation
+     */
     @Transactional
     public void onConversationEnded(UnbluWebhookPayload payload) {
         String conversationId = extractConversationId(payload);
@@ -108,6 +124,13 @@ public class ConversationHistoryService {
 
     // --- Extraction helpers (payload → primitives) ---
 
+    /**
+     * Extrait l'identifiant de la conversation depuis le payload, en cherchant d'abord dans
+     * {@code conversation.id}, puis dans {@code conversationId} à la racine.
+     *
+     * @param payload le payload du webhook
+     * @return l'identifiant de la conversation, ou {@code null} si absent
+     */
     private String extractConversationId(UnbluWebhookPayload payload) {
         if (payload.conversation() != null && payload.conversation().id() != null) {
             return payload.conversation().id();
@@ -115,6 +138,13 @@ public class ConversationHistoryService {
         return payload.conversationId();
     }
 
+    /**
+     * Extrait le timestamp de l'événement depuis le payload.
+     * Retourne {@link Instant#now()} si le champ {@code timestamp} est absent.
+     *
+     * @param payload le payload du webhook
+     * @return l'instant de l'événement
+     */
     private Instant extractTimestamp(UnbluWebhookPayload payload) {
         return payload.timestamp() != null ? Instant.ofEpochMilli(payload.timestamp()) : Instant.now();
     }

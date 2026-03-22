@@ -16,7 +16,8 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * Handles Unblu account, team and named area operations.
+ * Service d'accès à l'API Unblu pour les opérations sur les comptes, équipes et zones nommées.
+ * Utilise le SDK Unblu Jersey v4 et mappe les exceptions API en {@link org.dbs.poc.unblu.infrastructure.exception.UnbluApiException}.
  */
 @Slf4j
 @Service
@@ -27,6 +28,12 @@ public class UnbluService {
 
     private static final List<ExpandFields> NO_EXPAND = null;
 
+    /**
+     * Récupère le compte Unblu actuellement authentifié.
+     *
+     * @return les données du compte courant
+     * @throws org.dbs.poc.unblu.infrastructure.exception.UnbluApiException en cas d'erreur API (403, etc.)
+     */
     public Account getCurrentAccount() {
         try {
             AccountsApi accountsApi = new AccountsApi(apiClient);
@@ -43,6 +50,12 @@ public class UnbluService {
         }
     }
 
+    /**
+     * Recherche l'ensemble des comptes Unblu accessibles.
+     *
+     * @return le résultat paginé des comptes
+     * @throws org.dbs.poc.unblu.infrastructure.exception.UnbluApiException en cas d'erreur API
+     */
     public AccountResult listAccounts() {
         try {
             AccountsApi accountsApi = new AccountsApi(apiClient);
@@ -60,6 +73,12 @@ public class UnbluService {
         }
     }
 
+    /**
+     * Recherche toutes les équipes (files d'agents) disponibles dans Unblu.
+     *
+     * @return liste des équipes sous forme de {@link org.dbs.poc.unblu.domain.model.TeamInfo}
+     * @throws org.dbs.poc.unblu.infrastructure.exception.UnbluApiException en cas d'erreur API
+     */
     public List<TeamInfo> searchTeams() {
         try {
             TeamsApi teamsApi = new TeamsApi(apiClient);
@@ -76,6 +95,12 @@ public class UnbluService {
         }
     }
 
+    /**
+     * Recherche toutes les zones nommées configurées dans Unblu.
+     *
+     * @return liste des zones nommées sous forme de {@link org.dbs.poc.unblu.domain.model.NamedAreaInfo}
+     * @throws org.dbs.poc.unblu.infrastructure.exception.UnbluApiException en cas d'erreur API
+     */
     public List<NamedAreaInfo> searchNamedAreas() {
         try {
             NamedAreasApi namedAreasApi = new NamedAreasApi(apiClient);

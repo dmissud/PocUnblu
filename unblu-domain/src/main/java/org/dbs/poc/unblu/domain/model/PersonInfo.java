@@ -21,6 +21,11 @@ public record PersonInfo(
         Objects.requireNonNull(displayName, "Person displayName cannot be null");
     }
 
+    /**
+     * Indique si cette personne est un agent (type {@code AGENT}).
+     *
+     * @return {@code true} si la personne est un agent
+     */
     public boolean isAgent() {
         return "AGENT".equals(personType);
     }

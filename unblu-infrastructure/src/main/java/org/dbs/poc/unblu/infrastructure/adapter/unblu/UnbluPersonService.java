@@ -15,7 +15,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Handles all Unblu person-related operations: search, lookup by source, agents by named area.
+ * Service d'accès à l'API Unblu pour toutes les opérations liées aux personnes :
+ * recherche par critères, récupération par source, agents par état et par zone nommée.
  */
 @Slf4j
 @Service
@@ -26,6 +27,13 @@ public class UnbluPersonService {
 
     private static final List<ExpandFields> NO_EXPAND = null;
 
+    /**
+     * Recherche des personnes dans Unblu, avec filtres optionnels sur la source et le sourceId.
+     *
+     * @param sourceId     identifiant source de la personne (peut être {@code null})
+     * @param personSource type de source ({@code VIRTUAL} ou {@code USER_DB}, peut être {@code null})
+     * @return liste des personnes correspondantes
+     */
     public List<PersonInfo> searchPersons(String sourceId, org.dbs.poc.unblu.domain.model.PersonSource personSource) {
         try {
             PersonsApi personsApi = new PersonsApi(apiClient);
@@ -61,6 +69,14 @@ public class UnbluPersonService {
         }
     }
 
+    /**
+     * Récupère les données d'une personne Unblu par son type de source et son identifiant source.
+     *
+     * @param personSource le type de source Unblu ({@link EPersonSource})
+     * @param sourceId     l'identifiant source de la personne
+     * @return les données de la personne trouvée
+     * @throws org.dbs.poc.unblu.infrastructure.exception.UnbluApiException si la personne n'existe pas (404) ou accès refusé (403)
+     */
     public PersonData getPersonBySource(EPersonSource personSource, String sourceId) {
         try {
             PersonsApi personsApi = new PersonsApi(apiClient);
@@ -80,6 +96,13 @@ public class UnbluPersonService {
         }
     }
 
+    /**
+     * Recherche des agents Unblu selon une requête typée.
+     *
+     * @param query la requête de recherche d'agents
+     * @return le résultat paginé des agents
+     * @throws org.dbs.poc.unblu.infrastructure.exception.UnbluApiException en cas d'erreur API
+     */
     public PersonResult searchAgents(PersonTypedQuery query) {
         try {
             PersonsApi personsApi = new PersonsApi(apiClient);
@@ -96,6 +119,13 @@ public class UnbluPersonService {
         }
     }
 
+    /**
+     * Recherche des agents Unblu filtrés par état de disponibilité.
+     *
+     * @param query la requête incluant les critères d'état
+     * @return le résultat paginé des agents par état
+     * @throws org.dbs.poc.unblu.infrastructure.exception.UnbluApiException en cas d'erreur API
+     */
     public AgentPersonStateResult searchAgentsByState(AgentStateQuery query) {
         try {
             PersonsApi personsApi = new PersonsApi(apiClient);
@@ -112,6 +142,14 @@ public class UnbluPersonService {
         }
     }
 
+    /**
+     * Recherche les agents dont la configuration de file contient la zone nommée spécifiée.
+     * Utilise le filtre {@code com.unblu.queue.ui.defaultFilterNamedAreas} de la configuration utilisateur.
+     *
+     * @param namedAreaId l'identifiant de la zone nommée à filtrer
+     * @return liste des agents configurés sur cette zone nommée
+     * @throws org.dbs.poc.unblu.infrastructure.exception.UnbluApiException en cas d'erreur API
+     */
     public List<PersonInfo> searchAgentsByNamedArea(String namedAreaId) {
         try {
             UsersApi usersApi = new UsersApi(apiClient);
@@ -149,6 +187,12 @@ public class UnbluPersonService {
         }
     }
 
+    /**
+     * Convertit un {@link PersonData} du SDK Unblu en {@link PersonInfo} du domaine.
+     *
+     * @param personData les données de la personne retournées par l'API Unblu
+     * @return le modèle de domaine correspondant
+     */
     PersonInfo toPersonInfo(PersonData personData) {
         return new PersonInfo(
                 personData.getId(),

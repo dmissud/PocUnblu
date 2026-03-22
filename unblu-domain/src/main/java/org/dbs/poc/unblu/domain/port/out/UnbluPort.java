@@ -1,14 +1,13 @@
 package org.dbs.poc.unblu.domain.port.out;
 
-import org.dbs.poc.unblu.domain.model.ConversationContext;
-import org.dbs.poc.unblu.domain.model.NamedAreaInfo;
-import org.dbs.poc.unblu.domain.model.PersonInfo;
-import org.dbs.poc.unblu.domain.model.PersonSource;
-import org.dbs.poc.unblu.domain.model.TeamInfo;
-import org.dbs.poc.unblu.domain.model.UnbluConversationInfo;
+import org.dbs.poc.unblu.domain.model.*;
 
 import java.util.List;
 
+/**
+ * Port secondaire vers la plateforme Unblu.
+ * Regroupe toutes les opérations Unblu exposées au domaine : conversations, personnes, équipes, zones nommées et bots.
+ */
 public interface UnbluPort {
     /**
      * Creates a new conversation in Unblu and returns its info.
@@ -22,8 +21,18 @@ public interface UnbluPort {
      */
     List<PersonInfo> searchPersons(String sourceId, PersonSource personSource);
 
+    /**
+     * Retourne la liste de toutes les équipes (teams) Unblu.
+     *
+     * @return liste des équipes
+     */
     List<TeamInfo> searchTeams();
 
+    /**
+     * Retourne la liste de toutes les zones nommées (named areas) Unblu.
+     *
+     * @return liste des zones nommées
+     */
     List<NamedAreaInfo> searchNamedAreas();
 
     /**
@@ -46,5 +55,12 @@ public interface UnbluPort {
      */
     void addSummaryToConversation(String conversationId, String summary);
 
+    /**
+     * Crée un bot dans Unblu et retourne son identifiant de personne.
+     *
+     * @param name        nom du bot
+     * @param description description du bot
+     * @return identifiant de la personne bot créée ({@code botPersonId})
+     */
     String createBot(String name, String description);
 }

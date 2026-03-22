@@ -9,7 +9,9 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * Adapter implementing WebhookRegistrationPort using UnbluService.
+ * Adaptateur secondaire implémentant {@link WebhookRegistrationPort} en déléguant
+ * à {@link UnbluWebhookService} et en mappant les exceptions infrastructure vers les
+ * exceptions domaine {@link org.dbs.poc.unblu.domain.exception.UnbluApiException}.
  */
 @Component
 @RequiredArgsConstructor
@@ -17,6 +19,9 @@ public class UnbluWebhookRegistrationAdapter implements WebhookRegistrationPort 
 
     private final UnbluWebhookService unbluWebhookService;
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public WebhookRegistration findByName(String name) {
         try {
@@ -27,6 +32,7 @@ public class UnbluWebhookRegistrationAdapter implements WebhookRegistrationPort 
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public WebhookRegistration create(String name, String endpoint, List<String> events) {
         try {
@@ -37,6 +43,7 @@ public class UnbluWebhookRegistrationAdapter implements WebhookRegistrationPort 
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public WebhookRegistration update(String id, String endpoint, List<String> events) {
         try {
@@ -47,6 +54,7 @@ public class UnbluWebhookRegistrationAdapter implements WebhookRegistrationPort 
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public void delete(String id) {
         try {

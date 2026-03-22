@@ -12,10 +12,17 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+/**
+ * Implémentation du cas d'utilisation {@link SearchTeamsUseCase}.
+ * Délègue la recherche au port secondaire {@link UnbluPort}.
+ */
 public class TeamQueryService implements SearchTeamsUseCase {
 
     private final UnbluPort unbluPort;
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<TeamInfo> searchTeams() {
         log.info("Récupération des équipes Unblu");

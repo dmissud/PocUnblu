@@ -18,16 +18,37 @@ public class ConversationOrchestrationState {
     private String unbluConversationId;
     private String unbluJoinUrl;
 
+    /**
+     * Construit un état d'orchestration à partir d'un contexte de conversation domaine.
+     *
+     * @param context contexte domaine de la conversation (non null)
+     */
     public ConversationOrchestrationState(ConversationContext context) {
         this.context = Objects.requireNonNull(context, "context is required");
     }
 
+    /**
+     * Met à jour les informations de la conversation Unblu créée.
+     * Appelé par l'adaptateur Unblu après la création effective.
+     *
+     * @param conversationId identifiant de la conversation dans Unblu
+     * @param joinUrl        URL permettant de rejoindre la conversation
+     */
     public void updateUnbluConversation(String conversationId, String joinUrl) {
         this.unbluConversationId = conversationId;
         this.unbluJoinUrl = joinUrl;
     }
 
-    public ConversationContext context() { return context; }
-    public String unbluConversationId() { return unbluConversationId; }
+    /**
+     * @return contexte domaine de la conversation
+     */
+    public ConversationContext context() { return context;
+    }
+
+    /** @return identifiant de la conversation Unblu créée, ou {@code null} si non encore créée */
+    public String unbluConversationId() { return unbluConversationId;
+    }
+
+    /** @return URL de rejoindre la conversation Unblu, ou {@code null} si non encore créée */
     public String unbluJoinUrl() { return unbluJoinUrl; }
 }

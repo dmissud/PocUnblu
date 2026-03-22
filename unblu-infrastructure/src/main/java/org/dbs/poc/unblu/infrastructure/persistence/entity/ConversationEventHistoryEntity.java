@@ -6,7 +6,9 @@ import lombok.*;
 import java.time.Instant;
 
 /**
- * JPA entity for conversation event.
+ * Entité JPA représentant un événement dans l'historique d'une conversation Unblu.
+ * Peut être un événement de création ({@link EventType#CREATED}), un message ({@link EventType#MESSAGE})
+ * ou une fin de conversation ({@link EventType#ENDED}).
  */
 @Entity
 @Table(name = "conversation_event_history")
@@ -41,9 +43,17 @@ public class ConversationEventHistoryEntity {
     @Column(name = "sender_display_name")
     private String senderDisplayName;
 
+    /**
+     * Type d'événement de conversation persisté en base.
+     */
     public enum EventType {
+        /**
+         * La conversation a été créée.
+         */
         CREATED,
+        /** Un message a été envoyé dans la conversation. */
         MESSAGE,
+        /** La conversation a été terminée. */
         ENDED
     }
 }

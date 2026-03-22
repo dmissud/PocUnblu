@@ -13,10 +13,17 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+/**
+ * Implémentation du cas d'utilisation {@link SearchPersonsUseCase}.
+ * Délègue la recherche au port secondaire {@link UnbluPort}.
+ */
 public class PersonQueryService implements SearchPersonsUseCase {
 
     private final UnbluPort unbluPort;
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<PersonInfo> searchPersons(SearchPersonsQuery query) {
         log.info("Recherche de personnes dans Unblu, sourceId: {}, personSource: {}", query.sourceId(), query.personSource());

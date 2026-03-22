@@ -4,7 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 /**
- * JPA entity for conversation participant.
+ * Entité JPA représentant un participant dans l'historique d'une conversation Unblu.
+ * Un participant peut être un visiteur, un agent ou un bot.
  */
 @Entity
 @Table(name = "participant_history")
@@ -33,9 +34,17 @@ public class ParticipantHistoryEntity {
     @Column(name = "type", nullable = false)
     private ParticipantType type;
 
+    /**
+     * Type de participant dans une conversation.
+     */
     public enum ParticipantType {
+        /**
+         * Visiteur ou personne virtuelle initiant la conversation.
+         */
         VISITOR,
+        /** Agent Unblu traitant la conversation. */
         AGENT,
+        /** Bot automatisé participant à la conversation (ex. bot de résumé). */
         BOT
     }
 }

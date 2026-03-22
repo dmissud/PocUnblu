@@ -25,6 +25,13 @@ public class ConversationHistoryRepositoryAdapter implements ConversationHistory
     private final ConversationHistoryJpaRepository jpaRepository;
     private final ConversationHistoryMapper mapper;
 
+    /**
+     * Persists a conversation history using upsert semantics.
+     * If a record already exists for the conversation ID, only new participants and events are appended.
+     *
+     * @param conversationHistory the domain object to persist
+     * @return the saved domain object (rebuilt from the JPA entity)
+     */
     @Override
     @Transactional
     public ConversationHistory save(ConversationHistory conversationHistory) {
@@ -72,6 +79,13 @@ public class ConversationHistoryRepositoryAdapter implements ConversationHistory
         return mapper.toDomain(savedEntity);
     }
 
+    /**
+     * Loads a conversation history by conversation ID.
+     * Lazy collections are force-initialized within the transaction.
+     *
+     * @param conversationId Unblu conversation identifier
+     * @return the domain object, or {@code Optional.empty()} if not found
+     */
     @Override
     @Transactional(readOnly = true)
     public Optional<ConversationHistory> findByConversationId(String conversationId) {
@@ -90,6 +104,12 @@ public class ConversationHistoryRepositoryAdapter implements ConversationHistory
         return Optional.of(mapper.toDomain(entity));
     }
 
+    /**
+     * Checks whether a conversation history record exists for the given ID.
+     *
+     * @param conversationId Unblu conversation identifier
+     * @return {@code true} if a record exists
+     */
     @Override
     public boolean existsByConversationId(String conversationId) {
         return jpaRepository.existsByConversationId(conversationId);

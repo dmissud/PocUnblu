@@ -12,7 +12,9 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * Handles Unblu webhook registration operations: CRUD.
+ * Service d'accès à l'API Unblu pour les opérations CRUD sur les enregistrements de webhooks.
+ * Utilise le SDK Unblu Jersey v4 et mappe les exceptions API en
+ * {@link org.dbs.poc.unblu.infrastructure.exception.UnbluApiException}.
  */
 @Slf4j
 @Service
@@ -21,6 +23,13 @@ public class UnbluWebhookService {
 
     private final ApiClient apiClient;
 
+    /**
+     * Recherche des webhooks enregistrés dans Unblu selon les critères de la requête.
+     *
+     * @param query les critères de recherche
+     * @return le résultat paginé des webhooks
+     * @throws org.dbs.poc.unblu.infrastructure.exception.UnbluApiException en cas d'erreur API
+     */
     public WebhookRegistrationResult searchWebhooks(WebhookRegistrationQuery query) {
         try {
             WebhookRegistrationsApi webhookApi = new WebhookRegistrationsApi(apiClient);
@@ -35,6 +44,13 @@ public class UnbluWebhookService {
         }
     }
 
+    /**
+     * Récupère un webhook Unblu par son identifiant unique.
+     *
+     * @param registrationId l'identifiant du webhook
+     * @return les données du webhook
+     * @throws org.dbs.poc.unblu.infrastructure.exception.UnbluApiException si introuvable (404) ou accès refusé (403)
+     */
     public WebhookRegistration getWebhookById(String registrationId) {
         try {
             WebhookRegistrationsApi webhookApi = new WebhookRegistrationsApi(apiClient);
@@ -50,6 +66,13 @@ public class UnbluWebhookService {
         }
     }
 
+    /**
+     * Récupère un webhook Unblu par son nom.
+     *
+     * @param name le nom du webhook
+     * @return les données du webhook
+     * @throws org.dbs.poc.unblu.infrastructure.exception.UnbluApiException si introuvable (404) ou accès refusé (403)
+     */
     public WebhookRegistration getWebhookByName(String name) {
         try {
             WebhookRegistrationsApi webhookApi = new WebhookRegistrationsApi(apiClient);
@@ -65,6 +88,15 @@ public class UnbluWebhookService {
         }
     }
 
+    /**
+     * Crée un nouveau webhook Unblu actif pour les types d'événements spécifiés.
+     *
+     * @param name       le nom unique du webhook
+     * @param endpoint   l'URL de destination du webhook
+     * @param eventTypes la liste des types d'événements à écouter
+     * @return le webhook créé
+     * @throws org.dbs.poc.unblu.infrastructure.exception.UnbluApiException si un conflit de nom (409), accès refusé (403), ou autre erreur API
+     */
     public WebhookRegistration createWebhook(String name, String endpoint, List<String> eventTypes) {
         try {
             WebhookRegistrationsApi webhookApi = new WebhookRegistrationsApi(apiClient);
@@ -89,6 +121,15 @@ public class UnbluWebhookService {
         }
     }
 
+    /**
+     * Met à jour l'endpoint et les types d'événements d'un webhook Unblu existant.
+     *
+     * @param webhookId  l'identifiant du webhook à mettre à jour
+     * @param endpoint   le nouvel endpoint de destination
+     * @param eventTypes la nouvelle liste des types d'événements (ignorée si {@code null})
+     * @return le webhook mis à jour
+     * @throws org.dbs.poc.unblu.infrastructure.exception.UnbluApiException si introuvable (404), accès refusé (403), ou autre erreur API
+     */
     public WebhookRegistration updateWebhook(String webhookId, String endpoint, List<String> eventTypes) {
         try {
             WebhookRegistrationsApi webhookApi = new WebhookRegistrationsApi(apiClient);
@@ -112,6 +153,12 @@ public class UnbluWebhookService {
         }
     }
 
+    /**
+     * Supprime un webhook Unblu par son identifiant.
+     *
+     * @param webhookId l'identifiant du webhook à supprimer
+     * @throws org.dbs.poc.unblu.infrastructure.exception.UnbluApiException si introuvable (404), accès refusé (403), ou autre erreur API
+     */
     public void deleteWebhook(String webhookId) {
         try {
             WebhookRegistrationsApi webhookApi = new WebhookRegistrationsApi(apiClient);

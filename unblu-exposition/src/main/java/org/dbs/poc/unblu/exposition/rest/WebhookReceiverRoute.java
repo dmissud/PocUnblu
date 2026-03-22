@@ -85,6 +85,13 @@ public class WebhookReceiverRoute extends RouteBuilder {
             .end();
     }
 
+    /**
+     * Deserializes the raw exchange body to a typed {@link UnbluWebhookPayload}.
+     * Supports three input formats: already-typed payload, {@code Map}, or JSON {@code String}.
+     *
+     * @param body the exchange body (may be {@code null})
+     * @return the deserialized payload, or {@code null} if the body is empty/unrecognized
+     */
     @SuppressWarnings("unchecked")
     private UnbluWebhookPayload deserializePayload(Object body) throws Exception {
         if (body == null) {

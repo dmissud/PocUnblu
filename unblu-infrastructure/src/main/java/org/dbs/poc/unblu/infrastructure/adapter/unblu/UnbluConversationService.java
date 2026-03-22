@@ -15,7 +15,8 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * Handles Unblu conversation operations: create, create direct, add summary message.
+ * Service d'accès à l'API Unblu pour les opérations de gestion des conversations :
+ * création standard, création directe (1-à-1), et ajout d'un message de résumé via un bot.
  */
 @Slf4j
 @Service
@@ -27,6 +28,13 @@ public class UnbluConversationService {
 
     private static final List<ExpandFields> NO_EXPAND = null;
 
+    /**
+     * Crée une conversation Unblu à partir des données de création fournies.
+     *
+     * @param conversationData les données de création (sujet, type d'engagement, destinataire, participants)
+     * @return les données de la conversation créée
+     * @throws org.dbs.poc.unblu.infrastructure.exception.UnbluApiException en cas d'erreur API
+     */
     public ConversationData createConversation(ConversationCreationData conversationData) {
         try {
             ConversationsApi conversationsApi = new ConversationsApi(apiClient);
@@ -43,6 +51,15 @@ public class UnbluConversationService {
         }
     }
 
+    /**
+     * Crée une conversation directe (1-à-1) entre un participant virtuel et un agent Unblu.
+     *
+     * @param virtualPerson la personne virtuelle (visiteur) participant à la conversation
+     * @param agentPerson   l'agent assigné ; doit être de type {@code AGENT}
+     * @param subject       le sujet de la conversation
+     * @return les données de la conversation directe créée
+     * @throws org.dbs.poc.unblu.infrastructure.exception.UnbluApiException si l'assigné n'est pas un agent (400) ou en cas d'erreur API
+     */
     public ConversationData createDirectConversation(PersonInfo virtualPerson, PersonInfo agentPerson, String subject) {
         try {
             if (agentPerson == null || !agentPerson.isAgent()) {
@@ -81,6 +98,14 @@ public class UnbluConversationService {
         }
     }
 
+    /**
+     * Ajoute un message de résumé à une conversation Unblu existante via le bot configuré.
+     * Si {@code unblu.api.summary-bot-person-id} n'est pas configuré, l'opération est ignorée.
+     *
+     * @param conversationId l'identifiant de la conversation cible
+     * @param summary        le texte du résumé à envoyer
+     * @throws org.dbs.poc.unblu.infrastructure.exception.UnbluApiException en cas d'erreur API lors de l'ajout du participant ou de l'envoi du message
+     */
     public void addSummaryToConversation(String conversationId, String summary) {
         try {
             String botPersonId = unbluProperties.getSummaryBotPersonId();

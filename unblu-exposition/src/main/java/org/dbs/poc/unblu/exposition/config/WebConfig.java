@@ -11,15 +11,31 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.io.IOException;
 
+/**
+ * Configuration Spring MVC pour la couche d'exposition.
+ * Enregistre les gestionnaires de ressources statiques et un filtre CORS permissif
+ * sur les routes {@code /api/*} pour le développement local.
+ */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+    /**
+     * Expose les ressources Swagger UI statiques depuis le classpath sous {@code /swagger/**}.
+     *
+     * @param registry le registre Spring des gestionnaires de ressources
+     */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/swagger/**")
                 .addResourceLocations("classpath:/static/swagger/");
     }
 
+    /**
+     * Enregistre le filtre CORS {@link SimpleCorsFilter} sur les routes {@code /api/*}
+     * avec une priorité haute (ordre {@code -100}).
+     *
+     * @return le bean d'enregistrement du filtre CORS
+     */
     @Bean
     public FilterRegistrationBean<SimpleCorsFilter> corsFilter() {
         FilterRegistrationBean<SimpleCorsFilter> bean = new FilterRegistrationBean<>();

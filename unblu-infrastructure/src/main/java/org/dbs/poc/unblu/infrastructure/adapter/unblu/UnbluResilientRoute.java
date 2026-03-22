@@ -30,6 +30,10 @@ public class UnbluResilientRoute extends RouteBuilder {
 
     private static final int TIMEOUT_MS = 3000;
 
+    /**
+     * Déclare les routes Camel avec circuit breaker Resilience4j pour chaque opération Unblu.
+     * Timeout global de {@value #TIMEOUT_MS} ms ; fallback spécifique à chaque opération.
+     */
     @Override
     public void configure() throws Exception {
 
@@ -77,12 +81,24 @@ public class UnbluResilientRoute extends RouteBuilder {
             .end();
     }
 
+    /**
+     * Fallback de création de conversation : retourne un {@link ConversationOrchestrationState}
+     * avec l'identifiant {@code OFFLINE-PENDING} quand Unblu est indisponible.
+     *
+     * @param exchange l'échange Camel courant
+     */
     private void fallbackCreateConversation(Exchange exchange) {
         ConversationOrchestrationState state = exchange.getIn().getBody(ConversationOrchestrationState.class);
         state.updateUnbluConversation("OFFLINE-PENDING", "Le service de chat est temporairement indisponible.");
         exchange.getIn().setBody(state);
     }
 
+    /**
+     * Fallback de création de conversation directe : retourne un {@link ConversationData}
+     * avec l'identifiant {@code OFFLINE-PENDING} quand Unblu est indisponible.
+     *
+     * @param exchange l'échange Camel courant
+     */
     private void fallbackCreateDirectConversation(Exchange exchange) {
         ConversationData offline = new ConversationData();
         offline.setId("OFFLINE-PENDING");

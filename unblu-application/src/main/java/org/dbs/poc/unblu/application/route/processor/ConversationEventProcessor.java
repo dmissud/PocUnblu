@@ -26,6 +26,10 @@ public class ConversationEventProcessor implements Processor {
     private static final String CONVERSATION_ENDED_EVENT = "ConversationEndedEvent";
     private static final String CONVERSATION_ENDED_EVENT_TYPE = "conversation.ended";
 
+    /**
+     * Reads the event type from the payload and delegates to {@link ConversationHistoryService}.
+     * Handles: {@code ConversationCreatedEvent}, {@code ConversationNewMessageEvent}, {@code ConversationEndedEvent}.
+     */
     @Override
     public void process(Exchange exchange) {
         UnbluWebhookPayload payload = exchange.getIn().getBody(UnbluWebhookPayload.class);
@@ -44,6 +48,9 @@ public class ConversationEventProcessor implements Processor {
         }
     }
 
+    /**
+     * Returns {@code true} if {@code eventType} matches either the class name or the field notation.
+     */
     private boolean matches(String eventType, String byClass, String byField) {
         return byClass.equals(eventType) || byField.equals(eventType);
     }

@@ -16,17 +16,31 @@ public class ParticipantHistory {
     private String displayName;
     private ParticipantType type;
 
-    public enum ParticipantType {
-        VISITOR,
-        AGENT,
-        BOT
+    /** @return identifiant unique de la personne dans Unblu */
+    public String personId() {
+        return personId;
     }
 
     // --- Accessors ---
 
-    public String personId() { return personId; }
+    /** @return nom affiché du participant */
+    public String displayName() { return displayName;
+    }
 
-    public String displayName() { return displayName; }
-
+    /** @return type de participant (VISITOR, AGENT ou BOT) */
     public ParticipantType participantType() { return type; }
+
+    /**
+     * Type de participant dans une conversation.
+     */
+    public enum ParticipantType {
+        /**
+         * Visiteur (client) qui a initié la conversation.
+         */
+        VISITOR,
+        /** Agent humain traitant la conversation. */
+        AGENT,
+        /** Bot automatique (ex. bot de résumé). */
+        BOT
+    }
 }

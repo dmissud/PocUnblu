@@ -16,6 +16,12 @@ public class WebhookEventTypeExtractor implements Processor {
 
     public static final String EVENT_TYPE_HEADER = "webhookEventType";
 
+    /**
+     * Extracts the event type from the payload and stores it in the
+     * {@value #EVENT_TYPE_HEADER} header for downstream content-based routing.
+     *
+     * @throws IllegalArgumentException if the payload is {@code null}
+     */
     @Override
     public void process(Exchange exchange) {
         UnbluWebhookPayload payload = exchange.getIn().getBody(UnbluWebhookPayload.class);

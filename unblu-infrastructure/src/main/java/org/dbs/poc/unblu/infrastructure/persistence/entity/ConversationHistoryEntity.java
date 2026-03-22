@@ -8,7 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * JPA entity for conversation history.
+ * Entité JPA représentant l'historique d'une conversation Unblu en base de données.
+ * Contient les participants et les événements associés via des relations {@code OneToMany}.
  */
 @Entity
 @Table(name = "conversation_history")
@@ -43,11 +44,21 @@ public class ConversationHistoryEntity {
     @Builder.Default
     private List<ConversationEventHistoryEntity> events = new ArrayList<>();
 
+    /**
+     * Ajoute un participant à la conversation et établit la relation bidirectionnelle.
+     *
+     * @param participant l'entité participant à associer à cette conversation
+     */
     public void addParticipant(ParticipantHistoryEntity participant) {
         participants.add(participant);
         participant.setConversation(this);
     }
 
+    /**
+     * Ajoute un événement à la conversation et établit la relation bidirectionnelle.
+     *
+     * @param event l'entité événement à associer à cette conversation
+     */
     public void addEvent(ConversationEventHistoryEntity event) {
         events.add(event);
         event.setConversation(this);

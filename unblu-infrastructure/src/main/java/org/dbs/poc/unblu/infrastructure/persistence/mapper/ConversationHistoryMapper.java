@@ -11,11 +11,19 @@ import org.springframework.stereotype.Component;
 import java.util.stream.Collectors;
 
 /**
- * Mapper between domain and JPA entities for conversation history.
+ * Mapper de conversion entre les objets du domaine ({@link ConversationHistory}, {@link ParticipantHistory},
+ * {@link ConversationEventHistory}) et les entités JPA correspondantes.
  */
 @Component
 public class ConversationHistoryMapper {
 
+    /**
+     * Convertit un objet domaine {@link ConversationHistory} en entité JPA, incluant
+     * les participants et les événements associés.
+     *
+     * @param domain l'objet domaine à convertir (peut être {@code null})
+     * @return l'entité JPA correspondante, ou {@code null} si {@code domain} est {@code null}
+     */
     public ConversationHistoryEntity toEntity(ConversationHistory domain) {
         if (domain == null) {
             return null;
@@ -37,6 +45,13 @@ public class ConversationHistoryMapper {
         return entity;
     }
 
+    /**
+     * Convertit une entité JPA {@link ConversationHistoryEntity} en objet domaine, incluant
+     * les participants et les événements associés.
+     *
+     * @param entity l'entité JPA à convertir (peut être {@code null})
+     * @return l'objet domaine correspondant, ou {@code null} si {@code entity} est {@code null}
+     */
     public ConversationHistory toDomain(ConversationHistoryEntity entity) {
         if (entity == null) {
             return null;
@@ -56,6 +71,12 @@ public class ConversationHistoryMapper {
                 .build();
     }
 
+    /**
+     * Convertit un {@link ParticipantHistory} domaine en entité JPA {@link ParticipantHistoryEntity}.
+     *
+     * @param domain le participant domaine
+     * @return l'entité JPA correspondante
+     */
     private ParticipantHistoryEntity toParticipantEntity(ParticipantHistory domain) {
         return ParticipantHistoryEntity.builder()
                 .personId(domain.personId())
@@ -64,6 +85,12 @@ public class ConversationHistoryMapper {
                 .build();
     }
 
+    /**
+     * Convertit une entité JPA {@link ParticipantHistoryEntity} en objet domaine {@link ParticipantHistory}.
+     *
+     * @param entity l'entité JPA participant
+     * @return l'objet domaine correspondant
+     */
     private ParticipantHistory toParticipantDomain(ParticipantHistoryEntity entity) {
         return ParticipantHistory.builder()
                 .personId(entity.getPersonId())
@@ -72,6 +99,12 @@ public class ConversationHistoryMapper {
                 .build();
     }
 
+    /**
+     * Convertit un {@link ConversationEventHistory} domaine en entité JPA {@link ConversationEventHistoryEntity}.
+     *
+     * @param domain l'événement domaine
+     * @return l'entité JPA correspondante
+     */
     private ConversationEventHistoryEntity toEventEntity(ConversationEventHistory domain) {
         return ConversationEventHistoryEntity.builder()
                 .eventType(ConversationEventHistoryEntity.EventType.valueOf(domain.eventType().name()))
@@ -82,6 +115,12 @@ public class ConversationHistoryMapper {
                 .build();
     }
 
+    /**
+     * Convertit une entité JPA {@link ConversationEventHistoryEntity} en objet domaine {@link ConversationEventHistory}.
+     *
+     * @param entity l'entité JPA événement
+     * @return l'objet domaine correspondant
+     */
     private ConversationEventHistory toEventDomain(ConversationEventHistoryEntity entity) {
         return ConversationEventHistory.builder()
                 .eventType(ConversationEventHistory.EventType.valueOf(entity.getEventType().name()))

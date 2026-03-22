@@ -14,6 +14,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class PersonEventProcessor implements Processor {
 
+    /**
+     * Logs the person event for observability. No business action is taken in this PoC.
+     */
     @Override
     public void process(Exchange exchange) {
         UnbluWebhookPayload payload = exchange.getIn().getBody(UnbluWebhookPayload.class);

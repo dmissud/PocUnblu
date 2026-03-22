@@ -60,6 +60,11 @@ public class WebhookEventRoute extends RouteBuilder {
         this.unknownEventProcessor = unknownEventProcessor;
     }
 
+    /**
+     * Définit les routes Camel de traitement des webhooks Unblu :
+     * route principale de dispatch, gestionnaires de conversations, de personnes et d'événements inconnus.
+     * Configure également les gestionnaires d'exceptions (idempotence, validation, retry).
+     */
     @Override
     public void configure() {
         configureExceptionHandlers();
@@ -69,6 +74,11 @@ public class WebhookEventRoute extends RouteBuilder {
         configureUnknownHandler();
     }
 
+    /**
+     * Configure les gestionnaires d'exceptions globaux pour les routes webhook :
+     * absorption silencieuse des doublons, log des données invalides, et retry exponentiel
+     * avec dead-letter sur les erreurs transitoires.
+     */
     private void configureExceptionHandlers() {
         // Duplicate event received (idempotency) — absorb silently
         onException(DataIntegrityViolationException.class)
@@ -94,6 +104,11 @@ public class WebhookEventRoute extends RouteBuilder {
                 "Webhook event processing failed after retries — event lost: ${exception.message}\nPayload: ${body}");
     }
 
+    /**
+     * Configure la route principale {@code direct:webhook-event-processor}.
+     * Extrait le type d'événement via {@link WebhookEventTypeExtractor} et dispatche
+     * vers le gestionnaire approprié (conversation, personne, ou inconnu).
+     */
     private void configureMainWebhookRoute() {
         from(DIRECT_WEBHOOK_EVENT_PROCESSOR)
             .routeId(ROUTE_WEBHOOK_EVENT_PROCESSOR)
@@ -123,6 +138,10 @@ public class WebhookEventRoute extends RouteBuilder {
             .log(SEPARATOR);
     }
 
+    /**
+     * Configure la route {@code direct:webhook-handle-conversation} qui délègue le traitement
+     * des événements de conversation à {@link ConversationEventProcessor}.
+     */
     private void configureConversationHandler() {
         from(DIRECT_WEBHOOK_HANDLE_CONVERSATION)
             .routeId(ROUTE_WEBHOOK_HANDLE_CONVERSATION)
@@ -135,6 +154,10 @@ public class WebhookEventRoute extends RouteBuilder {
             .log(SEPARATOR);
     }
 
+    /**
+     * Configure la route {@code direct:webhook-handle-person} qui délègue le traitement
+     * des événements de personnes à {@link PersonEventProcessor}.
+     */
     private void configurePersonHandler() {
         from(DIRECT_WEBHOOK_HANDLE_PERSON)
             .routeId(ROUTE_WEBHOOK_HANDLE_PERSON)
@@ -147,6 +170,10 @@ public class WebhookEventRoute extends RouteBuilder {
             .log(SEPARATOR);
     }
 
+    /**
+     * Configure la route {@code direct:webhook-handle-unknown} qui délègue les événements
+     * non reconnus à {@link UnknownEventProcessor} pour journalisation.
+     */
     private void configureUnknownHandler() {
         from(DIRECT_WEBHOOK_HANDLE_UNKNOWN)
             .routeId(ROUTE_WEBHOOK_HANDLE_UNKNOWN)

@@ -14,7 +14,9 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * Service to orchestrate webhook setup
+ * Service d'orchestration de la configuration du webhook Unblu.
+ * Gère le démarrage du tunnel ngrok, l'enregistrement ou la mise à jour du webhook dans Unblu,
+ * ainsi que le démontage complet de l'infrastructure webhook.
  */
 @Slf4j
 @Service
@@ -36,6 +38,9 @@ public class WebhookSetupService implements SetupWebhookUseCase {
     @Value("${unblu.webhook.endpoint-path:/api/webhooks/unblu}")
     private String webhookEndpointPath;
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public WebhookSetupResult setupWebhook() {
         log.info("Starting webhook setup...");
@@ -98,6 +103,7 @@ public class WebhookSetupService implements SetupWebhookUseCase {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public WebhookStatus getWebhookStatus() {
         log.debug("Checking webhook status...");
@@ -129,6 +135,7 @@ public class WebhookSetupService implements SetupWebhookUseCase {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public void teardownWebhook(boolean deleteWebhook) {
         log.info("Tearing down webhook configuration (deleteWebhook: {})...", deleteWebhook);

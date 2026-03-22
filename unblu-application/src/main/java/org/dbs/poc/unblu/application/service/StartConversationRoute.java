@@ -8,8 +8,14 @@ import org.dbs.poc.unblu.domain.model.ChatRoutingDecision;
 import org.dbs.poc.unblu.domain.model.ConversationContext;
 import org.springframework.stereotype.Component;
 
-import static org.dbs.poc.unblu.application.service.OrchestratorEndpoints.*;
+import static org.dbs.poc.unblu.application.service.OrchestratorEndpoints.DIRECT_START_CONVERSATION;
+import static org.dbs.poc.unblu.application.service.OrchestratorEndpoints.DIRECT_UNBLU_ADAPTER_RESILIENT;
 
+/**
+ * Route Camel principale pour l'orchestration d'une conversation avec une équipe.
+ * Initialisée depuis {@code direct:start-conversation}, elle initialise le contexte
+ * métier, appelle l'adapter Unblu résilient, puis génère et attache un résumé à la conversation.
+ */
 @Component
 public class StartConversationRoute extends RouteBuilder {
 
@@ -19,6 +25,10 @@ public class StartConversationRoute extends RouteBuilder {
         this.workflowService = workflowService;
     }
 
+    /**
+     * Définit la route Camel {@code direct:start-conversation}.
+     * Enchaîne l'initialisation du contexte, l'appel résilient à Unblu, puis la génération du résumé.
+     */
     @Override
     public void configure() {
         from(DIRECT_START_CONVERSATION)
@@ -32,6 +42,12 @@ public class StartConversationRoute extends RouteBuilder {
             .log("Summary ajouté à la conversation");
     }
 
+    /**
+     * Processeur Camel : crée le {@link org.dbs.poc.unblu.application.model.ConversationOrchestrationState}
+     * à partir de la commande entrante et l'injecte comme corps de l'échange.
+     *
+     * @param exchange l'échange Camel courant
+     */
     private void initConversationContext(Exchange exchange) {
         StartConversationCommand command = exchange.getIn().getBody(StartConversationCommand.class);
         ConversationContext context = new ConversationContext(command.clientId(), command.origin());
@@ -40,6 +56,11 @@ public class StartConversationRoute extends RouteBuilder {
         exchange.getIn().setBody(new ConversationOrchestrationState(context));
     }
 
+    /**
+     * Processeur Camel : génère et attache un résumé à la conversation Unblu créée.
+     *
+     * @param exchange l'échange Camel courant contenant l'état d'orchestration
+     */
     private void generateAndAddSummary(Exchange exchange) {
         ConversationOrchestrationState state = exchange.getIn().getBody(ConversationOrchestrationState.class);
         workflowService.addSummary(state.unbluConversationId());

@@ -13,6 +13,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class UnknownEventProcessor implements Processor {
 
+    /**
+     * Logs a warning for any unrecognized event type. Does not throw.
+     */
     @Override
     public void process(Exchange exchange) {
         UnbluWebhookPayload payload = exchange.getIn().getBody(UnbluWebhookPayload.class);
