@@ -4,6 +4,10 @@ import java.util.Objects;
 
 /**
  * Informations sur une zone nommée (Named Area) Unblu.
+ *
+ * @param id          identifiant Unblu de la zone nommée
+ * @param name        nom affiché de la zone
+ * @param description description optionnelle
  */
 public record NamedAreaInfo(
         String id,

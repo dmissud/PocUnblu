@@ -9,12 +9,22 @@ import org.glassfish.jersey.client.ClientProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Configuration Spring du client Unblu SDK.
+ * Crée et configure le bean {@link ApiClient} utilisé par tous les services Unblu.
+ */
 @Configuration
 @RequiredArgsConstructor
 public class UnbluClientConfig {
 
     private final UnbluProperties unbluProperties;
 
+    /**
+     * Crée le {@link ApiClient} Unblu configuré avec l'URL de base, les identifiants
+     * et le proxy éventuel définis dans {@link UnbluProperties}.
+     *
+     * @return le client API Unblu prêt à l'emploi
+     */
     @Bean
     public ApiClient unbluApiClient() {
         ApiClient apiClient = new ApiClient();
@@ -37,6 +47,13 @@ public class UnbluClientConfig {
         return apiClient;
     }
 
+    /**
+     * Configure un proxy HTTP sur le client Jersey si les propriétés {@code unblu.api.proxy.host}
+     * et {@code unblu.api.proxy.port} sont renseignées.
+     * Supporte également l'authentification proxy si {@code proxy.username} est défini.
+     *
+     * @param apiClient le client Unblu à configurer
+     */
     private void configureProxy(ApiClient apiClient) {
         UnbluProperties.ProxyProperties proxyProps = unbluProperties.getProxy();
         if (proxyProps != null && proxyProps.getHost() != null && !proxyProps.getHost().isBlank()) {

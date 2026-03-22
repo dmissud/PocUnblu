@@ -5,10 +5,12 @@ import {PersonInfo} from '../models/person.model';
 import {TeamInfo} from '../models/team.model';
 import {NamedAreaInfo} from '../models/named-area.model';
 import {
+  ConversationSyncResult,
   DirectConversationRequest,
   StartConversationResponse,
   TeamConversationRequest
 } from '../models/conversation.model';
+import {ConversationHistoryDetail, ConversationHistoryPage} from '../models/conversation-history.model';
 import {WebhookSetupResult, WebhookStatus} from '../models/webhook.model';
 
 @Injectable({
@@ -50,6 +52,27 @@ export class ApiService {
       origin: 'FRONTEND_TEST'
     };
     return this.http.post<StartConversationResponse>(`${this.baseUrl}/conversations/start`, camelRequest);
+  }
+
+  syncConversations(): Observable<ConversationSyncResult> {
+    return this.http.post<ConversationSyncResult>(`${this.baseUrl}/conversations/sync`, {});
+  }
+
+  getConversationHistory(
+    page: number = 0,
+    size: number = 10,
+    sortField: string = 'CREATED_AT',
+    sortDir: string = 'DESC'
+  ): Observable<ConversationHistoryPage> {
+    return this.http.get<ConversationHistoryPage>(
+      `${this.baseUrl}/conversations/history?page=${page}&size=${size}&sortField=${sortField}&sortDir=${sortDir}`
+    );
+  }
+
+  getConversationDetail(conversationId: string): Observable<ConversationHistoryDetail> {
+    return this.http.get<ConversationHistoryDetail>(
+      `${this.baseUrl}/conversations/history/${conversationId}`
+    );
   }
 
   // Webhook setup methods

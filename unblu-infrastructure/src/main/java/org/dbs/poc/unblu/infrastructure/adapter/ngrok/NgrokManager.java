@@ -3,6 +3,7 @@ package org.dbs.poc.unblu.infrastructure.adapter.ngrok;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.dbs.poc.unblu.application.port.out.TunnelPort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -14,11 +15,17 @@ import java.net.URL;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Service to manage ngrok tunnel lifecycle
+ * Adapter implementing {@link TunnelPort} using ngrok as the underlying tunnel provider.
+ *
+ * <p>Manages the full lifecycle of an ngrok process: install check, start, public URL discovery
+ * via ngrok's local API ({@code http://localhost:4040/api/tunnels}), and graceful shutdown.
+ *
+ * <p>Used during local development to expose the webhook callback endpoint ({@code /api/webhooks/unblu})
+ * to the Unblu cloud service.
  */
 @Slf4j
 @Service
-public class NgrokManager {
+public class NgrokManager implements TunnelPort {
 
     @Value("${unblu.webhook.local-port:8081}")
     private int localPort;
@@ -203,17 +210,23 @@ public class NgrokManager {
         currentPublicUrl = null;
     }
 
-    /**
-     * Get ngrok status information
-     */
-    public NgrokStatus getStatus() {
-        boolean running = isNgrokRunning();
-        String url = running ? getPublicUrl() : null;
-        return new NgrokStatus(running, url);
+    @Override
+    public boolean start() {
+        return startNgrok();
+    }
+
+    @Override
+    public void stop() {
+        stopNgrok();
     }
 
     /**
-     * Status record for ngrok
+     * Get ngrok status information
      */
-    public record NgrokStatus(boolean running, String publicUrl) {}
+    @Override
+    public TunnelStatus getStatus() {
+        boolean running = isNgrokRunning();
+        String url = running ? getPublicUrl() : null;
+        return new TunnelStatus(running, url);
+    }
 }

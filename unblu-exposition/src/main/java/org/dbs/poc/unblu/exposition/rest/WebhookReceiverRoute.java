@@ -3,6 +3,7 @@ package org.dbs.poc.unblu.exposition.rest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.camel.builder.RouteBuilder;
+import org.dbs.poc.unblu.application.route.webhook.UnbluWebhookPayload;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -19,6 +20,8 @@ import java.util.Map;
  *   <li>X-Unblu-Signature: Webhook signature for verification</li>
  *   <li>X-Unblu-Event-Type: Type of the event being sent</li>
  * </ul>
+ *
+ * <p>Body contract: sets an {@link UnbluWebhookPayload} on the exchange after deserialization.
  */
 @Slf4j
 @Component
@@ -28,48 +31,31 @@ public class WebhookReceiverRoute extends RouteBuilder {
     private static final String HEADER_UNBLU_SIGNATURE = "X-Unblu-Signature";
     private static final String HEADER_UNBLU_EVENT_TYPE = "X-Unblu-Event-Type";
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
+
+    public WebhookReceiverRoute(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public void configure() {
-        // Internal route to process webhook events from Unblu
-        // Called by REST DSL endpoint: POST /api/webhooks/unblu
         from("direct:webhook-receiver-internal")
             .routeId(ROUTE_WEBHOOK_RECEIVER)
             .log("=".repeat(100))
             .log("========== WEBHOOK RECEIVED FROM UNBLU ==========")
             .log("=".repeat(100))
             .process(exchange -> {
-                // Extract headers
                 String signature = exchange.getIn().getHeader(HEADER_UNBLU_SIGNATURE, String.class);
                 String eventType = exchange.getIn().getHeader(HEADER_UNBLU_EVENT_TYPE, String.class);
 
-                // Convert InputStream body to String, then to Map
-                String jsonString = exchange.getIn().getBody(String.class);
-                log.info("Received JSON string: {}", jsonString);
-
-                // Parse JSON string to Map
-                Map<String, Object> payload = null;
-                if (jsonString != null && !jsonString.isEmpty()) {
-                    try {
-                        payload = objectMapper.readValue(jsonString, Map.class);
-                        log.info("Parsed payload successfully");
-                    } catch (Exception e) {
-                        log.error("Failed to parse JSON payload", e);
-                        throw new RuntimeException("Invalid JSON payload", e);
-                    }
-                }
+                UnbluWebhookPayload payload = deserializePayload(exchange.getIn().getBody());
 
                 log.info("Event Type Header: {}", eventType);
                 log.info("Signature Header: {}", signature);
-                log.info("Payload Type: {}", payload != null ? payload.get("$_type") : "null");
-                log.info("Full Payload: {}", payload);
+                log.info("Payload type: {}", payload != null ? payload.type() : "null");
 
-                // Store headers for downstream processing
                 exchange.getIn().setHeader("unbluSignature", signature);
                 exchange.getIn().setHeader("unbluEventType", eventType);
-
-                // IMPORTANT: Set the parsed Map as the body for downstream routes
                 exchange.getIn().setBody(payload);
             })
             .log("=".repeat(100))
@@ -97,5 +83,30 @@ public class WebhookReceiverRoute extends RouteBuilder {
                 .setBody(constant("Internal Server Error"))
                 .handled(true)
             .end();
+    }
+
+    /**
+     * Deserializes the raw exchange body to a typed {@link UnbluWebhookPayload}.
+     * Supports three input formats: already-typed payload, {@code Map}, or JSON {@code String}.
+     *
+     * @param body the exchange body (may be {@code null})
+     * @return the deserialized payload, or {@code null} if the body is empty/unrecognized
+     */
+    @SuppressWarnings("unchecked")
+    private UnbluWebhookPayload deserializePayload(Object body) throws Exception {
+        if (body == null) {
+            return null;
+        }
+        if (body instanceof UnbluWebhookPayload typed) {
+            return typed;
+        }
+        if (body instanceof Map<?, ?> map) {
+            return objectMapper.convertValue(map, UnbluWebhookPayload.class);
+        }
+        if (body instanceof String json && !json.isBlank()) {
+            return objectMapper.readValue(json, UnbluWebhookPayload.class);
+        }
+        log.warn("Unexpected payload type: {}", body.getClass().getName());
+        return null;
     }
 }

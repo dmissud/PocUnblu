@@ -28,3 +28,12 @@ export interface TeamConversationRequest {
   subject: string;
   teamId: string;
 }
+
+export interface ConversationSyncResult {
+  totalScanned: number;
+  newlyPersisted: number;
+  alreadyExisting: number;
+  errors: number;
+  errorConversationIds: string[];
+  message: string;
+}

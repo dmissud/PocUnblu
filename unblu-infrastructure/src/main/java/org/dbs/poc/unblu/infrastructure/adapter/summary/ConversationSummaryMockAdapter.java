@@ -2,12 +2,18 @@ package org.dbs.poc.unblu.infrastructure.adapter.summary;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.camel.builder.RouteBuilder;
-import org.dbs.poc.unblu.domain.port.secondary.ConversationSummaryPort;
+import org.dbs.poc.unblu.domain.port.out.ConversationSummaryPort;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Random;
 
+/**
+ * Adaptateur mock du port secondaire {@link ConversationSummaryPort}.
+ * Génère des résumés de conversation aléatoires à partir de phrases prédéfinies.
+ * Expose également la route Camel {@code direct:conversation-summary-adapter} utilisée
+ * pour l'orchestration via {@link org.apache.camel.builder.RouteBuilder}.
+ */
 @Slf4j
 @Component
 public class ConversationSummaryMockAdapter extends RouteBuilder implements ConversationSummaryPort {
@@ -32,6 +38,12 @@ public class ConversationSummaryMockAdapter extends RouteBuilder implements Conv
 
     private final Random random = new Random();
 
+    /**
+     * Génère un résumé aléatoire pour la conversation spécifiée en combinant deux phrases prédéfinies.
+     *
+     * @param conversationId l'identifiant de la conversation pour laquelle générer un résumé
+     * @return le résumé généré (deux phrases séparées par un saut de ligne)
+     */
     @Override
     public String generateSummary(String conversationId) {
         String summary = LINE1.get(random.nextInt(LINE1.size())) + "\n"
@@ -40,6 +52,10 @@ public class ConversationSummaryMockAdapter extends RouteBuilder implements Conv
         return summary;
     }
 
+    /**
+     * Déclare la route Camel {@code direct:conversation-summary-adapter} qui délègue
+     * la génération de résumé à la méthode {@link #generateSummary(String)}.
+     */
     @Override
     public void configure() throws Exception {
         from(DIRECT_CONVERSATION_SUMMARY_ADAPTER)

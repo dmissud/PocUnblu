@@ -1,0 +1,78 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: unblu
+  web:
+    resources:
+      static-locations: classpath:/static/browser/
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    enabled: true
+
+# Configuration de Camel
+camel:
+  servlet:
+    mapping:
+      context-path: /api/*
+  springboot:
+    management:
+      enabled: true
+    jmx-enabled: true
+
+# Swagger UI servi via webjars a : /webjars/swagger-ui/index.html?url=/api/api-doc
+
+logging:
+  level:
+    org.dbs.poc.unblu: INFO
+
+# Unblu API configuration
+unblu:
+  api:
+    base-url: ${UNBLU_API_BASE_URL:https://services8.unblu.com/app/rest/v4}
+    username: ${UNBLU_API_USERNAME}
+    password: ${UNBLU_API_PASSWORD}
+    bot-name: ${UNBLU_BOT_NAME:Boby}
+    summary-bot-person-id: I2mWhL8AREW88xHy3BmdcA
+    proxy:
+      host: ${UNBLU_PROXY_HOST:}
+      port: ${UNBLU_PROXY_PORT:8080}
+      username: ${UNBLU_PROXY_USERNAME:}
+      password: ${UNBLU_PROXY_PASSWORD:}
+  webhook:
+    name: ${UNBLU_WEBHOOK_NAME:unblu-poc-webhook}
+    local-port: ${UNBLU_WEBHOOK_LOCAL_PORT:8081}
+    endpoint-path: ${UNBLU_WEBHOOK_ENDPOINT_PATH:/api/webhooks/unblu}
+
+# Actuator configuration for monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,camelroutes,camelroutecontroller
+  endpoint:
+    health:
+      show-details: always
+    camelroutes:
+      enabled: true
+    camelroutecontroller:
+      enabled: true
+
+# Mock configuration
+mock:
+  rule-engine:
+    enabled: true
+    default-team-id: cAaYUeKyTZ25_OaA6jUeVA

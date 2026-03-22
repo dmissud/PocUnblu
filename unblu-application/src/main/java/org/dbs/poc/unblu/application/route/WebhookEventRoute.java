@@ -1,138 +1,188 @@
 package org.dbs.poc.unblu.application.route;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
+import org.dbs.poc.unblu.application.route.processor.ConversationEventProcessor;
+import org.dbs.poc.unblu.application.route.processor.PersonEventProcessor;
+import org.dbs.poc.unblu.application.route.processor.UnknownEventProcessor;
+import org.dbs.poc.unblu.application.route.processor.WebhookEventTypeExtractor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
-
 /**
- * Camel route to process Unblu webhook events
+ * Camel route to process Unblu webhook events.
+ * Routes events to appropriate handlers based on event type.
  */
 @Slf4j
 @Component
 public class WebhookEventRoute extends RouteBuilder {
 
+    private final WebhookEventTypeExtractor eventTypeExtractor;
+    private final ConversationEventProcessor conversationEventProcessor;
+    private final PersonEventProcessor personEventProcessor;
+    private final UnknownEventProcessor unknownEventProcessor;
+
+    private static final String CONVERSATION_PREFIX = "conversation.";
+    private static final String CONVERSATION_CLASS_PREFIX = "Conversation";
+    private static final String PERSON_PREFIX = "person.";
+    private static final String PERSON_CLASS_PREFIX = "Person";
+
+    private static final String SEPARATOR = "=".repeat(100);
+
+    // Route IDs
+    private static final String ROUTE_WEBHOOK_EVENT_PROCESSOR = "webhook-event-processor";
+    private static final String ROUTE_WEBHOOK_HANDLE_CONVERSATION = "webhook-handle-conversation";
+    private static final String ROUTE_WEBHOOK_HANDLE_PERSON = "webhook-handle-person";
+    private static final String ROUTE_WEBHOOK_HANDLE_UNKNOWN = "webhook-handle-unknown";
+
+    // Direct endpoints
+    private static final String DIRECT_WEBHOOK_EVENT_PROCESSOR = "direct:webhook-event-processor";
+    private static final String DIRECT_WEBHOOK_HANDLE_CONVERSATION = "direct:webhook-handle-conversation";
+    private static final String DIRECT_WEBHOOK_HANDLE_PERSON = "direct:webhook-handle-person";
+    private static final String DIRECT_WEBHOOK_HANDLE_UNKNOWN = "direct:webhook-handle-unknown";
+
+    // Log messages
+    private static final String LOG_ROUTING_CONVERSATION_EVENT_TYPE = "→ Routing to conversation handler (eventType format)";
+    private static final String LOG_ROUTING_CONVERSATION_TYPE = "→ Routing to conversation handler ($_type format)";
+    private static final String LOG_ROUTING_PERSON_EVENT_TYPE = "→ Routing to person handler (eventType format)";
+    private static final String LOG_ROUTING_PERSON_TYPE = "→ Routing to person handler ($_type format)";
+    private static final String LOG_ROUTING_UNKNOWN = "→ Unknown event type, logging only";
+
+    public WebhookEventRoute(
+            WebhookEventTypeExtractor eventTypeExtractor,
+            ConversationEventProcessor conversationEventProcessor,
+            PersonEventProcessor personEventProcessor,
+            UnknownEventProcessor unknownEventProcessor) {
+        this.eventTypeExtractor = eventTypeExtractor;
+        this.conversationEventProcessor = conversationEventProcessor;
+        this.personEventProcessor = personEventProcessor;
+        this.unknownEventProcessor = unknownEventProcessor;
+    }
+
+    /**
+     * Définit les routes Camel de traitement des webhooks Unblu :
+     * route principale de dispatch, gestionnaires de conversations, de personnes et d'événements inconnus.
+     * Configure également les gestionnaires d'exceptions (idempotence, validation, retry).
+     */
     @Override
-    public void configure() throws Exception {
+    public void configure() {
+        configureExceptionHandlers();
+        configureMainWebhookRoute();
+        configureConversationHandler();
+        configurePersonHandler();
+        configureUnknownHandler();
+    }
 
-        // Main webhook processor route
-        from("direct:webhook-event-processor")
-            .routeId("webhook-event-processor")
-            .log("=".repeat(100))
+    /**
+     * Configure les gestionnaires d'exceptions globaux pour les routes webhook :
+     * absorption silencieuse des doublons, log des données invalides, et retry exponentiel
+     * avec dead-letter sur les erreurs transitoires.
+     */
+    private void configureExceptionHandlers() {
+        // Duplicate event received (idempotency) — absorb silently
+        onException(DataIntegrityViolationException.class)
+            .handled(true)
+            .log(LoggingLevel.WARN, "webhook-event-processor",
+                "Duplicate webhook event ignored (already persisted): ${exception.message}");
+
+        // Business validation failure (e.g. person not found) — log and absorb
+        onException(IllegalArgumentException.class)
+            .handled(true)
+            .log(LoggingLevel.ERROR, "webhook-event-processor",
+                "Webhook event rejected due to invalid data: ${exception.message}");
+
+        // Transient infrastructure failure — retry 3 times then dead-letter
+        onException(Exception.class)
+            .maximumRedeliveries(3)
+            .redeliveryDelay(2000)
+            .backOffMultiplier(2)
+            .useExponentialBackOff()
+            .retryAttemptedLogLevel(LoggingLevel.WARN)
+            .handled(true)
+            .log(LoggingLevel.ERROR, "webhook-dead-letter",
+                "Webhook event processing failed after retries — event lost: ${exception.message}\nPayload: ${body}");
+    }
+
+    /**
+     * Configure la route principale {@code direct:webhook-event-processor}.
+     * Extrait le type d'événement via {@link WebhookEventTypeExtractor} et dispatche
+     * vers le gestionnaire approprié (conversation, personne, ou inconnu).
+     */
+    private void configureMainWebhookRoute() {
+        from(DIRECT_WEBHOOK_EVENT_PROCESSOR)
+            .routeId(ROUTE_WEBHOOK_EVENT_PROCESSOR)
+            .log(SEPARATOR)
             .log("========== CAMEL ROUTE: Processing Webhook Event ==========")
-            .log("=".repeat(100))
-            .process(exchange -> {
-                // Debug: Check what we received
-                Object body = exchange.getIn().getBody();
-                log.info("Received body class: {}", body != null ? body.getClass().getName() : "null");
-                log.info("Received body: {}", body);
-
-                Map<String, Object> payload = exchange.getIn().getBody(Map.class);
-
-                if (payload == null) {
-                    log.error("ERROR: Payload is null in webhook-event-processor!");
-                    throw new IllegalArgumentException("Webhook payload cannot be null");
-                }
-
-                String eventType = (String) payload.get("$_type");
-
-                log.info("Event Type from payload: {}", eventType);
-                log.info("Event Timestamp: {}", payload.get("timestamp"));
-                log.info("Event Account ID: {}", payload.get("accountId"));
-
-                // Store event type in header for routing
-                exchange.getIn().setHeader("webhookEventType", eventType);
-            })
+            .log(SEPARATOR)
+            .process(eventTypeExtractor)
             .choice()
-                .when(header("webhookEventType").startsWith("conversation."))
-                    .log("→ Routing to conversation handler")
-                    .to("direct:webhook-handle-conversation")
-                .when(header("webhookEventType").startsWith("person."))
-                    .log("→ Routing to person handler")
-                    .to("direct:webhook-handle-person")
+                .when(header(WebhookEventTypeExtractor.EVENT_TYPE_HEADER).startsWith(CONVERSATION_PREFIX))
+                    .log(LOG_ROUTING_CONVERSATION_EVENT_TYPE)
+                    .to(DIRECT_WEBHOOK_HANDLE_CONVERSATION)
+                .when(header(WebhookEventTypeExtractor.EVENT_TYPE_HEADER).startsWith(CONVERSATION_CLASS_PREFIX))
+                    .log(LOG_ROUTING_CONVERSATION_TYPE)
+                    .to(DIRECT_WEBHOOK_HANDLE_CONVERSATION)
+                .when(header(WebhookEventTypeExtractor.EVENT_TYPE_HEADER).startsWith(PERSON_PREFIX))
+                    .log(LOG_ROUTING_PERSON_EVENT_TYPE)
+                    .to(DIRECT_WEBHOOK_HANDLE_PERSON)
+                .when(header(WebhookEventTypeExtractor.EVENT_TYPE_HEADER).startsWith(PERSON_CLASS_PREFIX))
+                    .log(LOG_ROUTING_PERSON_TYPE)
+                    .to(DIRECT_WEBHOOK_HANDLE_PERSON)
                 .otherwise()
-                    .log("→ Unknown event type, logging only")
-                    .to("direct:webhook-handle-unknown")
+                    .log(LOG_ROUTING_UNKNOWN)
+                    .to(DIRECT_WEBHOOK_HANDLE_UNKNOWN)
             .end()
-            .log("=".repeat(100))
+            .log(SEPARATOR)
             .log("========== CAMEL ROUTE: Webhook Processing Complete ==========")
-            .log("=".repeat(100));
+            .log(SEPARATOR);
+    }
 
-        // Conversation events handler
-        from("direct:webhook-handle-conversation")
-            .routeId("webhook-handle-conversation")
-            .log("=".repeat(100))
+    /**
+     * Configure la route {@code direct:webhook-handle-conversation} qui délègue le traitement
+     * des événements de conversation à {@link ConversationEventProcessor}.
+     */
+    private void configureConversationHandler() {
+        from(DIRECT_WEBHOOK_HANDLE_CONVERSATION)
+            .routeId(ROUTE_WEBHOOK_HANDLE_CONVERSATION)
+            .log(SEPARATOR)
             .log("========== CONVERSATION EVENT HANDLER ==========")
-            .log("=".repeat(100))
-            .process(exchange -> {
-                Map<String, Object> payload = exchange.getIn().getBody(Map.class);
-                String eventType = (String) payload.get("$_type");
-
-                log.info("📞 Conversation Event Received!");
-                log.info("   Type: {}", eventType);
-                log.info("   Conversation ID: {}", payload.get("conversationId"));
-                log.info("   Full Details:");
-
-                // Log all fields in the payload
-                payload.forEach((key, value) -> {
-                    if (value != null) {
-                        log.info("      • {}: {}", key, value);
-                    }
-                });
-
-                // Special handling for conversation.created
-                if ("conversation.created".equals(eventType)) {
-                    log.info("");
-                    log.info("🎉 NEW CONVERSATION CREATED!");
-                    log.info("   This is the event you configured in the webhook!");
-                    log.info("");
-                }
-            })
-            .log("=".repeat(100))
+            .log(SEPARATOR)
+            .process(conversationEventProcessor)
+            .log(SEPARATOR)
             .log("========== END CONVERSATION EVENT HANDLER ==========")
-            .log("=".repeat(100));
+            .log(SEPARATOR);
+    }
 
-        // Person events handler
-        from("direct:webhook-handle-person")
-            .routeId("webhook-handle-person")
-            .log("=".repeat(100))
+    /**
+     * Configure la route {@code direct:webhook-handle-person} qui délègue le traitement
+     * des événements de personnes à {@link PersonEventProcessor}.
+     */
+    private void configurePersonHandler() {
+        from(DIRECT_WEBHOOK_HANDLE_PERSON)
+            .routeId(ROUTE_WEBHOOK_HANDLE_PERSON)
+            .log(SEPARATOR)
             .log("========== PERSON EVENT HANDLER ==========")
-            .log("=".repeat(100))
-            .process(exchange -> {
-                Map<String, Object> payload = exchange.getIn().getBody(Map.class);
-                String eventType = (String) payload.get("$_type");
-
-                log.info("👤 Person Event Received!");
-                log.info("   Type: {}", eventType);
-                log.info("   Full Details:");
-
-                payload.forEach((key, value) -> {
-                    if (value != null) {
-                        log.info("      • {}: {}", key, value);
-                    }
-                });
-            })
-            .log("=".repeat(100))
+            .log(SEPARATOR)
+            .process(personEventProcessor)
+            .log(SEPARATOR)
             .log("========== END PERSON EVENT HANDLER ==========")
-            .log("=".repeat(100));
+            .log(SEPARATOR);
+    }
 
-        // Unknown events handler
-        from("direct:webhook-handle-unknown")
-            .routeId("webhook-handle-unknown")
-            .log("=".repeat(100))
+    /**
+     * Configure la route {@code direct:webhook-handle-unknown} qui délègue les événements
+     * non reconnus à {@link UnknownEventProcessor} pour journalisation.
+     */
+    private void configureUnknownHandler() {
+        from(DIRECT_WEBHOOK_HANDLE_UNKNOWN)
+            .routeId(ROUTE_WEBHOOK_HANDLE_UNKNOWN)
+            .log(SEPARATOR)
             .log("========== UNKNOWN EVENT HANDLER ==========")
-            .log("=".repeat(100))
-            .process(exchange -> {
-                Map<String, Object> payload = exchange.getIn().getBody(Map.class);
-                String eventType = (String) payload.get("$_type");
-
-                log.warn("⚠️  Unknown Event Type Received!");
-                log.warn("   Type: {}", eventType);
-                log.warn("   Full Payload: {}", payload);
-            })
-            .log("=".repeat(100))
+            .log(SEPARATOR)
+            .process(unknownEventProcessor)
+            .log(SEPARATOR)
             .log("========== END UNKNOWN EVENT HANDLER ==========")
-            .log("=".repeat(100));
+            .log(SEPARATOR);
     }
 }

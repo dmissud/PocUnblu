@@ -3,4 +3,6 @@ export interface PersonInfo {
   sourceId: string;
   displayName: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
 }

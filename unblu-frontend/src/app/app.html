@@ -7,6 +7,17 @@
         📖 Swagger API
       </button>
 
+      <!-- Sync conversations -->
+      <div class="sync-controls">
+        <button
+          (click)="syncConversations()"
+          class="btn-sync"
+          [disabled]="syncLoading"
+          title="Scanner toutes les conversations Unblu et synchroniser la base de données">
+          {{ syncLoading ? '⏳ Synchronisation...' : '🔄 Sync Conversations' }}
+        </button>
+      </div>
+
       <!-- Webhook status and setup -->
       <div class="webhook-controls">
         <span class="webhook-status" [title]="webhookStatus?.ngrokUrl || 'Non configuré'">
@@ -32,7 +43,33 @@
     </div>
   </header>
 
-  <div *ngIf="loadingData" class="loading">
+  <!-- Sync result banner -->
+  <div *ngIf="syncResult" class="alert alert-sync">
+    <strong>Synchronisation terminée</strong> —
+    {{ syncResult.message }}
+    <span *ngIf="syncResult.errors > 0" class="sync-errors">
+      Conversations en erreur : {{ syncResult.errorConversationIds.join(', ') }}
+    </span>
+    <button (click)="syncResult = null">✕</button>
+  </div>
+
+  <!-- Tab navigation -->
+  <nav class="tab-nav">
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'conversations'"
+      (click)="activeTab = 'conversations'">
+      💬 Conversations
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'history'"
+      (click)="activeTab = 'history'">
+      📋 Historique
+    </button>
+  </nav>
+
+  <div *ngIf="loadingData && activeTab === 'conversations'" class="loading">
     <p>Chargement des données...</p>
   </div>
 
@@ -41,7 +78,12 @@
     <button (click)="error = null">✕</button>
   </div>
 
-  <div *ngIf="!loadingData" class="content">
+  <!-- Tab: Historique -->
+  <div *ngIf="activeTab === 'history'" class="tab-content">
+    <app-conversation-history></app-conversation-history>
+  </div>
+
+  <div *ngIf="!loadingData && activeTab === 'conversations'" class="content">
     <!-- Workflow 1: Conversation Directe -->
     <div class="card">
       <h2>🗣️ Conversation Directe</h2>
@@ -56,7 +98,8 @@
           [disabled]="loading">
           <option [ngValue]="null">-- Sélectionner un client --</option>
           <option *ngFor="let client of clients" [ngValue]="client">
-            {{ client.displayName }} ({{ client.email }})
+            {{ client.firstName && client.lastName ? client.firstName + ' ' + client.lastName : client.displayName }}
+            ({{ client.sourceId }})
           </option>
         </select>
       </div>
@@ -122,7 +165,8 @@
           [disabled]="loading">
           <option [ngValue]="null">-- Sélectionner un client --</option>
           <option *ngFor="let client of clients" [ngValue]="client">
-            {{ client.displayName }} ({{ client.email }})
+            {{ client.firstName && client.lastName ? client.firstName + ' ' + client.lastName : client.displayName }}
+            ({{ client.sourceId }})
           </option>
         </select>
       </div>
