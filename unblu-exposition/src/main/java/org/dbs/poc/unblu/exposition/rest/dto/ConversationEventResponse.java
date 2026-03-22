@@ -3,10 +3,11 @@ package org.dbs.poc.unblu.exposition.rest.dto;
 import lombok.Builder;
 import lombok.Value;
 
-import java.time.Instant;
-
 /**
  * DTO représentant un événement de la timeline d'une conversation.
+ *
+ * <p>L'horodatage est sérialisé en ISO 8601 (String) pour garantir
+ * la compatibilité avec l'ObjectMapper de Camel REST.
  */
 @Value
 @Builder
@@ -14,7 +15,8 @@ public class ConversationEventResponse {
 
     /** {@code CREATED}, {@code MESSAGE} ou {@code ENDED}. */
     String eventType;
-    Instant occurredAt;
+    /** Horodatage ISO 8601. */
+    String occurredAt;
     String messageText;
     String senderPersonId;
     String senderDisplayName;

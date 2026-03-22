@@ -6,9 +6,10 @@ import org.dbs.poc.unblu.domain.model.history.ConversationHistory;
 import org.dbs.poc.unblu.domain.model.history.ConversationHistoryPage;
 import org.dbs.poc.unblu.domain.model.history.ParticipantHistory;
 import org.dbs.poc.unblu.exposition.rest.dto.*;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 
@@ -21,6 +22,12 @@ public class ConversationHistoryQueryMapper {
 
     private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_ENDED = "ENDED";
+
+    private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_INSTANT;
+
+    private String toIso(Instant instant) {
+        return instant != null ? ISO.format(instant) : null;
+    }
 
     /**
      * Mappe la {@link ConversationHistoryPage} domaine en {@link ConversationHistoryPageResponse} REST.
@@ -37,7 +44,7 @@ public class ConversationHistoryQueryMapper {
     public void mapDetailToResponse(Exchange exchange) {
         ConversationHistory history = exchange.getIn().getBody(ConversationHistory.class);
         if (history == null) {
-            exchange.getIn().setHeader(Exchange.HTTP_RESPONSE_CODE, HttpStatus.NOT_FOUND.value());
+            exchange.getIn().setHeader(Exchange.HTTP_RESPONSE_CODE, 404);
             exchange.getIn().setBody(null);
             return;
         }
@@ -61,8 +68,8 @@ public class ConversationHistoryQueryMapper {
         return ConversationHistoryItemResponse.builder()
                 .conversationId(history.conversationId())
                 .topic(history.topic())
-                .createdAt(history.startedAt())
-                .endedAt(history.endedAt())
+                .createdAt(toIso(history.startedAt()))
+                .endedAt(toIso(history.endedAt()))
                 .status(history.isEnded() ? STATUS_ENDED : STATUS_ACTIVE)
                 .build();
     }
@@ -80,8 +87,8 @@ public class ConversationHistoryQueryMapper {
         return ConversationHistoryDetailResponse.builder()
                 .conversationId(history.conversationId())
                 .topic(history.topic())
-                .createdAt(history.startedAt())
-                .endedAt(history.endedAt())
+                .createdAt(toIso(history.startedAt()))
+                .endedAt(toIso(history.endedAt()))
                 .status(history.isEnded() ? STATUS_ENDED : STATUS_ACTIVE)
                 .participants(participants)
                 .events(events)
@@ -99,7 +106,7 @@ public class ConversationHistoryQueryMapper {
     private ConversationEventResponse toEventResponse(ConversationEventHistory event) {
         return ConversationEventResponse.builder()
                 .eventType(event.eventType().name())
-                .occurredAt(event.occurredAt())
+                .occurredAt(toIso(event.occurredAt()))
                 .messageText(event.messageText())
                 .senderPersonId(event.senderPersonId())
                 .senderDisplayName(event.senderDisplayName())
