@@ -9,9 +9,11 @@ import org.dbs.poc.unblu.domain.model.webhook.WebhookStatus;
 import org.dbs.poc.unblu.exposition.rest.dto.StartConversationRequest;
 import org.dbs.poc.unblu.exposition.rest.dto.StartConversationResponse;
 import org.dbs.poc.unblu.exposition.rest.dto.StartDirectConversationRequest;
+import org.dbs.poc.unblu.exposition.rest.dto.SyncConversationsResponse;
 import org.dbs.poc.unblu.exposition.rest.mapper.ConversationMapper;
 import org.dbs.poc.unblu.exposition.rest.mapper.NamedAreaMapper;
 import org.dbs.poc.unblu.exposition.rest.mapper.PersonMapper;
+import org.dbs.poc.unblu.exposition.rest.mapper.SyncConversationsMapper;
 import org.dbs.poc.unblu.exposition.rest.mapper.TeamMapper;
 import org.dbs.poc.unblu.exposition.rest.mapper.WebhookMapper;
 import org.springframework.stereotype.Component;
@@ -44,6 +46,7 @@ public class RestExpositionRoute extends RouteBuilder {
     private static final String ROUTE_REST_WEBHOOK_SETUP = "rest-webhook-setup";
     private static final String ROUTE_REST_WEBHOOK_STATUS = "rest-webhook-status";
     private static final String ROUTE_REST_WEBHOOK_TEARDOWN = "rest-webhook-teardown";
+    private static final String ROUTE_REST_SYNC_CONVERSATIONS = "rest-sync-conversations";
 
     // Internal route URIs
     private static final String DIRECT_REST_START_CONVERSATION = "direct:rest-start-conversation";
@@ -54,6 +57,7 @@ public class RestExpositionRoute extends RouteBuilder {
     private static final String DIRECT_REST_WEBHOOK_SETUP = "direct:rest-webhook-setup";
     private static final String DIRECT_REST_WEBHOOK_STATUS = "direct:rest-webhook-status";
     private static final String DIRECT_REST_WEBHOOK_TEARDOWN = "direct:rest-webhook-teardown";
+    private static final String DIRECT_REST_SYNC_CONVERSATIONS = "direct:rest-sync-conversations";
 
     // REST path segments
     private static final String PATH_CONVERSATIONS = "/v1/conversations";
@@ -73,18 +77,21 @@ public class RestExpositionRoute extends RouteBuilder {
     private final TeamMapper teamMapper;
     private final NamedAreaMapper namedAreaMapper;
     private final WebhookMapper webhookMapper;
+    private final SyncConversationsMapper syncConversationsMapper;
 
     public RestExpositionRoute(
             ConversationMapper conversationMapper,
             PersonMapper personMapper,
             TeamMapper teamMapper,
             NamedAreaMapper namedAreaMapper,
-            WebhookMapper webhookMapper) {
+            WebhookMapper webhookMapper,
+            SyncConversationsMapper syncConversationsMapper) {
         this.conversationMapper = conversationMapper;
         this.personMapper = personMapper;
         this.teamMapper = teamMapper;
         this.namedAreaMapper = namedAreaMapper;
         this.webhookMapper = webhookMapper;
+        this.syncConversationsMapper = syncConversationsMapper;
     }
 
     @Override
@@ -132,7 +139,11 @@ public class RestExpositionRoute extends RouteBuilder {
                 .post("/direct")
                     .type(StartDirectConversationRequest.class)
                     .outType(StartConversationResponse.class)
-                    .to(DIRECT_REST_START_DIRECT_CONVERSATION);
+                    .to(DIRECT_REST_START_DIRECT_CONVERSATION)
+                .post("/sync")
+                    .description("Scan toutes les conversations Unblu et synchronise la base de données")
+                    .outType(SyncConversationsResponse.class)
+                    .to(DIRECT_REST_SYNC_CONVERSATIONS);
     }
 
     private void definePersonEndpoints() {
@@ -240,6 +251,13 @@ public class RestExpositionRoute extends RouteBuilder {
                 .to(OrchestratorEndpoints.DIRECT_START_DIRECT_CONVERSATION)
                 .process(conversationMapper::mapInfoToResponse)
                 .log("Direct conversation started successfully");
+
+        from(DIRECT_REST_SYNC_CONVERSATIONS)
+                .routeId(ROUTE_REST_SYNC_CONVERSATIONS)
+                .log("Démarrage de la synchronisation des conversations")
+                .to(OrchestratorEndpoints.DIRECT_SYNC_CONVERSATIONS)
+                .process(syncConversationsMapper::mapResultToResponse)
+                .log("Synchronisation terminée: ${body}");
     }
 
     private void definePersonRoutes() {

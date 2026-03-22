@@ -27,6 +27,7 @@ public class UnbluResilientRoute extends RouteBuilder {
     public static final String DIRECT_UNBLU_SEARCH_PERSONS_RESILIENT = "direct:unblu-search-persons-resilient";
     public static final String DIRECT_UNBLU_CREATE_DIRECT_CONVERSATION_RESILIENT = "direct:unblu-create-direct-conversation-resilient";
     public static final String DIRECT_UNBLU_ADD_SUMMARY_RESILIENT = "direct:unblu-add-summary-resilient";
+    public static final String DIRECT_UNBLU_LIST_CONVERSATIONS_RESILIENT = "direct:unblu-list-conversations-resilient";
 
     private static final int TIMEOUT_MS = 3000;
 
@@ -78,6 +79,17 @@ public class UnbluResilientRoute extends RouteBuilder {
                 .to(UnbluCamelAdapter.DIRECT_UNBLU_ADD_SUMMARY)
             .onFallback()
                 .log("⚠️ Unblu indisponible — résumé ignoré (non critique)")
+            .end();
+
+        // --- List all conversations ---
+        from(DIRECT_UNBLU_LIST_CONVERSATIONS_RESILIENT)
+            .routeId("unblu-resilient-list-conversations")
+            .circuitBreaker()
+                .resilience4jConfiguration().timeoutEnabled(true).timeoutDuration(TIMEOUT_MS).end()
+                .to(UnbluCamelAdapter.DIRECT_UNBLU_LIST_CONVERSATIONS)
+            .onFallback()
+                .log("⚠️ Unblu indisponible — fallback listAllConversations (liste vide)")
+                .process(exchange -> exchange.getIn().setBody(List.of()))
             .end();
     }
 

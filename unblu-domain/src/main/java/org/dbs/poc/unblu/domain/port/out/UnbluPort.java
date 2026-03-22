@@ -9,6 +9,14 @@ import java.util.List;
  * Regroupe toutes les opérations Unblu exposées au domaine : conversations, personnes, équipes, zones nommées et bots.
  */
 public interface UnbluPort {
+
+    /**
+     * Retourne la liste de toutes les conversations présentes dans Unblu.
+     * Utilisé pour le scan complet lors de la synchronisation avec la base de données.
+     *
+     * @return liste des résumés de conversations (jamais {@code null}, peut être vide)
+     */
+    List<UnbluConversationSummary> listAllConversations();
     /**
      * Creates a new conversation in Unblu and returns its info.
      */

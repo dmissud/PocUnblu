@@ -83,6 +83,14 @@ public class UnbluCamelAdapterPort implements UnbluPort {
         return producerTemplate.requestBody(UnbluCamelAdapter.DIRECT_UNBLU_SEARCH_AGENTS_BY_NAMED_AREA, namedAreaId, List.class);
     }
 
+    /** {@inheritDoc} */
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<UnbluConversationSummary> listAllConversations() {
+        return producerTemplate.requestBody(
+                UnbluResilientRoute.DIRECT_UNBLU_LIST_CONVERSATIONS_RESILIENT, null, List.class);
+    }
+
     /**
      * Requête de recherche de personnes transmise à la route Camel Unblu.
      *

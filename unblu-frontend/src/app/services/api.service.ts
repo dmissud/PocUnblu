@@ -5,6 +5,7 @@ import {PersonInfo} from '../models/person.model';
 import {TeamInfo} from '../models/team.model';
 import {NamedAreaInfo} from '../models/named-area.model';
 import {
+  ConversationSyncResult,
   DirectConversationRequest,
   StartConversationResponse,
   TeamConversationRequest
@@ -50,6 +51,10 @@ export class ApiService {
       origin: 'FRONTEND_TEST'
     };
     return this.http.post<StartConversationResponse>(`${this.baseUrl}/conversations/start`, camelRequest);
+  }
+
+  syncConversations(): Observable<ConversationSyncResult> {
+    return this.http.post<ConversationSyncResult>(`${this.baseUrl}/conversations/sync`, {});
   }
 
   // Webhook setup methods

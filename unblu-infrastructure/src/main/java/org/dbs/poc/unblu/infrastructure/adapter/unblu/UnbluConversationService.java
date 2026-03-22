@@ -8,10 +8,12 @@ import com.unblu.webapi.model.v4.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
+import org.dbs.poc.unblu.domain.model.UnbluConversationSummary;
 import org.dbs.poc.unblu.infrastructure.config.UnbluProperties;
 import org.dbs.poc.unblu.infrastructure.exception.UnbluApiException;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -96,6 +98,40 @@ public class UnbluConversationService {
             log.error("Erreur lors de la création de la conversation directe - Status: {}", e.getCode(), e);
             throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la création de la conversation directe : " + e.getMessage());
         }
+    }
+
+    /**
+     * Retourne la liste de toutes les conversations présentes dans Unblu.
+     *
+     * @return liste des résumés de conversations mappés en objets domaine
+     * @throws org.dbs.poc.unblu.infrastructure.exception.UnbluApiException en cas d'erreur API
+     */
+    public List<UnbluConversationSummary> listAllConversations() {
+        try {
+            ConversationsApi conversationsApi = new ConversationsApi(apiClient);
+            ConversationQuery query = new ConversationQuery();
+            log.info("Récupération de toutes les conversations dans Unblu...");
+            ConversationResult result = conversationsApi.conversationsSearch(query, NO_EXPAND);
+            log.info("Trouvé {} conversation(s)", result.getItems().size());
+            return result.getItems().stream()
+                    .map(this::toConversationSummary)
+                    .toList();
+        } catch (ApiException e) {
+            log.error("Erreur lors de la récupération des conversations - Status: {}", e.getCode(), e);
+            throw new UnbluApiException(e.getCode(), "Error",
+                    "Erreur lors de la récupération des conversations : " + e.getMessage());
+        }
+    }
+
+    private UnbluConversationSummary toConversationSummary(ConversationData data) {
+        Instant createdAt = data.getCreationTimestamp() != null
+                ? Instant.ofEpochMilli(data.getCreationTimestamp())
+                : Instant.now();
+        Instant endedAt = data.getEndTimestamp() != null
+                ? Instant.ofEpochMilli(data.getEndTimestamp())
+                : null;
+        String state = data.getState() != null ? data.getState().name() : "UNKNOWN";
+        return new UnbluConversationSummary(data.getId(), data.getTopic(), state, createdAt, endedAt);
     }
 
     /**
