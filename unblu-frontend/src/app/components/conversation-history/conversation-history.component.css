@@ -71,6 +71,20 @@
   white-space: nowrap;
 }
 
+.conversations-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.conversations-table th.sortable:hover {
+  background: #e8eaed;
+}
+
+.conversations-table th.sorted {
+  color: #1a73e8;
+  background: #e8f0fe;
+}
+
 .conversations-table td {
   padding: 0.7rem 1rem;
   border-bottom: 1px solid #f1f3f4;

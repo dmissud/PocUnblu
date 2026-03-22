@@ -3,6 +3,8 @@ package org.dbs.poc.unblu.infrastructure.persistence.adapter;
 import lombok.RequiredArgsConstructor;
 import org.dbs.poc.unblu.domain.model.history.ConversationHistory;
 import org.dbs.poc.unblu.domain.model.history.ConversationHistoryPage;
+import org.dbs.poc.unblu.domain.model.history.ConversationSortDirection;
+import org.dbs.poc.unblu.domain.model.history.ConversationSortField;
 import org.dbs.poc.unblu.domain.port.out.ConversationHistoryRepository;
 import org.dbs.poc.unblu.infrastructure.persistence.entity.ConversationEventHistoryEntity;
 import org.dbs.poc.unblu.infrastructure.persistence.entity.ConversationHistoryEntity;
@@ -110,17 +112,21 @@ public class ConversationHistoryRepositoryAdapter implements ConversationHistory
     }
 
     /**
-     * Returns a paginated list of conversation headers, sorted by creation date descending.
+     * Returns a paginated list of conversation headers, sorted by the given field and direction.
+     * Nullable columns ({@code endedAt}, {@code topic}) are always sorted NULLS LAST.
      * Collections (events, participants) are intentionally not loaded for performance.
      *
-     * @param page zero-indexed page number
-     * @param size number of items per page
+     * @param page      zero-indexed page number
+     * @param size      number of items per page
+     * @param sortField the field to sort by
+     * @param sortDir   the sort direction
      * @return the page of conversation summaries
      */
     @Override
     @Transactional(readOnly = true)
-    public ConversationHistoryPage findPage(int page, int size) {
-        PageRequest pageRequest = PageRequest.of(page, size, Sort.by("createdAt").descending());
+    public ConversationHistoryPage findPage(int page, int size, ConversationSortField sortField, ConversationSortDirection sortDir) {
+        Sort sort = buildSort(sortField, sortDir);
+        PageRequest pageRequest = PageRequest.of(page, size, sort);
         Page<ConversationHistoryEntity> entityPage = jpaRepository.findAll(pageRequest);
         List<ConversationHistory> items = entityPage.getContent().stream()
                 .map(mapper::toDomainSummary)
@@ -131,6 +137,18 @@ public class ConversationHistoryRepositoryAdapter implements ConversationHistory
                 page,
                 size,
                 entityPage.getTotalPages());
+    }
+
+    private Sort buildSort(ConversationSortField sortField, ConversationSortDirection sortDir) {
+        String column = switch (sortField) {
+            case CREATED_AT -> "createdAt";
+            case ENDED_AT   -> "endedAt";
+            case TOPIC      -> "topic";
+        };
+        Sort.Order order = sortDir == ConversationSortDirection.ASC
+                ? Sort.Order.asc(column).with(Sort.NullHandling.NULLS_LAST)
+                : Sort.Order.desc(column).with(Sort.NullHandling.NULLS_LAST);
+        return Sort.by(order);
     }
 
     /**

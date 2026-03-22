@@ -26,13 +26,15 @@ public class ConversationHistoryQueryRoute extends RouteBuilder {
 
         from(OrchestratorEndpoints.DIRECT_LIST_CONVERSATION_HISTORY)
             .routeId("list-conversation-history")
-            .log("Listing conversations — page: ${header.page}, size: ${header.size}")
+            .log("Listing conversations — page: ${header.page}, size: ${header.size}, sort: ${header.sortField} ${header.sortDir}")
             .process(exchange -> {
                 int page = exchange.getIn().getHeader("page", 0, Integer.class);
                 int size = exchange.getIn().getHeader("size", 10, Integer.class);
+                String sortField = exchange.getIn().getHeader("sortField", String.class);
+                String sortDir = exchange.getIn().getHeader("sortDir", String.class);
                 exchange.getIn().setBody(
                         listConversationHistoryUseCase.listConversations(
-                                ListConversationHistoryQuery.of(page, size)));
+                                ListConversationHistoryQuery.of(page, size, sortField, sortDir)));
             });
 
         from(OrchestratorEndpoints.DIRECT_GET_CONVERSATION_HISTORY)

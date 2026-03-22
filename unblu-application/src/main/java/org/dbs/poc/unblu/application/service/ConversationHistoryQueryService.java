@@ -31,8 +31,8 @@ public class ConversationHistoryQueryService
 
     @Override
     public ConversationHistoryPage listConversations(ListConversationHistoryQuery query) {
-        log.debug("Listing conversations — page: {}, size: {}", query.page(), query.size());
-        ConversationHistoryPage page = conversationHistoryRepository.findPage(query.page(), query.size());
+        log.debug("Listing conversations — page: {}, size: {}, sort: {} {}", query.page(), query.size(), query.sortField(), query.sortDirection());
+        ConversationHistoryPage page = conversationHistoryRepository.findPage(query.page(), query.size(), query.sortField(), query.sortDirection());
         log.debug("Retour de {} conversation(s) sur {} au total", page.items().size(), page.totalItems());
         return page;
     }

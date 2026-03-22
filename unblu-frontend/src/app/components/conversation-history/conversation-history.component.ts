@@ -23,6 +23,10 @@ export class ConversationHistoryComponent implements OnInit {
   loadingList = false;
   listError: string | null = null;
 
+  // Sort state
+  sortField: string = 'CREATED_AT';
+  sortDir: string = 'DESC';
+
   // Detail state
   selectedConversation: ConversationHistoryDetail | null = null;
   loadingDetail = false;
@@ -39,7 +43,7 @@ export class ConversationHistoryComponent implements OnInit {
     this.listError = null;
     this.selectedConversation = null;
 
-    this.apiService.getConversationHistory(page, this.PAGE_SIZE).subscribe({
+    this.apiService.getConversationHistory(page, this.PAGE_SIZE, this.sortField, this.sortDir).subscribe({
       next: (result) => {
         this.currentPage = result;
         this.loadingList = false;
@@ -49,6 +53,21 @@ export class ConversationHistoryComponent implements OnInit {
         this.loadingList = false;
       }
     });
+  }
+
+  sortBy(field: string): void {
+    if (this.sortField === field) {
+      this.sortDir = this.sortDir === 'ASC' ? 'DESC' : 'ASC';
+    } else {
+      this.sortField = field;
+      this.sortDir = 'DESC';
+    }
+    this.loadPage(0);
+  }
+
+  sortIndicator(field: string): string {
+    if (this.sortField !== field) return '';
+    return this.sortDir === 'ASC' ? ' ↑' : ' ↓';
   }
 
   selectConversation(item: ConversationHistoryItem): void {

@@ -34,9 +34,15 @@
           <thead>
             <tr>
               <th>Statut</th>
-              <th>Sujet</th>
-              <th>Début</th>
-              <th>Fin</th>
+              <th class="sortable" (click)="sortBy('TOPIC')" [class.sorted]="sortField === 'TOPIC'">
+                Sujet{{ sortIndicator('TOPIC') }}
+              </th>
+              <th class="sortable" (click)="sortBy('CREATED_AT')" [class.sorted]="sortField === 'CREATED_AT'">
+                Début{{ sortIndicator('CREATED_AT') }}
+              </th>
+              <th class="sortable" (click)="sortBy('ENDED_AT')" [class.sorted]="sortField === 'ENDED_AT'">
+                Fin{{ sortIndicator('ENDED_AT') }}
+              </th>
               <th></th>
             </tr>
           </thead>

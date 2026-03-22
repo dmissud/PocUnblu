@@ -58,9 +58,14 @@ export class ApiService {
     return this.http.post<ConversationSyncResult>(`${this.baseUrl}/conversations/sync`, {});
   }
 
-  getConversationHistory(page: number = 0, size: number = 10): Observable<ConversationHistoryPage> {
+  getConversationHistory(
+    page: number = 0,
+    size: number = 10,
+    sortField: string = 'CREATED_AT',
+    sortDir: string = 'DESC'
+  ): Observable<ConversationHistoryPage> {
     return this.http.get<ConversationHistoryPage>(
-      `${this.baseUrl}/conversations/history?page=${page}&size=${size}`
+      `${this.baseUrl}/conversations/history?page=${page}&size=${size}&sortField=${sortField}&sortDir=${sortDir}`
     );
   }
 
