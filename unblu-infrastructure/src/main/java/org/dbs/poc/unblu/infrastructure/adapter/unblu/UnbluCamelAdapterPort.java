@@ -92,6 +92,26 @@ public class UnbluCamelAdapterPort implements UnbluPort {
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<UnbluMessageData> fetchConversationMessages(String conversationId) {
+        return producerTemplate.requestBody(
+                UnbluResilientRoute.DIRECT_UNBLU_FETCH_MESSAGES_RESILIENT, conversationId, List.class);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<UnbluParticipantData> fetchConversationParticipants(String conversationId) {
+        return producerTemplate.requestBody(
+                UnbluResilientRoute.DIRECT_UNBLU_FETCH_PARTICIPANTS_RESILIENT, conversationId, List.class);
+    }
+
+    /**
      * Requête de recherche de personnes transmise à la route Camel Unblu.
      *
      * @param sourceId     identifiant source (peut être {@code null})

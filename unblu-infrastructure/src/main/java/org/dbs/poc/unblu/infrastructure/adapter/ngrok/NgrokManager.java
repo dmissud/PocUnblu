@@ -94,20 +94,29 @@ public class NgrokManager implements TunnelPort {
         try {
             log.info("Starting ngrok tunnel on port {}...", localPort);
             ProcessBuilder pb = new ProcessBuilder("ngrok", "http", String.valueOf(localPort));
-            pb.redirectErrorStream(true);
+            pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
             ngrokProcess = pb.start();
 
-            // Wait for ngrok to start (typically takes 2-3 seconds)
-            Thread.sleep(3000);
+            // Poll ngrok API until tunnel is ready (up to 10 seconds)
+            String url = null;
+            for (int i = 0; i < 10; i++) {
+                Thread.sleep(1000);
+                if (!ngrokProcess.isAlive()) {
+                    log.error("Ngrok process exited unexpectedly (exit code: {})", ngrokProcess.exitValue());
+                    return false;
+                }
+                url = fetchPublicUrl();
+                if (url != null) break;
+                log.debug("Waiting for ngrok tunnel... ({}/10)", i + 1);
+            }
 
-            // Verify ngrok started and get public URL
-            String url = fetchPublicUrl();
             if (url != null) {
                 currentPublicUrl = url;
                 log.info("Ngrok tunnel started successfully: {}", currentPublicUrl);
                 return true;
             } else {
-                log.error("Ngrok started but failed to get public URL");
+                log.error("Ngrok started but failed to get public URL after 10 seconds");
                 stopNgrok();
                 return false;
             }

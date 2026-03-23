@@ -4,6 +4,7 @@ import org.dbs.poc.unblu.domain.model.*;
 
 import java.util.List;
 
+
 /**
  * Port secondaire vers la plateforme Unblu.
  * Regroupe toutes les opérations Unblu exposées au domaine : conversations, personnes, équipes, zones nommées et bots.
@@ -71,4 +72,21 @@ public interface UnbluPort {
      * @return identifiant de la personne bot créée ({@code botPersonId})
      */
     String createBot(String name, String description);
+
+    /**
+     * Récupère tous les messages d'une conversation depuis l'historique Unblu.
+     * Parcourt toutes les pages via pagination.
+     *
+     * @param conversationId identifiant Unblu de la conversation
+     * @return liste ordonnée des messages (jamais {@code null}, peut être vide)
+     */
+    List<UnbluMessageData> fetchConversationMessages(String conversationId);
+
+    /**
+     * Récupère les participants d'une conversation depuis l'historique Unblu.
+     *
+     * @param conversationId identifiant Unblu de la conversation
+     * @return liste des participants (jamais {@code null}, peut être vide)
+     */
+    List<UnbluParticipantData> fetchConversationParticipants(String conversationId);
 }

@@ -73,6 +73,20 @@ public class ConversationHistory {
     }
 
     /**
+     * Enregistre un message dans l'historique sans vérifier l'état de la conversation.
+     * Réservé au backfill lors de la synchronisation (conversations déjà terminées en Unblu).
+     */
+    public void backfillMessage(String messageText, String senderPersonId, String senderDisplayName, Instant time) {
+        this.events.add(ConversationEventHistory.builder()
+                .eventType(ConversationEventHistory.EventType.MESSAGE)
+                .eventTime(time)
+                .messageText(messageText)
+                .senderPersonId(senderPersonId)
+                .senderDisplayName(senderDisplayName)
+                .build());
+    }
+
+    /**
      * Ends this conversation and records the ENDED event.
      *
      * @throws IllegalStateException if the conversation has already ended

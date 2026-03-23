@@ -28,8 +28,11 @@ public class UnbluResilientRoute extends RouteBuilder {
     public static final String DIRECT_UNBLU_CREATE_DIRECT_CONVERSATION_RESILIENT = "direct:unblu-create-direct-conversation-resilient";
     public static final String DIRECT_UNBLU_ADD_SUMMARY_RESILIENT = "direct:unblu-add-summary-resilient";
     public static final String DIRECT_UNBLU_LIST_CONVERSATIONS_RESILIENT = "direct:unblu-list-conversations-resilient";
+    public static final String DIRECT_UNBLU_FETCH_MESSAGES_RESILIENT = "direct:unblu-fetch-messages-resilient";
+    public static final String DIRECT_UNBLU_FETCH_PARTICIPANTS_RESILIENT = "direct:unblu-fetch-participants-resilient";
 
     private static final int TIMEOUT_MS = 3000;
+    private static final int TIMEOUT_MS_BULK = 30000;
 
     /**
      * Déclare les routes Camel avec circuit breaker Resilience4j pour chaque opération Unblu.
@@ -85,10 +88,32 @@ public class UnbluResilientRoute extends RouteBuilder {
         from(DIRECT_UNBLU_LIST_CONVERSATIONS_RESILIENT)
             .routeId("unblu-resilient-list-conversations")
             .circuitBreaker()
-                .resilience4jConfiguration().timeoutEnabled(true).timeoutDuration(TIMEOUT_MS).end()
+                .resilience4jConfiguration().timeoutEnabled(true).timeoutDuration(TIMEOUT_MS_BULK).end()
                 .to(UnbluCamelAdapter.DIRECT_UNBLU_LIST_CONVERSATIONS)
             .onFallback()
-                .log("⚠️ Unblu indisponible — fallback listAllConversations (liste vide)")
+                .log("⚠️ Unblu indisponible ou timeout (>" + TIMEOUT_MS_BULK + "ms) — fallback listAllConversations (liste vide). Cause: ${exception.message}")
+                .process(exchange -> exchange.getIn().setBody(List.of()))
+                .end();
+
+        // --- Fetch messages (per conversation) ---
+        from(DIRECT_UNBLU_FETCH_MESSAGES_RESILIENT)
+                .routeId("unblu-resilient-fetch-messages")
+                .circuitBreaker()
+                .resilience4jConfiguration().timeoutEnabled(true).timeoutDuration(TIMEOUT_MS_BULK).end()
+                .to(UnbluCamelAdapter.DIRECT_UNBLU_FETCH_MESSAGES)
+                .onFallback()
+                .log("⚠️ Timeout ou erreur lors de la récupération des messages — liste vide. Cause: ${exception.message}")
+                .process(exchange -> exchange.getIn().setBody(List.of()))
+                .end();
+
+        // --- Fetch participants (per conversation) ---
+        from(DIRECT_UNBLU_FETCH_PARTICIPANTS_RESILIENT)
+                .routeId("unblu-resilient-fetch-participants")
+                .circuitBreaker()
+                .resilience4jConfiguration().timeoutEnabled(true).timeoutDuration(TIMEOUT_MS).end()
+                .to(UnbluCamelAdapter.DIRECT_UNBLU_FETCH_PARTICIPANTS)
+                .onFallback()
+                .log("⚠️ Timeout ou erreur lors de la récupération des participants — liste vide. Cause: ${exception.message}")
                 .process(exchange -> exchange.getIn().setBody(List.of()))
             .end();
     }
