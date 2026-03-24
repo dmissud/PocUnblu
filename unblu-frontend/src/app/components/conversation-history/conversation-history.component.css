@@ -256,6 +256,61 @@
   border-color: #1a73e8;
 }
 
+.stats-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.btn-sync-history {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+  background: #e8f0fe;
+  border: 1px solid #1a73e8;
+  border-radius: 4px;
+  color: #1a73e8;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-sync-history:hover:not(:disabled) {
+  background: #1a73e8;
+  color: #fff;
+}
+
+.btn-sync-history:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.alert-sync {
+  background: #e6f4ea;
+  border: 1px solid #34a853;
+  color: #1e8e3e;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.alert-sync button {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #1e8e3e;
+  font-size: 1rem;
+}
+
+.sync-errors {
+  font-size: 0.85rem;
+  color: #c5221f;
+}
+
 .btn-enrich {
   padding: 0.3rem 0.75rem;
   font-size: 0.8rem;

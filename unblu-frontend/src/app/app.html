@@ -1,57 +1,46 @@
 <div class="container">
   <header>
-    <h1>{{ title }}</h1>
-    <p>Gestion des conversations Unblu</p>
-    <div class="header-buttons">
-      <button (click)="openSwagger()" class="btn-swagger" title="Ouvrir la documentation Swagger">
-        📖 Swagger API
-      </button>
+    <div class="header-brand">
+      <h1>{{ title }}</h1>
+      <p>Gestion des conversations Unblu</p>
+    </div>
+    <div class="header-toolbar">
 
-      <!-- Sync conversations -->
-      <div class="sync-controls">
-        <button
-          (click)="syncConversations()"
-          class="btn-sync"
-          [disabled]="syncLoading"
-          title="Scanner toutes les conversations Unblu et synchroniser la base de données">
-          {{ syncLoading ? '⏳ Synchronisation...' : '🔄 Sync Conversations' }}
-        </button>
-      </div>
-
-      <!-- Webhook status and setup -->
-      <div class="webhook-controls">
-        <span class="webhook-status" [title]="webhookStatus?.ngrokUrl || 'Non configuré'">
+      <!-- Webhook section -->
+      <div class="toolbar-group">
+        <span class="webhook-badge" [title]="webhookStatus?.ngrokUrl || 'Non configuré'"
+          [class.badge-active]="webhookStatus?.ngrokRunning && webhookStatus?.webhookRegistered"
+          [class.badge-partial]="webhookStatus?.ngrokRunning !== webhookStatus?.webhookRegistered"
+          [class.badge-inactive]="!webhookStatus?.ngrokRunning && !webhookStatus?.webhookRegistered">
           {{ webhookStatusIcon }} {{ webhookStatusText }}
         </span>
         <button
           *ngIf="!webhookStatus?.ngrokRunning"
           (click)="setupWebhook()"
-          class="btn-webhook"
+          class="btn-toolbar btn-toolbar-blue"
           [disabled]="webhookLoading"
           title="Configurer le webhook (lance ngrok + enregistre dans Unblu)">
-          {{ webhookLoading ? '⏳ Configuration...' : '🔧 Setup Webhook' }}
+          {{ webhookLoading ? '⏳' : '🔧' }} {{ webhookLoading ? 'Configuration...' : 'Setup Webhook' }}
         </button>
         <button
           *ngIf="webhookStatus?.ngrokRunning"
           (click)="teardownWebhook()"
-          class="btn-webhook-stop"
+          class="btn-toolbar btn-toolbar-danger"
           [disabled]="webhookLoading"
           title="Arrêter le webhook">
-          {{ webhookLoading ? '⏳ Arrêt...' : '🗑️ Arrêter Webhook' }}
+          {{ webhookLoading ? '⏳' : '🗑️' }} {{ webhookLoading ? 'Arrêt...' : 'Arrêter Webhook' }}
         </button>
       </div>
+
+      <div class="toolbar-separator"></div>
+
+      <!-- Swagger -->
+      <button (click)="openSwagger()" class="btn-toolbar btn-toolbar-ghost" title="Ouvrir la documentation Swagger">
+        📖 Swagger
+      </button>
+
     </div>
   </header>
-
-  <!-- Sync result banner -->
-  <div *ngIf="syncResult" class="alert alert-sync">
-    <strong>Synchronisation terminée</strong> —
-    {{ syncResult.message }}
-    <span *ngIf="syncResult.errors > 0" class="sync-errors">
-      Conversations en erreur : {{ syncResult.errorConversationIds.join(', ') }}
-    </span>
-    <button (click)="syncResult = null">✕</button>
-  </div>
 
   <!-- Tab navigation -->
   <nav class="tab-nav">

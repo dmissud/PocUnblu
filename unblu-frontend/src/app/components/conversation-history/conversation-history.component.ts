@@ -7,6 +7,7 @@ import {
   ConversationHistoryItem,
   ConversationHistoryPage
 } from '../../models/conversation-history.model';
+import {ConversationSyncResult} from '../../models/conversation.model';
 
 @Component({
   selector: 'app-conversation-history',
@@ -35,6 +36,11 @@ export class ConversationHistoryComponent implements OnInit {
   // Enrich state
   enrichLoading = false;
   enrichError: string | null = null;
+
+  // Sync state
+  syncLoading = false;
+  syncResult: ConversationSyncResult | null = null;
+  syncError: string | null = null;
 
   constructor(private apiService: ApiService) {}
 
@@ -110,6 +116,24 @@ export class ConversationHistoryComponent implements OnInit {
 
   isSelected(item: ConversationHistoryItem): boolean {
     return this.selectedConversation?.conversationId === item.conversationId;
+  }
+
+  syncConversations(): void {
+    this.syncLoading = true;
+    this.syncResult = null;
+    this.syncError = null;
+
+    this.apiService.syncConversations().subscribe({
+      next: (result) => {
+        this.syncResult = result;
+        this.syncLoading = false;
+        this.loadPage(this.currentPage?.page ?? 0);
+      },
+      error: (err) => {
+        this.syncError = 'Erreur lors de la synchronisation : ' + err.message;
+        this.syncLoading = false;
+      }
+    });
   }
 
   enrichFromUnblu(): void {
