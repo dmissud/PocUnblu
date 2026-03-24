@@ -7,17 +7,6 @@
         📖 Swagger API
       </button>
 
-      <!-- Sync conversations -->
-      <div class="sync-controls">
-        <button
-          (click)="syncConversations()"
-          class="btn-sync"
-          [disabled]="syncLoading"
-          title="Scanner toutes les conversations Unblu et synchroniser la base de données">
-          {{ syncLoading ? '⏳ Synchronisation...' : '🔄 Sync Conversations' }}
-        </button>
-      </div>
-
       <!-- Webhook status and setup -->
       <div class="webhook-controls">
         <span class="webhook-status" [title]="webhookStatus?.ngrokUrl || 'Non configuré'">
@@ -42,16 +31,6 @@
       </div>
     </div>
   </header>
-
-  <!-- Sync result banner -->
-  <div *ngIf="syncResult" class="alert alert-sync">
-    <strong>Synchronisation terminée</strong> —
-    {{ syncResult.message }}
-    <span *ngIf="syncResult.errors > 0" class="sync-errors">
-      Conversations en erreur : {{ syncResult.errorConversationIds.join(', ') }}
-    </span>
-    <button (click)="syncResult = null">✕</button>
-  </div>
 
   <!-- Tab navigation -->
   <nav class="tab-nav">

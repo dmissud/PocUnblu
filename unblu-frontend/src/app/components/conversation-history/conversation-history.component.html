@@ -1,5 +1,21 @@
 <div class="history-container">
 
+  <!-- Sync result banner -->
+  <div *ngIf="syncResult" class="alert alert-sync">
+    <strong>Synchronisation terminée</strong> —
+    {{ syncResult.message }}
+    <span *ngIf="syncResult.errors > 0" class="sync-errors">
+      Conversations en erreur : {{ syncResult.errorConversationIds.join(', ') }}
+    </span>
+    <button (click)="syncResult = null">✕</button>
+  </div>
+
+  <!-- Sync error banner -->
+  <div *ngIf="syncError" class="alert alert-error">
+    {{ syncError }}
+    <button (click)="syncError = null">✕</button>
+  </div>
+
   <!-- Error banner -->
   <div *ngIf="listError" class="alert alert-error">
     {{ listError }}
@@ -26,7 +42,13 @@
         <span class="stat">
           Page <strong>{{ currentPage.page + 1 }}</strong> / <strong>{{ currentPage.totalPages || 1 }}</strong>
         </span>
-        <button class="btn-reload" (click)="reloadList()" title="Recharger la liste">&#8635;</button>
+        <div class="stats-actions">
+          <button class="btn-sync-history" (click)="syncConversations()" [disabled]="syncLoading"
+            title="Scanner toutes les conversations Unblu et synchroniser la base de données">
+            {{ syncLoading ? '⏳ Sync...' : '↓ Sync Unblu' }}
+          </button>
+          <button class="btn-reload" (click)="reloadList()" [disabled]="syncLoading" title="Recharger la liste">&#8635;</button>
+        </div>
       </div>
 
       <!-- Table -->
