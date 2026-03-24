@@ -98,8 +98,7 @@
           [disabled]="loading">
           <option [ngValue]="null">-- Sélectionner un client --</option>
           <option *ngFor="let client of clients" [ngValue]="client">
-            {{ client.firstName && client.lastName ? client.firstName + ' ' + client.lastName : client.displayName }}
-            ({{ client.sourceId }})
+            {{ client.displayName }} ({{ client.id }} / {{ client.sourceId }})
           </option>
         </select>
       </div>
@@ -113,7 +112,7 @@
           [disabled]="loading">
           <option [ngValue]="null">-- Sélectionner un agent --</option>
           <option *ngFor="let agent of agents" [ngValue]="agent">
-            {{ agent.displayName }} ({{ agent.email }})
+            {{ agent.displayName }} ({{ agent.id }} / {{ agent.sourceId }})
           </option>
         </select>
       </div>
@@ -165,8 +164,7 @@
           [disabled]="loading">
           <option [ngValue]="null">-- Sélectionner un client --</option>
           <option *ngFor="let client of clients" [ngValue]="client">
-            {{ client.firstName && client.lastName ? client.firstName + ' ' + client.lastName : client.displayName }}
-            ({{ client.sourceId }})
+            {{ client.displayName }} ({{ client.id }} / {{ client.sourceId }})
           </option>
         </select>
       </div>

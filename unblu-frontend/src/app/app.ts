@@ -65,13 +65,13 @@ export class App implements OnInit {
     this.loadingData = true;
 
     Promise.all([
-      this.apiService.getClients().toPromise(),
-      this.apiService.getAgents().toPromise(),
+      this.apiService.getPersons().toPromise(),
       this.apiService.getTeams().toPromise(),
       this.apiService.getNamedAreas().toPromise()
-    ]).then(([clients, agents, teams, namedAreas]) => {
-      this.clients = clients || [];
-      this.agents = agents || [];
+    ]).then(([persons, teams, namedAreas]) => {
+      const allPersons = persons || [];
+      this.clients = allPersons.filter(p => p.personType === 'VISITOR');
+      this.agents  = allPersons.filter(p => p.personType === 'AGENT');
       this.teams = teams || [];
       this.namedAreas = namedAreas || [];
       this.loadingData = false;

@@ -53,4 +53,7 @@ public final class OrchestratorEndpoints {
 
     /** Endpoint de consultation du détail d'une conversation historisée. */
     public static final String DIRECT_GET_CONVERSATION_HISTORY = "direct:get-conversation-history";
+
+    /** Endpoint d'enrichissement d'une conversation depuis Unblu (participants + messages). */
+    public static final String DIRECT_ENRICH_CONVERSATION = "direct:enrich-conversation";
 }

@@ -140,7 +140,10 @@
             </span>
           </div>
           <div class="detail-actions">
-            <button class="btn-reload" (click)="reloadDetail()" title="Recharger le détail">&#8635;</button>
+            <button class="btn-reload" (click)="reloadDetail()" [disabled]="loadingDetail || enrichLoading" title="Recharger depuis la base de données">&#8635;</button>
+            <button class="btn-enrich" (click)="enrichFromUnblu()" [disabled]="enrichLoading || loadingDetail" title="Récupérer le contenu depuis Unblu (participants + messages)">
+              {{ enrichLoading ? '⏳' : '↓ Fetch Unblu' }}
+            </button>
             <button class="close-btn" (click)="closeDetail()" title="Fermer">✕</button>
           </div>
         </div>
@@ -206,6 +209,12 @@
       <div *ngIf="detailError" class="alert alert-error">
         {{ detailError }}
         <button (click)="detailError = null">✕</button>
+      </div>
+
+      <!-- Enrich error -->
+      <div *ngIf="enrichError" class="alert alert-error">
+        {{ enrichError }}
+        <button (click)="enrichError = null">✕</button>
       </div>
     </div>
 

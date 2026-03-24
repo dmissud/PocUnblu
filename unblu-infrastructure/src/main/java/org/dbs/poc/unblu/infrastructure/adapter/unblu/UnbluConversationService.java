@@ -211,10 +211,10 @@ public class UnbluConversationService {
                         String displayName = p.getPerson().getDisplayName() != null
                                 ? p.getPerson().getDisplayName()
                                 : p.getPerson().getId();
-                        String type = p.getParticipationType() != null
-                                ? p.getParticipationType().name()
-                                : "UNKNOWN";
-                        return new UnbluParticipantData(p.getPerson().getId(), displayName, type);
+                        String personSource = p.getPerson().getPersonSource() != null
+                                ? p.getPerson().getPersonSource().name()
+                                : "VIRTUAL";
+                        return new UnbluParticipantData(p.getPerson().getId(), displayName, personSource);
                     })
                     .toList();
         } catch (ApiException e) {

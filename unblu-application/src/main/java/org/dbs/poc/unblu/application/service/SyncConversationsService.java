@@ -5,10 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.dbs.poc.unblu.application.port.in.SyncConversationsUseCase;
 import org.dbs.poc.unblu.domain.model.ConversationSyncResult;
 import org.dbs.poc.unblu.domain.model.UnbluConversationSummary;
-import org.dbs.poc.unblu.domain.model.UnbluMessageData;
-import org.dbs.poc.unblu.domain.model.UnbluParticipantData;
 import org.dbs.poc.unblu.domain.model.history.ConversationHistory;
-import org.dbs.poc.unblu.domain.model.history.ParticipantHistory;
 import org.dbs.poc.unblu.domain.port.out.ConversationHistoryRepository;
 import org.dbs.poc.unblu.domain.port.out.UnbluPort;
 import org.springframework.stereotype.Service;
@@ -25,6 +22,9 @@ import java.util.List;
  *   <li>Si elle est déjà connue et vient de se terminer → mise à jour de l'horodatage de fin.</li>
  *   <li>Si elle est déjà connue et non terminée → aucune action (opération idempotente).</li>
  * </ul>
+ *
+ * <p>L'enrichissement du contenu (participants, messages) est dissocié de ce sync et s'effectue
+ * à la demande via {@link EnrichConversationService}.
  *
  * <p>Les erreurs par conversation sont isolées : un échec n'interrompt pas le traitement des suivantes.
  */
@@ -58,7 +58,6 @@ public class SyncConversationsService implements SyncConversationsUseCase {
                     persistNew(summary);
                     newlyPersisted++;
                 }
-                enrichWithContent(summary.id());
             } catch (Exception e) {
                 log.error("Erreur lors de la synchronisation de la conversation {}: {}",
                         summary.id(), e.getMessage(), e);
@@ -81,38 +80,6 @@ public class SyncConversationsService implements SyncConversationsUseCase {
         }
         conversationHistoryRepository.save(history);
         log.debug("Conversation {} persistée (nouvelle, état: {})", summary.id(), summary.state());
-    }
-
-    private void enrichWithContent(String conversationId) {
-        conversationHistoryRepository.findByConversationId(conversationId).ifPresent(history -> {
-            boolean enriched = false;
-
-            List<UnbluParticipantData> participants = unbluPort.fetchConversationParticipants(conversationId);
-            for (UnbluParticipantData p : participants) {
-                ParticipantHistory.ParticipantType type = resolveParticipantType(p.participationType());
-                history.registerParticipant(p.personId(), p.displayName(), type);
-                enriched = true;
-            }
-
-            List<UnbluMessageData> messages = unbluPort.fetchConversationMessages(conversationId);
-            for (UnbluMessageData m : messages) {
-                history.backfillMessage(m.text(), m.senderPersonId(), null, m.sentAt());
-                enriched = true;
-            }
-
-            if (enriched) {
-                conversationHistoryRepository.save(history);
-                log.debug("Conversation {} enrichie : {} participant(s), {} message(s)",
-                        conversationId, participants.size(), messages.size());
-            }
-        });
-    }
-
-    private ParticipantHistory.ParticipantType resolveParticipantType(String participationType) {
-        if ("ASSIGNED_AGENT".equals(participationType) || "AGENT".equals(participationType)) {
-            return ParticipantHistory.ParticipantType.AGENT;
-        }
-        return ParticipantHistory.ParticipantType.VISITOR;
     }
 
     private void updateEndedIfNeeded(UnbluConversationSummary summary) {
