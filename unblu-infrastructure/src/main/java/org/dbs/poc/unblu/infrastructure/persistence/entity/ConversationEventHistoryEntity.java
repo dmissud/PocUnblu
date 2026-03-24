@@ -34,6 +34,9 @@ public class ConversationEventHistoryEntity {
     @Column(name = "event_time", nullable = false)
     private Instant eventTime;
 
+    @Column(name = "message_id")
+    private String messageId;
+
     @Column(name = "message_text", columnDefinition = "TEXT")
     private String messageText;
 

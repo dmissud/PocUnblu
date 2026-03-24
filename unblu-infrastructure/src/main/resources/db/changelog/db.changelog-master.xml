@@ -7,5 +7,6 @@
 
     <include file="db/changelog/migrations/001-initial-schema.sql" relativeToChangelogFile="false"/>
     <include file="db/changelog/migrations/002-add-topic-to-conversation-history.sql" relativeToChangelogFile="false"/>
+    <include file="db/changelog/migrations/003-add-message-id-to-event-history.sql" relativeToChangelogFile="false"/>
 
 </databaseChangeLog>

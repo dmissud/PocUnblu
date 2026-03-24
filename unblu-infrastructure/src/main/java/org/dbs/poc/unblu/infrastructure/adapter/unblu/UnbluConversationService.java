@@ -174,6 +174,7 @@ public class UnbluConversationService {
                     result.getItems().stream()
                             .filter(m -> m.getText() != null && m.getDeletedForAll() == null)
                             .forEach(m -> all.add(new UnbluMessageData(
+                                    m.getId(),
                                     m.getText(),
                                     m.getSenderPersonId(),
                                     m.getSendTimestamp() != null

@@ -44,7 +44,7 @@ public class EnrichConversationService implements EnrichConversationUseCase {
 
         List<UnbluMessageData> messages = unbluPort.fetchConversationMessages(conversationId);
         for (UnbluMessageData m : messages) {
-            history.backfillMessage(m.text(), m.senderPersonId(), null, m.sentAt());
+            history.backfillMessage(m.messageId(), m.text(), m.senderPersonId(), null, m.sentAt());
         }
 
         conversationHistoryRepository.save(history);
