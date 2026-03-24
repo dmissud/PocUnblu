@@ -12,6 +12,8 @@ import org.dbs.poc.unblu.domain.port.out.UnbluPort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Implémentation du cas d'utilisation d'enrichissement à la demande d'une conversation.
@@ -42,9 +44,14 @@ public class EnrichConversationService implements EnrichConversationUseCase {
             history.registerParticipant(p.personId(), p.displayName(), resolveParticipantType(p.personSource()));
         }
 
+        // Index personId → displayName pour résoudre le nom de l'émetteur sur chaque message
+        Map<String, String> displayNameByPersonId = participants.stream()
+                .collect(Collectors.toMap(UnbluParticipantData::personId, UnbluParticipantData::displayName));
+
         List<UnbluMessageData> messages = unbluPort.fetchConversationMessages(conversationId);
         for (UnbluMessageData m : messages) {
-            history.backfillMessage(m.text(), m.senderPersonId(), null, m.sentAt());
+            String senderDisplayName = displayNameByPersonId.get(m.senderPersonId());
+            history.backfillMessage(m.messageId(), m.text(), m.senderPersonId(), senderDisplayName, m.sentAt());
         }
 
         conversationHistoryRepository.save(history);

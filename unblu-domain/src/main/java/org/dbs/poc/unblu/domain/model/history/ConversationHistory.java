@@ -75,11 +75,23 @@ public class ConversationHistory {
     /**
      * Enregistre un message dans l'historique sans vérifier l'état de la conversation.
      * Réservé au backfill lors de la synchronisation (conversations déjà terminées en Unblu).
+     *
+     * <p>Idempotent : si un message avec le même {@code messageId} est déjà présent, il est ignoré.
+     *
+     * @param messageId identifiant Unblu unique du message (utilisé pour la déduplication)
      */
-    public void backfillMessage(String messageText, String senderPersonId, String senderDisplayName, Instant time) {
+    public void backfillMessage(String messageId, String messageText, String senderPersonId, String senderDisplayName, Instant time) {
+        if (messageId != null) {
+            boolean alreadyPresent = this.events.stream()
+                    .anyMatch(e -> messageId.equals(e.messageId()));
+            if (alreadyPresent) {
+                return;
+            }
+        }
         this.events.add(ConversationEventHistory.builder()
                 .eventType(ConversationEventHistory.EventType.MESSAGE)
                 .eventTime(time)
+                .messageId(messageId)
                 .messageText(messageText)
                 .senderPersonId(senderPersonId)
                 .senderDisplayName(senderDisplayName)

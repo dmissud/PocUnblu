@@ -18,6 +18,7 @@ public class ConversationEventHistory {
     private Instant eventTime;
 
     // For MESSAGE events
+    private String messageId;
     private String messageText;
     private String senderPersonId;
     private String senderDisplayName;
@@ -31,6 +32,9 @@ public class ConversationEventHistory {
     /** @return horodatage de l'événement */
     public Instant occurredAt() { return eventTime;
     }
+
+    /** @return identifiant Unblu du message (uniquement pour {@code MESSAGE}), utilisé pour la déduplication */
+    public String messageId() { return messageId; }
 
     /** @return texte du message (uniquement pour les événements de type {@code MESSAGE}) */
     public String messageText() { return messageText;

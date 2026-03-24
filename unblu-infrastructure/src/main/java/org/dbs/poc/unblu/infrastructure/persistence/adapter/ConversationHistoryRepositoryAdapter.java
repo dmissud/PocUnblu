@@ -71,6 +71,7 @@ public class ConversationHistoryRepositoryAdapter implements ConversationHistory
                         .forEach(e -> existing.addEvent(ConversationEventHistoryEntity.builder()
                                 .eventType(ConversationEventHistoryEntity.EventType.valueOf(e.eventType().name()))
                                 .eventTime(e.occurredAt())
+                                .messageId(e.messageId())
                                 .messageText(e.messageText())
                                 .senderPersonId(e.senderPersonId())
                                 .senderDisplayName(e.senderDisplayName())
