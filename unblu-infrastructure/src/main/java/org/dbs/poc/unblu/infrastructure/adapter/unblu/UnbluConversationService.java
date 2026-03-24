@@ -1,6 +1,7 @@
 package org.dbs.poc.unblu.infrastructure.adapter.unblu;
 
 import com.unblu.webapi.jersey.v4.api.BotsApi;
+import com.unblu.webapi.jersey.v4.api.ConversationHistoryApi;
 import com.unblu.webapi.jersey.v4.api.ConversationsApi;
 import com.unblu.webapi.jersey.v4.invoker.ApiClient;
 import com.unblu.webapi.jersey.v4.invoker.ApiException;
@@ -9,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
 import org.dbs.poc.unblu.domain.model.UnbluConversationSummary;
+import org.dbs.poc.unblu.domain.model.UnbluMessageData;
+import org.dbs.poc.unblu.domain.model.UnbluParticipantData;
 import org.dbs.poc.unblu.infrastructure.config.UnbluProperties;
 import org.dbs.poc.unblu.infrastructure.exception.UnbluApiException;
 import org.springframework.stereotype.Service;
@@ -102,6 +105,8 @@ public class UnbluConversationService {
 
     private static final int PAGE_SIZE = 100;
 
+    private static final int MESSAGE_PAGE_SIZE = 100;
+
     /**
      * Retourne la liste de toutes les conversations présentes dans Unblu.
      * Parcourt toutes les pages via {@code hasMoreItems} / {@code nextOffset}
@@ -116,9 +121,12 @@ public class UnbluConversationService {
             List<ConversationData> all = new java.util.ArrayList<>();
             int offset = 0;
             boolean hasMore = true;
+            int pageNum = 0;
+            long startTime = System.currentTimeMillis();
 
             log.info("Récupération de toutes les conversations dans Unblu (page size: {})...", PAGE_SIZE);
             while (hasMore) {
+                long pageStart = System.currentTimeMillis();
                 ConversationQuery query = new ConversationQuery();
                 query.setOffset(offset);
                 query.setLimit(PAGE_SIZE);
@@ -126,11 +134,12 @@ public class UnbluConversationService {
                 all.addAll(result.getItems());
                 hasMore = Boolean.TRUE.equals(result.isHasMoreItems());
                 offset = hasMore ? result.getNextOffset() : offset;
-                log.debug("Page chargée — {} conversation(s) récupérée(s), hasMore: {}, nextOffset: {}",
+                log.info("Page {} chargée en {}ms — {} conversation(s), hasMore: {}, nextOffset: {}",
+                        ++pageNum, System.currentTimeMillis() - pageStart,
                         result.getItems().size(), hasMore, result.getNextOffset());
             }
 
-            log.info("Trouvé {} conversation(s) au total", all.size());
+            log.info("Trouvé {} conversation(s) au total en {}ms", all.size(), System.currentTimeMillis() - startTime);
             return all.stream()
                     .map(this::toConversationSummary)
                     .toList();
@@ -138,6 +147,79 @@ public class UnbluConversationService {
             log.error("Erreur lors de la récupération des conversations - Status: {}", e.getCode(), e);
             throw new UnbluApiException(e.getCode(), "Error",
                     "Erreur lors de la récupération des conversations : " + e.getMessage());
+        }
+    }
+
+    /**
+     * Récupère tous les messages d'une conversation via {@code ConversationHistoryApi.conversationHistoryExportMessageLog}.
+     * Parcourt toutes les pages jusqu'à épuisement des résultats.
+     *
+     * @param conversationId identifiant Unblu de la conversation
+     * @return liste ordonnée des messages texte (les messages non-texte ou supprimés sont filtrés)
+     */
+    public List<UnbluMessageData> fetchMessages(String conversationId) {
+        try {
+            ConversationHistoryApi historyApi = new ConversationHistoryApi(apiClient);
+            List<UnbluMessageData> all = new java.util.ArrayList<>();
+            int offset = 0;
+            boolean hasMore = true;
+
+            log.info("Récupération des messages de la conversation {} ...", conversationId);
+            while (hasMore) {
+                MessageExportQuery query = new MessageExportQuery();
+                query.setOffset(offset);
+                query.setLimit(MESSAGE_PAGE_SIZE);
+                MessageExportResult result = historyApi.conversationHistoryExportMessageLog(conversationId, query);
+                if (result.getItems() != null) {
+                    result.getItems().stream()
+                            .filter(m -> m.getText() != null && m.getDeletedForAll() == null)
+                            .forEach(m -> all.add(new UnbluMessageData(
+                                    m.getText(),
+                                    m.getSenderPersonId(),
+                                    m.getSendTimestamp() != null
+                                            ? Instant.ofEpochMilli(m.getSendTimestamp())
+                                            : Instant.now())));
+                }
+                hasMore = Boolean.TRUE.equals(result.isHasMoreItems());
+                offset = hasMore ? result.getNextOffset() : offset;
+            }
+            log.info("  {} message(s) récupéré(s) pour la conversation {}", all.size(), conversationId);
+            return all;
+        } catch (ApiException e) {
+            log.error("Erreur lors de la récupération des messages de {} - Status: {}", conversationId, e.getCode(), e);
+            throw new UnbluApiException(e.getCode(), "Error",
+                    "Erreur lors de la récupération des messages : " + e.getMessage());
+        }
+    }
+
+    /**
+     * Récupère les participants d'une conversation depuis {@code ConversationHistoryApi.conversationHistoryRead}.
+     *
+     * @param conversationId identifiant Unblu de la conversation
+     * @return liste des participants avec leur nom d'affichage
+     */
+    public List<UnbluParticipantData> fetchParticipants(String conversationId) {
+        try {
+            ConversationHistoryApi historyApi = new ConversationHistoryApi(apiClient);
+            ConversationHistoryData data = historyApi.conversationHistoryRead(conversationId, NO_EXPAND);
+            if (data.getParticipants() == null) {
+                return java.util.List.of();
+            }
+            return data.getParticipants().stream()
+                    .filter(p -> p.getPerson() != null)
+                    .map(p -> {
+                        String displayName = p.getPerson().getDisplayName() != null
+                                ? p.getPerson().getDisplayName()
+                                : p.getPerson().getId();
+                        String personSource = p.getPerson().getPersonSource() != null
+                                ? p.getPerson().getPersonSource().name()
+                                : "VIRTUAL";
+                        return new UnbluParticipantData(p.getPerson().getId(), displayName, personSource);
+                    })
+                    .toList();
+        } catch (ApiException e) {
+            log.warn("Impossible de récupérer les participants de {} - Status: {} (ignoré)", conversationId, e.getCode());
+            return java.util.List.of();
         }
     }
 

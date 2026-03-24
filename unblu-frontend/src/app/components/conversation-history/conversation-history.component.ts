@@ -32,6 +32,10 @@ export class ConversationHistoryComponent implements OnInit {
   loadingDetail = false;
   detailError: string | null = null;
 
+  // Enrich state
+  enrichLoading = false;
+  enrichError: string | null = null;
+
   constructor(private apiService: ApiService) {}
 
   ngOnInit(): void {
@@ -108,9 +112,27 @@ export class ConversationHistoryComponent implements OnInit {
     return this.selectedConversation?.conversationId === item.conversationId;
   }
 
+  enrichFromUnblu(): void {
+    if (!this.selectedConversation) return;
+    this.enrichLoading = true;
+    this.enrichError = null;
+
+    this.apiService.enrichConversation(this.selectedConversation.conversationId).subscribe({
+      next: (detail) => {
+        this.selectedConversation = detail;
+        this.enrichLoading = false;
+      },
+      error: (err) => {
+        this.enrichError = 'Erreur lors de l\'enrichissement depuis Unblu : ' + err.message;
+        this.enrichLoading = false;
+      }
+    });
+  }
+
   closeDetail(): void {
     this.selectedConversation = null;
     this.detailError = null;
+    this.enrichError = null;
   }
 
   get pages(): number[] {

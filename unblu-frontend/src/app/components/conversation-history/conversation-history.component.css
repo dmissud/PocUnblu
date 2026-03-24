@@ -256,6 +256,27 @@
   border-color: #1a73e8;
 }
 
+.btn-enrich {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+  background: #e6f4ea;
+  border: 1px solid #34a853;
+  border-radius: 4px;
+  color: #1e8e3e;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-enrich:hover:not(:disabled) {
+  background: #34a853;
+  color: #fff;
+}
+
+.btn-enrich:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .close-btn {
   background: none;
   border: none;

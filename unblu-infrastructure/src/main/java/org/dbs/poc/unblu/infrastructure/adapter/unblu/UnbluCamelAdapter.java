@@ -31,6 +31,8 @@ public class UnbluCamelAdapter extends RouteBuilder {
     public static final String DIRECT_UNBLU_SEARCH_NAMED_AREAS = "direct:unblu-search-named-areas";
     public static final String DIRECT_UNBLU_SEARCH_AGENTS_BY_NAMED_AREA = "direct:unblu-search-agents-by-named-area";
     public static final String DIRECT_UNBLU_LIST_CONVERSATIONS = "direct:unblu-list-conversations";
+    public static final String DIRECT_UNBLU_FETCH_MESSAGES = "direct:unblu-fetch-messages";
+    public static final String DIRECT_UNBLU_FETCH_PARTICIPANTS = "direct:unblu-fetch-participants";
 
     private final UnbluPersonService unbluPersonService;
     private final UnbluConversationService unbluConversationService;
@@ -107,6 +109,22 @@ public class UnbluCamelAdapter extends RouteBuilder {
             .routeId("unblu-list-conversations")
             .log("Récupération de toutes les conversations Unblu")
             .process(exchange -> exchange.getIn().setBody(unbluConversationService.listAllConversations()));
+
+        from(DIRECT_UNBLU_FETCH_MESSAGES)
+                .routeId("unblu-fetch-messages")
+                .log("Récupération des messages de la conversation ${body}")
+                .process(exchange -> {
+                    String conversationId = exchange.getIn().getBody(String.class);
+                    exchange.getIn().setBody(unbluConversationService.fetchMessages(conversationId));
+                });
+
+        from(DIRECT_UNBLU_FETCH_PARTICIPANTS)
+                .routeId("unblu-fetch-participants")
+                .log("Récupération des participants de la conversation ${body}")
+                .process(exchange -> {
+                    String conversationId = exchange.getIn().getBody(String.class);
+                    exchange.getIn().setBody(unbluConversationService.fetchParticipants(conversationId));
+                });
     }
 
     /**

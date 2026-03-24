@@ -52,6 +52,7 @@ public class RestExpositionRoute extends RouteBuilder {
     private static final String ROUTE_REST_SYNC_CONVERSATIONS = "rest-sync-conversations";
     private static final String ROUTE_REST_LIST_CONVERSATION_HISTORY = "rest-list-conversation-history";
     private static final String ROUTE_REST_GET_CONVERSATION_HISTORY = "rest-get-conversation-history";
+    private static final String ROUTE_REST_ENRICH_CONVERSATION = "rest-enrich-conversation";
 
     // Internal route URIs
     private static final String DIRECT_REST_START_CONVERSATION = "direct:rest-start-conversation";
@@ -65,6 +66,7 @@ public class RestExpositionRoute extends RouteBuilder {
     private static final String DIRECT_REST_SYNC_CONVERSATIONS = "direct:rest-sync-conversations";
     private static final String DIRECT_REST_LIST_CONVERSATION_HISTORY = "direct:rest-list-conversation-history";
     private static final String DIRECT_REST_GET_CONVERSATION_HISTORY = "direct:rest-get-conversation-history";
+    private static final String DIRECT_REST_ENRICH_CONVERSATION = "direct:rest-enrich-conversation";
 
     // REST path segments
     private static final String PATH_CONVERSATIONS = "/v1/conversations";
@@ -181,7 +183,15 @@ public class RestExpositionRoute extends RouteBuilder {
                         .name("conversationId").type(RestParamType.path)
                         .description("Identifiant Unblu de la conversation")
                     .endParam()
-                    .to(DIRECT_REST_GET_CONVERSATION_HISTORY);
+                    .to(DIRECT_REST_GET_CONVERSATION_HISTORY)
+                .post("/history/{conversationId}/enrich")
+                    .description("Enrichit une conversation depuis Unblu (participants + messages) et retourne le détail mis à jour")
+                    .outType(ConversationHistoryDetailResponse.class)
+                    .param()
+                        .name("conversationId").type(RestParamType.path)
+                        .description("Identifiant Unblu de la conversation à enrichir")
+                    .endParam()
+                    .to(DIRECT_REST_ENRICH_CONVERSATION);
     }
 
     private void definePersonEndpoints() {
@@ -309,6 +319,13 @@ public class RestExpositionRoute extends RouteBuilder {
                 .log("Loading conversation detail: ${header.conversationId}")
                 .to(OrchestratorEndpoints.DIRECT_GET_CONVERSATION_HISTORY)
                 .process(conversationHistoryQueryMapper::mapDetailToResponse);
+
+        from(DIRECT_REST_ENRICH_CONVERSATION)
+                .routeId(ROUTE_REST_ENRICH_CONVERSATION)
+                .log("Enrichissement Unblu demandé pour la conversation: ${header.conversationId}")
+                .to(OrchestratorEndpoints.DIRECT_ENRICH_CONVERSATION)
+                .process(conversationHistoryQueryMapper::mapDetailToResponse)
+                .log("Enrichissement terminé pour la conversation: ${header.conversationId}");
     }
 
     private void definePersonRoutes() {

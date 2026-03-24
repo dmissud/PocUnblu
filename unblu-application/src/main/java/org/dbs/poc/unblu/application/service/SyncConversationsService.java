@@ -23,6 +23,9 @@ import java.util.List;
  *   <li>Si elle est déjà connue et non terminée → aucune action (opération idempotente).</li>
  * </ul>
  *
+ * <p>L'enrichissement du contenu (participants, messages) est dissocié de ce sync et s'effectue
+ * à la demande via {@link EnrichConversationService}.
+ *
  * <p>Les erreurs par conversation sont isolées : un échec n'interrompt pas le traitement des suivantes.
  */
 @Slf4j
@@ -36,7 +39,11 @@ public class SyncConversationsService implements SyncConversationsUseCase {
     @Override
     public ConversationSyncResult syncAll() {
         List<UnbluConversationSummary> conversations = unbluPort.listAllConversations();
-        log.info("Scan de {} conversation(s) depuis Unblu", conversations.size());
+        if (conversations.isEmpty()) {
+            log.warn("Aucune conversation récupérée depuis Unblu — vérifier la connectivité ou les logs du circuit breaker");
+        } else {
+            log.info("Scan de {} conversation(s) depuis Unblu", conversations.size());
+        }
 
         int newlyPersisted = 0;
         int alreadyExisting = 0;

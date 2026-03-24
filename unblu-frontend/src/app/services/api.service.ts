@@ -21,16 +21,8 @@ export class ApiService {
 
   constructor(private http: HttpClient) {}
 
-  getClients(): Observable<PersonInfo[]> {
-    return this.http.get<PersonInfo[]>(`${this.baseUrl}/persons`, {
-      headers: { 'personSource': 'VIRTUAL' }
-    });
-  }
-
-  getAgents(): Observable<PersonInfo[]> {
-    return this.http.get<PersonInfo[]>(`${this.baseUrl}/persons`, {
-      headers: { 'personSource': 'USER_DB' }
-    });
+  getPersons(): Observable<PersonInfo[]> {
+    return this.http.get<PersonInfo[]>(`${this.baseUrl}/persons`);
   }
 
   getTeams(): Observable<TeamInfo[]> {
@@ -72,6 +64,12 @@ export class ApiService {
   getConversationDetail(conversationId: string): Observable<ConversationHistoryDetail> {
     return this.http.get<ConversationHistoryDetail>(
       `${this.baseUrl}/conversations/history/${conversationId}`
+    );
+  }
+
+  enrichConversation(conversationId: string): Observable<ConversationHistoryDetail> {
+    return this.http.post<ConversationHistoryDetail>(
+      `${this.baseUrl}/conversations/history/${conversationId}/enrich`, {}
     );
   }
 
