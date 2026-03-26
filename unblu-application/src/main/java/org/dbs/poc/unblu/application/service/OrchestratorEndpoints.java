@@ -56,4 +56,9 @@ public final class OrchestratorEndpoints {
 
     /** Endpoint d'enrichissement d'une conversation depuis Unblu (participants + messages). */
     public static final String DIRECT_ENRICH_CONVERSATION = "direct:enrich-conversation";
+
+    /**
+     * Endpoint de recherche des conversations Unblu par état.
+     */
+    public static final String DIRECT_SEARCH_CONVERSATIONS_BY_STATE = "direct:search-conversations-by-state";
 }

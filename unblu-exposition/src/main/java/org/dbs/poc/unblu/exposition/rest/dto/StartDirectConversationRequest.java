@@ -11,7 +11,11 @@ import lombok.Data;
 @Data
 public class StartDirectConversationRequest {
     @NotBlank
+    private String virtualParticipantId;
+    @NotBlank
     private String virtualParticipantSourceId;
+    @NotBlank
+    private String agentParticipantId;
     @NotBlank
     private String agentParticipantSourceId;
     @NotBlank

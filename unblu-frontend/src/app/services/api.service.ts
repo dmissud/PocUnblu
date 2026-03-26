@@ -11,6 +11,7 @@ import {
   TeamConversationRequest
 } from '../models/conversation.model';
 import {ConversationHistoryDetail, ConversationHistoryPage} from '../models/conversation-history.model';
+import {ConversationSearchResponse, ConversationState} from '../models/conversation-search.model';
 import {WebhookSetupResult, WebhookStatus} from '../models/webhook.model';
 
 @Injectable({
@@ -70,6 +71,13 @@ export class ApiService {
   enrichConversation(conversationId: string): Observable<ConversationHistoryDetail> {
     return this.http.post<ConversationHistoryDetail>(
       `${this.baseUrl}/conversations/history/${conversationId}/enrich`, {}
+    );
+  }
+
+  searchConversationsByState(state: ConversationState): Observable<ConversationSearchResponse> {
+    return this.http.get<ConversationSearchResponse>(
+      `${this.baseUrl}/conversations/search`,
+      {params: {state}}
     );
   }
 

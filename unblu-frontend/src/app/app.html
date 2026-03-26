@@ -56,6 +56,12 @@
       (click)="activeTab = 'history'">
       📋 Historique
     </button>
+    <button
+      (click)="activeTab = 'search'"
+      [class.active]="activeTab === 'search'"
+      class="tab-btn">
+      🔍 Recherche par état
+    </button>
   </nav>
 
   <div *ngIf="loadingData && activeTab === 'conversations'" class="loading">
@@ -70,6 +76,11 @@
   <!-- Tab: Historique -->
   <div *ngIf="activeTab === 'history'" class="tab-content">
     <app-conversation-history></app-conversation-history>
+  </div>
+
+  <!-- Tab: Recherche par état -->
+  <div *ngIf="activeTab === 'search'" class="tab-content">
+    <app-inactive-conversations></app-inactive-conversations>
   </div>
 
   <div *ngIf="!loadingData && activeTab === 'conversations'" class="content">

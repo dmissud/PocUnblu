@@ -78,7 +78,11 @@ public class StartDirectConversationRoute extends RouteBuilder {
      */
     private void searchVirtualPerson(Exchange exchange) {
         StartDirectConversationCommand cmd = exchange.getProperty(PROP_ORIGINAL_COMMAND, StartDirectConversationCommand.class);
-        PersonInfo virtualPerson = workflowService.findVirtualPerson(cmd.virtualParticipantSourceId());
+        PersonInfo virtualPerson = new PersonInfo(
+                cmd.virtualParticipantId(),
+                cmd.virtualParticipantSourceId(),
+                cmd.virtualParticipantSourceId(),
+                null, null, null, "VISITOR");
         exchange.setProperty(PROP_VIRTUAL_PERSON, virtualPerson);
         exchange.getIn().setBody(null);
     }
@@ -132,7 +136,11 @@ public class StartDirectConversationRoute extends RouteBuilder {
      */
     private void searchAgentPerson(Exchange exchange) {
         StartDirectConversationCommand cmd = exchange.getProperty(PROP_ORIGINAL_COMMAND, StartDirectConversationCommand.class);
-        PersonInfo agentPerson = workflowService.findAgentPerson(cmd.agentParticipantSourceId());
+        PersonInfo agentPerson = new PersonInfo(
+                cmd.agentParticipantId(),
+                cmd.agentParticipantSourceId(),
+                cmd.agentParticipantSourceId(),
+                null, null, null, "AGENT");
         exchange.setProperty(PROP_AGENT_PERSON, agentPerson);
     }
 

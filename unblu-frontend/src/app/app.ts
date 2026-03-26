@@ -7,17 +7,18 @@ import {TeamInfo} from './models/team.model';
 import {NamedAreaInfo} from './models/named-area.model';
 import {WebhookStatus} from './models/webhook.model';
 import {ConversationHistoryComponent} from './components/conversation-history/conversation-history.component';
+import {InactiveConversationsComponent} from './components/inactive-conversations/inactive-conversations.component';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, FormsModule, ConversationHistoryComponent],
+  imports: [CommonModule, FormsModule, ConversationHistoryComponent, InactiveConversationsComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
 export class App implements OnInit {
   title = 'Unblu Conversation Manager';
 
-  activeTab: 'conversations' | 'history' = 'conversations';
+  activeTab: 'conversations' | 'history' | 'search' = 'conversations';
 
   // Lists
   clients: PersonInfo[] = [];
@@ -87,7 +88,9 @@ export class App implements OnInit {
     this.directResult = null;
 
     this.apiService.startDirectConversation({
+      virtualParticipantId: this.selectedClient.id,
       virtualParticipantSourceId: this.selectedClient.sourceId,
+      agentParticipantId: this.selectedAgent.id,
       agentParticipantSourceId: this.selectedAgent.sourceId,
       subject: this.directSubject || 'Conversation directe'
     }).subscribe({
