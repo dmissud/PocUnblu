@@ -48,6 +48,12 @@ mvn clean install
 mvn spring-boot:run -pl unblu-configuration
 ```
 
+**With Debug Profile (Verbose logs & SQL):**
+
+```bash
+mvn spring-boot:run -pl unblu-configuration -Dspring-boot.run.profiles=debug
+```
+
 - App runs on **port 8081**
 - Angular UI at `http://localhost:8081/`
 - REST API at `http://localhost:8081/api/v1/`

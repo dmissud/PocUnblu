@@ -6,19 +6,8 @@ import org.apache.camel.model.rest.RestParamType;
 import org.dbs.poc.unblu.application.service.OrchestratorEndpoints;
 import org.dbs.poc.unblu.domain.model.webhook.WebhookSetupResult;
 import org.dbs.poc.unblu.domain.model.webhook.WebhookStatus;
-import org.dbs.poc.unblu.exposition.rest.dto.StartConversationRequest;
-import org.dbs.poc.unblu.exposition.rest.dto.StartConversationResponse;
-import org.dbs.poc.unblu.exposition.rest.dto.StartDirectConversationRequest;
-import org.dbs.poc.unblu.exposition.rest.dto.ConversationHistoryDetailResponse;
-import org.dbs.poc.unblu.exposition.rest.dto.ConversationHistoryPageResponse;
-import org.dbs.poc.unblu.exposition.rest.dto.SyncConversationsResponse;
-import org.dbs.poc.unblu.exposition.rest.mapper.ConversationHistoryQueryMapper;
-import org.dbs.poc.unblu.exposition.rest.mapper.ConversationMapper;
-import org.dbs.poc.unblu.exposition.rest.mapper.NamedAreaMapper;
-import org.dbs.poc.unblu.exposition.rest.mapper.PersonMapper;
-import org.dbs.poc.unblu.exposition.rest.mapper.SyncConversationsMapper;
-import org.dbs.poc.unblu.exposition.rest.mapper.TeamMapper;
-import org.dbs.poc.unblu.exposition.rest.mapper.WebhookMapper;
+import org.dbs.poc.unblu.exposition.rest.dto.*;
+import org.dbs.poc.unblu.exposition.rest.mapper.*;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -53,6 +42,7 @@ public class RestExpositionRoute extends RouteBuilder {
     private static final String ROUTE_REST_LIST_CONVERSATION_HISTORY = "rest-list-conversation-history";
     private static final String ROUTE_REST_GET_CONVERSATION_HISTORY = "rest-get-conversation-history";
     private static final String ROUTE_REST_ENRICH_CONVERSATION = "rest-enrich-conversation";
+    private static final String ROUTE_REST_SEARCH_CONVERSATIONS_BY_STATE = "rest-search-conversations-by-state";
 
     // Internal route URIs
     private static final String DIRECT_REST_START_CONVERSATION = "direct:rest-start-conversation";
@@ -67,6 +57,7 @@ public class RestExpositionRoute extends RouteBuilder {
     private static final String DIRECT_REST_LIST_CONVERSATION_HISTORY = "direct:rest-list-conversation-history";
     private static final String DIRECT_REST_GET_CONVERSATION_HISTORY = "direct:rest-get-conversation-history";
     private static final String DIRECT_REST_ENRICH_CONVERSATION = "direct:rest-enrich-conversation";
+    private static final String DIRECT_REST_SEARCH_CONVERSATIONS_BY_STATE = "direct:rest-search-conversations-by-state";
 
     // REST path segments
     private static final String PATH_CONVERSATIONS = "/v1/conversations";
@@ -88,6 +79,7 @@ public class RestExpositionRoute extends RouteBuilder {
     private final WebhookMapper webhookMapper;
     private final SyncConversationsMapper syncConversationsMapper;
     private final ConversationHistoryQueryMapper conversationHistoryQueryMapper;
+    private final ConversationSearchMapper conversationSearchMapper;
 
     public RestExpositionRoute(
             ConversationMapper conversationMapper,
@@ -96,7 +88,8 @@ public class RestExpositionRoute extends RouteBuilder {
             NamedAreaMapper namedAreaMapper,
             WebhookMapper webhookMapper,
             SyncConversationsMapper syncConversationsMapper,
-            ConversationHistoryQueryMapper conversationHistoryQueryMapper) {
+            ConversationHistoryQueryMapper conversationHistoryQueryMapper,
+            ConversationSearchMapper conversationSearchMapper) {
         this.conversationMapper = conversationMapper;
         this.personMapper = personMapper;
         this.teamMapper = teamMapper;
@@ -104,6 +97,7 @@ public class RestExpositionRoute extends RouteBuilder {
         this.webhookMapper = webhookMapper;
         this.syncConversationsMapper = syncConversationsMapper;
         this.conversationHistoryQueryMapper = conversationHistoryQueryMapper;
+        this.conversationSearchMapper = conversationSearchMapper;
     }
 
     @Override
@@ -191,7 +185,16 @@ public class RestExpositionRoute extends RouteBuilder {
                         .name("conversationId").type(RestParamType.path)
                         .description("Identifiant Unblu de la conversation à enrichir")
                     .endParam()
-                    .to(DIRECT_REST_ENRICH_CONVERSATION);
+                .to(DIRECT_REST_ENRICH_CONVERSATION)
+                .get("/search")
+                .description("Recherche les conversations Unblu directement par état")
+                .outType(ConversationSearchResponse.class)
+                .param()
+                .name("state").type(RestParamType.query)
+                .required(true)
+                .description("État recherché : INACTIVE, ACTIVE, ENDED, ONBOARDING, OFFBOARDING")
+                .endParam()
+                .to(DIRECT_REST_SEARCH_CONVERSATIONS_BY_STATE);
     }
 
     private void definePersonEndpoints() {
@@ -326,6 +329,13 @@ public class RestExpositionRoute extends RouteBuilder {
                 .to(OrchestratorEndpoints.DIRECT_ENRICH_CONVERSATION)
                 .process(conversationHistoryQueryMapper::mapDetailToResponse)
                 .log("Enrichissement terminé pour la conversation: ${header.conversationId}");
+
+        from(DIRECT_REST_SEARCH_CONVERSATIONS_BY_STATE)
+                .routeId(ROUTE_REST_SEARCH_CONVERSATIONS_BY_STATE)
+                .log("Recherche de conversations avec état: ${header.state}")
+                .to(OrchestratorEndpoints.DIRECT_SEARCH_CONVERSATIONS_BY_STATE)
+                .process(conversationSearchMapper::mapSummariesToResponse)
+                .log("Retour de ${body.totalCount()} conversation(s) avec état ${header.state}");
     }
 
     private void definePersonRoutes() {

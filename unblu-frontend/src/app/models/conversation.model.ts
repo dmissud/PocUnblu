@@ -18,7 +18,9 @@ export interface ConversationContext {
 }
 
 export interface DirectConversationRequest {
+  virtualParticipantId: string;
   virtualParticipantSourceId: string;
+  agentParticipantId: string;
   agentParticipantSourceId: string;
   subject: string;
 }

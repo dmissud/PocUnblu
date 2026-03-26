@@ -2,16 +2,13 @@ package org.dbs.poc.unblu.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.dbs.poc.unblu.domain.model.ChatAccessDeniedException;
-import org.dbs.poc.unblu.domain.model.ChatRoutingDecision;
-import org.dbs.poc.unblu.domain.model.PersonInfo;
-import org.dbs.poc.unblu.domain.model.PersonSource;
-import org.dbs.poc.unblu.domain.model.UnbluConversationInfo;
+import org.dbs.poc.unblu.domain.model.*;
 import org.dbs.poc.unblu.domain.port.out.ConversationSummaryPort;
 import org.dbs.poc.unblu.domain.port.out.UnbluPort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+
 
 /**
  * Spring service encapsulating the business steps shared across conversation workflows.

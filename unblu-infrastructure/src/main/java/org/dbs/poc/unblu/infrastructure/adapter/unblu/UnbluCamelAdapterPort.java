@@ -20,6 +20,7 @@ public class UnbluCamelAdapterPort implements UnbluPort {
 
     private final ProducerTemplate producerTemplate;
     private final UnbluBotService unbluBotService;
+    private final UnbluPersonService unbluPersonService;
 
     /**
      * {@inheritDoc}
@@ -54,6 +55,18 @@ public class UnbluCamelAdapterPort implements UnbluPort {
     @Override
     public void addSummaryToConversation(String conversationId, String summary) {
         producerTemplate.sendBody(UnbluResilientRoute.DIRECT_UNBLU_ADD_SUMMARY_RESILIENT, new SummaryRequest(conversationId, summary));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public PersonInfo getPersonBySource(PersonSource personSource, String sourceId) {
+        com.unblu.webapi.model.v4.EPersonSource ePersonSource =
+                com.unblu.webapi.model.v4.EPersonSource.valueOf(personSource.name());
+        com.unblu.webapi.model.v4.PersonData personData =
+                unbluPersonService.getPersonBySource(ePersonSource, sourceId);
+        return unbluPersonService.toPersonInfo(personData);
     }
 
     /** {@inheritDoc} */
@@ -109,6 +122,16 @@ public class UnbluCamelAdapterPort implements UnbluPort {
     public List<UnbluParticipantData> fetchConversationParticipants(String conversationId) {
         return producerTemplate.requestBody(
                 UnbluResilientRoute.DIRECT_UNBLU_FETCH_PARTICIPANTS_RESILIENT, conversationId, List.class);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<UnbluConversationSummary> searchConversationsByState(String state) {
+        return producerTemplate.requestBody(
+                UnbluResilientRoute.DIRECT_UNBLU_SEARCH_CONVERSATIONS_BY_STATE_RESILIENT, state, List.class);
     }
 
     /**

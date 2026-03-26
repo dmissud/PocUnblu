@@ -44,7 +44,9 @@ public class ConversationMapper {
      */
     public StartDirectConversationCommand toCommand(StartDirectConversationRequest request) {
         return new StartDirectConversationCommand(
+                request.getVirtualParticipantId(),
                 request.getVirtualParticipantSourceId(),
+                request.getAgentParticipantId(),
                 request.getAgentParticipantSourceId(),
                 request.getSubject()
         );

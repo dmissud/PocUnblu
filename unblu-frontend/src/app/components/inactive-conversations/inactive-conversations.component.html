@@ -1,0 +1,56 @@
+<div class="search-panel">
+  <h2>Recherche de conversations par état</h2>
+
+  <div class="search-controls">
+    <label for="stateSelect">État :</label>
+    <select [(ngModel)]="selectedState" id="stateSelect">
+      @for (state of availableStates; track state) {
+        <option [value]="state">{{ state }}</option>
+      }
+    </select>
+    <button (click)="search()" [disabled]="loading" class="btn-search">
+      @if (loading) {
+        Recherche...
+      } @else {
+        Rechercher
+      }
+    </button>
+  </div>
+
+  @if (error) {
+    <div class="error-banner">{{ error }}</div>
+  }
+
+  @if (searched && !loading && !error) {
+    <div class="results-header">
+      <span>{{ totalCount }} conversation(s) trouvée(s) avec l'état <strong>{{ selectedState }}</strong></span>
+    </div>
+
+    @if (conversations.length === 0) {
+      <p class="empty-state">Aucune conversation trouvée pour cet état.</p>
+    } @else {
+      <table class="conversations-table">
+        <thead>
+        <tr>
+          <th>ID</th>
+          <th>Sujet</th>
+          <th>État</th>
+          <th>Créée le</th>
+          <th>Terminée le</th>
+        </tr>
+        </thead>
+        <tbody>
+          @for (conv of conversations; track conv.conversationId) {
+            <tr>
+              <td [title]="conv.conversationId" class="id-cell">{{ conv.conversationId | slice:0:12 }}…</td>
+              <td>{{ topicLabel(conv.topic) }}</td>
+              <td><span class="badge state-{{ conv.state.toLowerCase() }}">{{ conv.state }}</span></td>
+              <td>{{ conv.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+              <td>{{ conv.endedAt ? (conv.endedAt | date:'dd/MM/yyyy HH:mm') : '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  }
+</div>

@@ -193,7 +193,7 @@ public class UnbluPersonService {
      * @param personData les données de la personne retournées par l'API Unblu
      * @return le modèle de domaine correspondant
      */
-    PersonInfo toPersonInfo(PersonData personData) {
+    public PersonInfo toPersonInfo(PersonData personData) {
         return new PersonInfo(
                 personData.getId(),
                 personData.getSourceId(),

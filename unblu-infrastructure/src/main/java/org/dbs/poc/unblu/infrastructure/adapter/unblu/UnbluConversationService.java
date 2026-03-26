@@ -236,6 +236,61 @@ public class UnbluConversationService {
     }
 
     /**
+     * Recherche les conversations Unblu filtrées par état.
+     * Utilise {@code ConversationStateConversationSearchFilter} et parcourt toutes les pages.
+     *
+     * @param state l'état recherché (INACTIVE, ACTIVE, ENDED, ONBOARDING, OFFBOARDING)
+     * @return liste paginée des conversations correspondantes
+     * @throws UnbluApiException en cas d'erreur API
+     */
+    public List<UnbluConversationSummary> searchConversationsByState(String state) {
+        try {
+            ConversationsApi conversationsApi = new ConversationsApi(apiClient);
+            List<ConversationData> all = new java.util.ArrayList<>();
+            int offset = 0;
+            boolean hasMore = true;
+            int pageNum = 0;
+            long startTime = System.currentTimeMillis();
+
+            EqualsConversationStateOperator operator = new EqualsConversationStateOperator();
+            operator.setType(EConversationStateOperatorType.EQUALS);
+            operator.setValue(EConversationState.valueOf(state));
+
+            StateConversationSearchFilter stateFilter = new StateConversationSearchFilter();
+            stateFilter.setField(EConversationSearchFilterField.STATE);
+            stateFilter.setOperator(operator);
+
+            log.info("Recherche des conversations avec état {} (page size: {})...", state, PAGE_SIZE);
+            while (hasMore) {
+                long pageStart = System.currentTimeMillis();
+                ConversationQuery query = new ConversationQuery();
+                query.setOffset(offset);
+                query.setLimit(PAGE_SIZE);
+                query.addSearchFiltersItem(stateFilter);
+                ConversationResult result = conversationsApi.conversationsSearch(query, NO_EXPAND);
+                all.addAll(result.getItems());
+                hasMore = Boolean.TRUE.equals(result.isHasMoreItems());
+                offset = hasMore ? result.getNextOffset() : offset;
+                log.info("Page {} chargée en {}ms — {} conversation(s) état={}, hasMore: {}",
+                        ++pageNum, System.currentTimeMillis() - pageStart,
+                        result.getItems().size(), state, hasMore);
+            }
+
+            log.info("Trouvé {} conversation(s) avec état {} en {}ms",
+                    all.size(), state, System.currentTimeMillis() - startTime);
+            return all.stream()
+                    .map(this::toConversationSummary)
+                    .toList();
+        } catch (IllegalArgumentException e) {
+            throw new UnbluApiException(400, "Bad Request", "État de conversation invalide : " + state);
+        } catch (ApiException e) {
+            log.error("Erreur lors de la recherche des conversations par état {} - Status: {}", state, e.getCode(), e);
+            throw new UnbluApiException(e.getCode(), "Error",
+                    "Erreur lors de la recherche des conversations : " + e.getMessage());
+        }
+    }
+
+    /**
      * Ajoute un message de résumé à une conversation Unblu existante via le bot configuré.
      * Si {@code unblu.api.summary-bot-person-id} n'est pas configuré, l'opération est ignorée.
      *

@@ -31,6 +31,17 @@ public interface UnbluPort {
     List<PersonInfo> searchPersons(String sourceId, PersonSource personSource);
 
     /**
+     * Récupère une personne Unblu directement par sa source et son sourceId.
+     * Utilise l'endpoint GET /persons/getBySource, plus fiable que la recherche pour les personnes VIRTUAL.
+     *
+     * @param personSource le type de source (VIRTUAL ou USER_DB)
+     * @param sourceId     l'identifiant source de la personne
+     * @return la personne trouvée
+     * @throws RuntimeException si la personne n'existe pas ou en cas d'erreur API
+     */
+    PersonInfo getPersonBySource(PersonSource personSource, String sourceId);
+
+    /**
      * Retourne la liste de toutes les équipes (teams) Unblu.
      *
      * @return liste des équipes
@@ -89,4 +100,12 @@ public interface UnbluPort {
      * @return liste des participants (jamais {@code null}, peut être vide)
      */
     List<UnbluParticipantData> fetchConversationParticipants(String conversationId);
+
+    /**
+     * Recherche les conversations Unblu filtrées par état.
+     *
+     * @param state l'état recherché (INACTIVE, ACTIVE, ENDED, ONBOARDING, OFFBOARDING)
+     * @return liste des résumés de conversations correspondantes (jamais {@code null}, peut être vide)
+     */
+    List<UnbluConversationSummary> searchConversationsByState(String state);
 }

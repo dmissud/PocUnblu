@@ -1,0 +1,110 @@
+.search-panel {
+  padding: 1rem;
+}
+
+.search-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.search-controls label {
+  font-weight: 600;
+}
+
+.search-controls select {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.btn-search {
+  padding: 0.4rem 1rem;
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-search:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-banner {
+  color: #c62828;
+  background: #ffebee;
+  border: 1px solid #ef9a9a;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.results-header {
+  margin-bottom: 0.75rem;
+  color: #555;
+}
+
+.empty-state {
+  color: #888;
+  font-style: italic;
+}
+
+.conversations-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.conversations-table th,
+.conversations-table td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.conversations-table th {
+  background: #f5f5f5;
+  font-weight: 600;
+}
+
+.id-cell {
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.state-inactive {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.state-active {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.state-ended {
+  background: #f3e5f5;
+  color: #6a1b9a;
+}
+
+.state-onboarding {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.state-offboarding {
+  background: #fce4ec;
+  color: #880e4f;
+}

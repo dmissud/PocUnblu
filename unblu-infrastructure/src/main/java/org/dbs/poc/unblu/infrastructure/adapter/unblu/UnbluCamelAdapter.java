@@ -33,6 +33,7 @@ public class UnbluCamelAdapter extends RouteBuilder {
     public static final String DIRECT_UNBLU_LIST_CONVERSATIONS = "direct:unblu-list-conversations";
     public static final String DIRECT_UNBLU_FETCH_MESSAGES = "direct:unblu-fetch-messages";
     public static final String DIRECT_UNBLU_FETCH_PARTICIPANTS = "direct:unblu-fetch-participants";
+    public static final String DIRECT_UNBLU_SEARCH_CONVERSATIONS_BY_STATE = "direct:unblu-search-conversations-by-state";
 
     private final UnbluPersonService unbluPersonService;
     private final UnbluConversationService unbluConversationService;
@@ -124,6 +125,17 @@ public class UnbluCamelAdapter extends RouteBuilder {
                 .process(exchange -> {
                     String conversationId = exchange.getIn().getBody(String.class);
                     exchange.getIn().setBody(unbluConversationService.fetchParticipants(conversationId));
+                });
+
+        // ==========================================
+        // ADAPTER : Recherche de conversations par état
+        // ==========================================
+        from(DIRECT_UNBLU_SEARCH_CONVERSATIONS_BY_STATE)
+                .routeId("unblu-search-conversations-by-state")
+                .log("Recherche des conversations avec état ${body}")
+                .process(exchange -> {
+                    String state = exchange.getIn().getBody(String.class);
+                    exchange.getIn().setBody(unbluConversationService.searchConversationsByState(state));
                 });
     }
 

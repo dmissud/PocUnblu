@@ -30,6 +30,7 @@ public class UnbluResilientRoute extends RouteBuilder {
     public static final String DIRECT_UNBLU_LIST_CONVERSATIONS_RESILIENT = "direct:unblu-list-conversations-resilient";
     public static final String DIRECT_UNBLU_FETCH_MESSAGES_RESILIENT = "direct:unblu-fetch-messages-resilient";
     public static final String DIRECT_UNBLU_FETCH_PARTICIPANTS_RESILIENT = "direct:unblu-fetch-participants-resilient";
+    public static final String DIRECT_UNBLU_SEARCH_CONVERSATIONS_BY_STATE_RESILIENT = "direct:unblu-search-conversations-by-state-resilient";
 
     private static final int TIMEOUT_MS = 3000;
     private static final int TIMEOUT_MS_BULK = 30000;
@@ -116,6 +117,17 @@ public class UnbluResilientRoute extends RouteBuilder {
                 .log("⚠️ Timeout ou erreur lors de la récupération des participants — liste vide. Cause: ${exception.message}")
                 .process(exchange -> exchange.getIn().setBody(List.of()))
             .end();
+
+        // --- Search conversations by state ---
+        from(DIRECT_UNBLU_SEARCH_CONVERSATIONS_BY_STATE_RESILIENT)
+                .routeId("unblu-resilient-search-conversations-by-state")
+                .circuitBreaker()
+                .resilience4jConfiguration().timeoutEnabled(true).timeoutDuration(TIMEOUT_MS_BULK).end()
+                .to(UnbluCamelAdapter.DIRECT_UNBLU_SEARCH_CONVERSATIONS_BY_STATE)
+                .onFallback()
+                .log("⚠️ Unblu indisponible — fallback searchConversationsByState (liste vide). Cause: ${exception.message}")
+                .process(exchange -> exchange.getIn().setBody(List.of()))
+                .end();
     }
 
     /**
