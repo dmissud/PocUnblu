@@ -90,6 +90,52 @@ Il est surdimensionné — et contre-productif — pour orchestrer des use cases
 > **Principe directeur :** Camel est cantonné à l'infrastructure événementielle.
 > Les use cases synchrones sont des services Java injectables, testables unitairement.
 
+### 2.1 Pourquoi pas Camel pour les use cases synchrones ?
+
+#### Le modèle de programmation inadapté
+
+Camel travaille sur un **Exchange** (message) qui transite dans une route. Pour séquencer
+`erpPort → ruleEngine → unbluPort`, il faut stocker les résultats intermédiaires dans des headers
+ou le body de l'Exchange, manipuler des processeurs sans signature typée, et accepter que le flux
+soit piloté par le routage plutôt que par la logique métier.
+
+Un service Java fait la même chose en 3 appels de méthodes, avec des types forts, lisibles et debuggables.
+
+#### La testabilité est dégradée
+
+Un use case en `@Service` se teste en deux lignes, sans Spring ni Camel :
+
+```java
+
+@Mock
+UnbluPort unbluPort;
+@InjectMocks
+ConversationOrchestratorService service;
+```
+
+Une route Camel nécessite `CamelTestSupport`, le démarrage du contexte Camel et la simulation des
+endpoints — beaucoup plus lourd pour tester de la logique synchrone.
+
+#### Camel n'apporte rien que Java ne fasse mieux ici
+
+| Besoin               | Camel                                    | Java pur                             |
+|----------------------|------------------------------------------|--------------------------------------|
+| Séquencer des appels | `.to("direct:step1").to("direct:step2")` | `step1(); step2();`                  |
+| Résilience           | Camel Resilience4j component             | `@CircuitBreaker` Resilience4j natif |
+| Gestion d'erreur     | `onException()`                          | `try/catch` ou `@ControllerAdvice`   |
+
+#### Camel est pertinent quand il y a du routing réel
+
+Camel brille pour les besoins **événementiels** :
+
+- **Fan-out** : envoyer un message vers plusieurs systèmes en parallèle (`multicast`)
+- **Retry / DLQ** : réessayer un traitement asynchrone avec back-off exponentiel
+- **Idempotence** : déduplication de messages entrants
+- **Transformation** : EIP patterns (split, aggregate, enrich)
+
+Un use case synchrone comme `startConversation` n'a aucun de ces besoins. Utiliser Camel pour du
+synchrone introduit une complexité accidentelle qui n'est justifiée par aucun bénéfice.
+
 ---
 
 ## 3. Architecture cible recommandée
