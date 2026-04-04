@@ -67,7 +67,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,camelroutes,camelroutecontroller
+        include: health,info,metrics,camelroutes,camelroutecontroller,prometheus
   endpoint:
     health:
       show-details: always
@@ -75,6 +75,35 @@ management:
       enabled: true
     camelroutecontroller:
       enabled: true
+
+# Resilience4j configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      erp:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10000
+      ruleEngine:
+        registerHealthIndicator: true
+        slidingWindowSize: 5
+        failureRateThreshold: 50
+      unblu:
+        registerHealthIndicator: true
+        slidingWindowSize: 20
+        failureRateThreshold: 50
+      summary:
+        registerHealthIndicator: true
+  retry:
+    instances:
+      erp:
+        maxAttempts: 3
+        waitDuration: 1000
+      unblu:
+        maxAttempts: 3
+        waitDuration: 2000
 
 # Mock configuration
 mock:
