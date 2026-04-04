@@ -25,15 +25,20 @@ spring:
 
 # Configuration de Camel
 camel:
-  servlet:
-    mapping:
-      context-path: /api/*
   springboot:
     management:
       enabled: true
     jmx-enabled: true
 
-# Swagger UI servi via webjars a : /webjars/swagger-ui/index.html?url=/api/api-doc
+# SpringDoc OpenAPI configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+    display-request-duration: true
 
 logging:
   level:

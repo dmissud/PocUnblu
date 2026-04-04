@@ -1,5 +1,6 @@
 package org.dbs.poc.unblu.exposition.rest.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 /**
@@ -8,7 +9,9 @@ import lombok.Data;
  */
 @Data
 public class StartConversationRequest {
+    @NotBlank(message = "clientId is required")
     private String clientId;
+    @NotBlank(message = "subject is required")
     private String subject;
     private String origin;
 }

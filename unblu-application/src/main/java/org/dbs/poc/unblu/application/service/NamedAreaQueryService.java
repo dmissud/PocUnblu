@@ -2,10 +2,10 @@ package org.dbs.poc.unblu.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.dbs.poc.unblu.application.port.in.SearchAgentsByNamedAreaUseCase;
-import org.dbs.poc.unblu.application.port.in.SearchNamedAreasUseCase;
 import org.dbs.poc.unblu.domain.model.NamedAreaInfo;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
+import org.dbs.poc.unblu.domain.port.in.SearchAgentsByNamedAreaUseCase;
+import org.dbs.poc.unblu.domain.port.in.SearchNamedAreasUseCase;
 import org.dbs.poc.unblu.domain.port.out.UnbluPort;
 import org.springframework.stereotype.Service;
 

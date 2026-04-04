@@ -1,7 +1,7 @@
 package org.dbs.poc.unblu.application.service;
 
 import lombok.RequiredArgsConstructor;
-import org.dbs.poc.unblu.application.port.in.CreateBotUseCase;
+import org.dbs.poc.unblu.domain.port.in.CreateBotUseCase;
 import org.dbs.poc.unblu.domain.port.out.UnbluPort;
 import org.springframework.stereotype.Service;
 

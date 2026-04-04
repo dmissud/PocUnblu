@@ -1,8 +1,8 @@
 package org.dbs.poc.unblu.exposition.rest.mapper;
 
 import org.apache.camel.Exchange;
-import org.dbs.poc.unblu.application.port.in.SearchTeamsUseCase;
 import org.dbs.poc.unblu.domain.model.TeamInfo;
+import org.dbs.poc.unblu.domain.port.in.SearchTeamsUseCase;
 import org.dbs.poc.unblu.exposition.rest.dto.TeamResponse;
 import org.springframework.stereotype.Component;
 

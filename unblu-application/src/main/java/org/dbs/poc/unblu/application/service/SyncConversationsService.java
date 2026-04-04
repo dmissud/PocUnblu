@@ -2,10 +2,10 @@ package org.dbs.poc.unblu.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.dbs.poc.unblu.application.port.in.SyncConversationsUseCase;
 import org.dbs.poc.unblu.domain.model.ConversationSyncResult;
 import org.dbs.poc.unblu.domain.model.UnbluConversationSummary;
 import org.dbs.poc.unblu.domain.model.history.ConversationHistory;
+import org.dbs.poc.unblu.domain.port.in.SyncConversationsUseCase;
 import org.dbs.poc.unblu.domain.port.out.ConversationHistoryRepository;
 import org.dbs.poc.unblu.domain.port.out.UnbluPort;
 import org.springframework.stereotype.Service;

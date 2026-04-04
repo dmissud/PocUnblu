@@ -1,9 +1,9 @@
 package org.dbs.poc.unblu.exposition.rest.mapper;
 
 import org.apache.camel.Exchange;
-import org.dbs.poc.unblu.application.port.in.SetupWebhookUseCase;
 import org.dbs.poc.unblu.domain.model.webhook.WebhookSetupResult;
 import org.dbs.poc.unblu.domain.model.webhook.WebhookStatus;
+import org.dbs.poc.unblu.domain.port.in.SetupWebhookUseCase;
 import org.springframework.stereotype.Component;
 
 /**

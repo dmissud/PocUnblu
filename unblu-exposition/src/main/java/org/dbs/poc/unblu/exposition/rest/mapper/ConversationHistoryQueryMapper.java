@@ -1,6 +1,5 @@
 package org.dbs.poc.unblu.exposition.rest.mapper;
 
-import org.apache.camel.Exchange;
 import org.dbs.poc.unblu.domain.model.history.ConversationEventHistory;
 import org.dbs.poc.unblu.domain.model.history.ConversationHistory;
 import org.dbs.poc.unblu.domain.model.history.ConversationHistoryPage;
@@ -32,26 +31,7 @@ public class ConversationHistoryQueryMapper {
     /**
      * Mappe la {@link ConversationHistoryPage} domaine en {@link ConversationHistoryPageResponse} REST.
      */
-    public void mapPageToResponse(Exchange exchange) {
-        ConversationHistoryPage page = exchange.getIn().getBody(ConversationHistoryPage.class);
-        exchange.getIn().setBody(toPageResponse(page));
-    }
-
-    /**
-     * Mappe le {@link ConversationHistory} domaine en {@link ConversationHistoryDetailResponse} REST.
-     * Retourne un 404 si le corps est {@code null}.
-     */
-    public void mapDetailToResponse(Exchange exchange) {
-        ConversationHistory history = exchange.getIn().getBody(ConversationHistory.class);
-        if (history == null) {
-            exchange.getIn().setHeader(Exchange.HTTP_RESPONSE_CODE, 404);
-            exchange.getIn().setBody(null);
-            return;
-        }
-        exchange.getIn().setBody(toDetailResponse(history));
-    }
-
-    private ConversationHistoryPageResponse toPageResponse(ConversationHistoryPage page) {
+    public ConversationHistoryPageResponse toPageResponse(ConversationHistoryPage page) {
         List<ConversationHistoryItemResponse> items = page.items().stream()
                 .map(this::toItemResponse)
                 .toList();
@@ -64,17 +44,14 @@ public class ConversationHistoryQueryMapper {
                 .build();
     }
 
-    private ConversationHistoryItemResponse toItemResponse(ConversationHistory history) {
-        return ConversationHistoryItemResponse.builder()
-                .conversationId(history.conversationId())
-                .topic(history.topic())
-                .createdAt(toIso(history.startedAt()))
-                .endedAt(toIso(history.endedAt()))
-                .status(history.isEnded() ? STATUS_ENDED : STATUS_ACTIVE)
-                .build();
-    }
+    /**
+     * Mappe le {@link ConversationHistory} domaine en {@link ConversationHistoryDetailResponse} REST.
+     */
+    public ConversationHistoryDetailResponse toDetailResponse(ConversationHistory history) {
+        if (history == null) {
+            return null;
+        }
 
-    private ConversationHistoryDetailResponse toDetailResponse(ConversationHistory history) {
         List<ConversationParticipantResponse> participants = history.participants().stream()
                 .map(this::toParticipantResponse)
                 .toList();
@@ -92,6 +69,16 @@ public class ConversationHistoryQueryMapper {
                 .status(history.isEnded() ? STATUS_ENDED : STATUS_ACTIVE)
                 .participants(participants)
                 .events(events)
+                .build();
+    }
+
+    private ConversationHistoryItemResponse toItemResponse(ConversationHistory history) {
+        return ConversationHistoryItemResponse.builder()
+                .conversationId(history.conversationId())
+                .topic(history.topic())
+                .createdAt(toIso(history.startedAt()))
+                .endedAt(toIso(history.endedAt()))
+                .status(history.isEnded() ? STATUS_ENDED : STATUS_ACTIVE)
                 .build();
     }
 
