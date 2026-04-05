@@ -3,9 +3,9 @@ package org.dbs.poc.unblu.exposition.rest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.dbs.poc.unblu.application.port.in.SetupWebhookUseCase;
 import org.dbs.poc.unblu.domain.model.webhook.WebhookSetupResult;
 import org.dbs.poc.unblu.domain.model.webhook.WebhookStatus;
-import org.dbs.poc.unblu.domain.port.in.SetupWebhookUseCase;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

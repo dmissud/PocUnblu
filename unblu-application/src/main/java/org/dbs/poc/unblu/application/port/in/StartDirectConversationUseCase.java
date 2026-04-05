@@ -1,7 +1,7 @@
-package org.dbs.poc.unblu.domain.port.in;
+package org.dbs.poc.unblu.application.port.in;
 
+import org.dbs.poc.unblu.application.port.in.command.StartDirectConversationCommand;
 import org.dbs.poc.unblu.domain.model.UnbluConversationInfo;
-import org.dbs.poc.unblu.domain.port.in.command.StartDirectConversationCommand;
 
 /**
  * Cas d'utilisation : démarrage d'une conversation directe entre un participant virtuel et un agent.

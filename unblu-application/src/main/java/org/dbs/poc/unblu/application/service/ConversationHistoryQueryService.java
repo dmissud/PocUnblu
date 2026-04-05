@@ -2,11 +2,11 @@ package org.dbs.poc.unblu.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.dbs.poc.unblu.application.port.in.GetConversationHistoryUseCase;
+import org.dbs.poc.unblu.application.port.in.ListConversationHistoryUseCase;
+import org.dbs.poc.unblu.application.port.in.query.ListConversationHistoryQuery;
 import org.dbs.poc.unblu.domain.model.history.ConversationHistory;
 import org.dbs.poc.unblu.domain.model.history.ConversationHistoryPage;
-import org.dbs.poc.unblu.domain.port.in.GetConversationHistoryUseCase;
-import org.dbs.poc.unblu.domain.port.in.ListConversationHistoryUseCase;
-import org.dbs.poc.unblu.domain.port.in.query.ListConversationHistoryQuery;
 import org.dbs.poc.unblu.domain.port.out.ConversationHistoryRepository;
 import org.springframework.stereotype.Service;
 

@@ -3,7 +3,7 @@ package org.dbs.poc.unblu.exposition.rest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.dbs.poc.unblu.domain.port.in.SearchTeamsUseCase;
+import org.dbs.poc.unblu.application.port.in.SearchTeamsUseCase;
 import org.dbs.poc.unblu.exposition.rest.dto.TeamResponse;
 import org.dbs.poc.unblu.exposition.rest.mapper.TeamMapper;
 import org.springframework.http.ResponseEntity;

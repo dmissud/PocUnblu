@@ -2,9 +2,9 @@ package org.dbs.poc.unblu.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.dbs.poc.unblu.application.port.in.SearchConversationsByStateUseCase;
+import org.dbs.poc.unblu.application.port.in.query.SearchConversationsByStateQuery;
 import org.dbs.poc.unblu.domain.model.UnbluConversationSummary;
-import org.dbs.poc.unblu.domain.port.in.SearchConversationsByStateUseCase;
-import org.dbs.poc.unblu.domain.port.in.query.SearchConversationsByStateQuery;
 import org.dbs.poc.unblu.domain.port.out.UnbluPort;
 import org.springframework.stereotype.Service;
 

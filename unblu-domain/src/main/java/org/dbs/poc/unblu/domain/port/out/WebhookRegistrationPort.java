@@ -1,4 +1,4 @@
-package org.dbs.poc.unblu.application.port.out;
+package org.dbs.poc.unblu.domain.port.out;
 
 import java.util.List;
 

@@ -134,7 +134,7 @@ Central pivot object enriched through orchestration:
 
 ```
 org.dbs.poc.unblu.domain.model        → Domain entities
-org.dbs.poc.unblu.domain.port.in      → Use case interfaces (primary ports)
+org.dbs.poc.unblu.application.port.in      → Use case interfaces (primary ports)
 org.dbs.poc.unblu.domain.port.out     → Secondary port interfaces
 org.dbs.poc.unblu.application.service → Camel routes implementing use cases
 org.dbs.poc.unblu.infrastructure      → Adapter implementations

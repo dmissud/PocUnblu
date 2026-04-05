@@ -1,4 +1,4 @@
-package org.dbs.poc.unblu.domain.port.in;
+package org.dbs.poc.unblu.application.port.in;
 
 /**
  * Cas d'utilisation : création d'un bot dans Unblu pour l'envoi automatique de résumés de conversation.

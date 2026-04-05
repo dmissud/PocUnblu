@@ -1,7 +1,7 @@
-package org.dbs.poc.unblu.domain.port.in;
+package org.dbs.poc.unblu.application.port.in;
 
+import org.dbs.poc.unblu.application.port.in.command.StartConversationCommand;
 import org.dbs.poc.unblu.domain.model.ConversationOrchestrationState;
-import org.dbs.poc.unblu.domain.port.in.command.StartConversationCommand;
 
 /**
  * Cas d'utilisation principal : démarrage d'une conversation avec une équipe Unblu.

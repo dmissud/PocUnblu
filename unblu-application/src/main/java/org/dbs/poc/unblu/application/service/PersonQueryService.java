@@ -2,9 +2,9 @@ package org.dbs.poc.unblu.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.dbs.poc.unblu.application.port.in.SearchPersonsUseCase;
+import org.dbs.poc.unblu.application.port.in.query.SearchPersonsQuery;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
-import org.dbs.poc.unblu.domain.port.in.SearchPersonsUseCase;
-import org.dbs.poc.unblu.domain.port.in.query.SearchPersonsQuery;
 import org.dbs.poc.unblu.domain.port.out.UnbluPort;
 import org.springframework.stereotype.Service;
 

@@ -1,8 +1,8 @@
 package org.dbs.poc.unblu.infrastructure.adapter.webhook;
 
 import lombok.RequiredArgsConstructor;
-import org.dbs.poc.unblu.application.port.out.WebhookRegistrationPort;
 import org.dbs.poc.unblu.domain.exception.UnbluApiException;
+import org.dbs.poc.unblu.domain.port.out.WebhookRegistrationPort;
 import org.dbs.poc.unblu.infrastructure.adapter.unblu.UnbluWebhookService;
 import org.springframework.stereotype.Component;
 

@@ -1,4 +1,4 @@
-package org.dbs.poc.unblu.application.port.out;
+package org.dbs.poc.unblu.domain.port.out;
 
 /**
  * Port for managing a public tunnel (e.g. ngrok) exposing local endpoints.

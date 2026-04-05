@@ -2,10 +2,10 @@ package org.dbs.poc.unblu.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.dbs.poc.unblu.application.port.in.StartConversationUseCase;
+import org.dbs.poc.unblu.application.port.in.command.StartConversationCommand;
 import org.dbs.poc.unblu.domain.model.ConversationContext;
 import org.dbs.poc.unblu.domain.model.ConversationOrchestrationState;
-import org.dbs.poc.unblu.domain.port.in.StartConversationUseCase;
-import org.dbs.poc.unblu.domain.port.in.command.StartConversationCommand;
 import org.dbs.poc.unblu.domain.port.out.ErpPort;
 import org.dbs.poc.unblu.domain.port.out.RuleEnginePort;
 import org.dbs.poc.unblu.domain.port.out.UnbluPort;

@@ -2,12 +2,12 @@ package org.dbs.poc.unblu.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.dbs.poc.unblu.application.port.out.TunnelPort;
-import org.dbs.poc.unblu.application.port.out.WebhookRegistrationPort;
+import org.dbs.poc.unblu.application.port.in.SetupWebhookUseCase;
 import org.dbs.poc.unblu.domain.exception.UnbluApiException;
 import org.dbs.poc.unblu.domain.model.webhook.WebhookSetupResult;
 import org.dbs.poc.unblu.domain.model.webhook.WebhookStatus;
-import org.dbs.poc.unblu.domain.port.in.SetupWebhookUseCase;
+import org.dbs.poc.unblu.domain.port.out.TunnelPort;
+import org.dbs.poc.unblu.domain.port.out.WebhookRegistrationPort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 

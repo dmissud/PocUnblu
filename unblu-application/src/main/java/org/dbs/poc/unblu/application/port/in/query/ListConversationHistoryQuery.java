@@ -1,4 +1,4 @@
-package org.dbs.poc.unblu.domain.port.in.query;
+package org.dbs.poc.unblu.application.port.in.query;
 
 import org.dbs.poc.unblu.domain.model.history.ConversationSortDirection;
 import org.dbs.poc.unblu.domain.model.history.ConversationSortField;

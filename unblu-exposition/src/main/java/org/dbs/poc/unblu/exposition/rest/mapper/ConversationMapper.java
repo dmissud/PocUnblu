@@ -1,9 +1,9 @@
 package org.dbs.poc.unblu.exposition.rest.mapper;
 
+import org.dbs.poc.unblu.application.port.in.command.StartConversationCommand;
+import org.dbs.poc.unblu.application.port.in.command.StartDirectConversationCommand;
 import org.dbs.poc.unblu.domain.model.ConversationOrchestrationState;
 import org.dbs.poc.unblu.domain.model.UnbluConversationInfo;
-import org.dbs.poc.unblu.domain.port.in.command.StartConversationCommand;
-import org.dbs.poc.unblu.domain.port.in.command.StartDirectConversationCommand;
 import org.dbs.poc.unblu.exposition.rest.dto.StartConversationRequest;
 import org.dbs.poc.unblu.exposition.rest.dto.StartConversationResponse;
 import org.dbs.poc.unblu.exposition.rest.dto.StartDirectConversationRequest;
