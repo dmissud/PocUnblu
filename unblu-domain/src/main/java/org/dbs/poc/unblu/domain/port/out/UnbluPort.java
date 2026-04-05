@@ -20,8 +20,11 @@ public interface UnbluPort {
     List<UnbluConversationSummary> listAllConversations();
     /**
      * Creates a new conversation in Unblu and returns its info.
+     *
+     * @param request the creation request containing all details
+     * @return informations sur la conversation créée
      */
-    UnbluConversationInfo createConversation(ConversationContext context);
+    UnbluConversationInfo createConversation(ConversationCreationRequest request);
 
     /**
      * Searches for persons in Unblu.

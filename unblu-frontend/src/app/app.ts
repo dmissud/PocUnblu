@@ -40,6 +40,7 @@ export class App implements OnInit {
   // Results
   directResult: any = null;
   teamResult: any = null;
+  liveKitResult: any = null;
   error: string | null = null;
 
   // Loading states
@@ -140,6 +141,28 @@ export class App implements OnInit {
       },
       error: (err) => {
         this.error = 'Erreur lors de la création de la conversation: ' + err.message;
+        this.loading = false;
+      }
+    });
+  }
+
+  startLiveKitConversation(): void {
+    if (!this.selectedClient) {
+      this.error = 'Veuillez sélectionner un client';
+      return;
+    }
+
+    this.loading = true;
+    this.error = null;
+    this.liveKitResult = null;
+
+    this.apiService.startLiveKitConversation(this.selectedClient.sourceId).subscribe({
+      next: (result) => {
+        this.liveKitResult = result;
+        this.loading = false;
+      },
+      error: (err) => {
+        this.error = 'Erreur lors de la création de la conversation LiveKit: ' + err.message;
         this.loading = false;
       }
     });

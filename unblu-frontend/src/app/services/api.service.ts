@@ -19,6 +19,7 @@ import {WebhookSetupResult, WebhookStatus} from '../models/webhook.model';
 })
 export class ApiService {
   private readonly baseUrl = '/api/v1';
+  private readonly livekitBaseUrl = '/api/v1/livekit';
 
   constructor(private http: HttpClient) {}
 
@@ -45,6 +46,10 @@ export class ApiService {
       origin: 'FRONTEND_TEST'
     };
     return this.http.post<StartConversationResponse>(`${this.baseUrl}/conversations/start`, camelRequest);
+  }
+
+  startLiveKitConversation(clientId: string): Observable<StartConversationResponse> {
+    return this.http.post<StartConversationResponse>(`${this.livekitBaseUrl}/conversations/start`, {clientId});
   }
 
   syncConversations(): Observable<ConversationSyncResult> {

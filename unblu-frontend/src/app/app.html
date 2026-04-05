@@ -257,5 +257,40 @@
         <p *ngIf="teamResult.agentPersonId"><strong>Agent ID:</strong> {{ teamResult.agentPersonId }}</p>
       </div>
     </div>
+
+    <!-- Workflow 3: LiveKit Conversation -->
+    <div class="card">
+      <h2>🎥 LiveKit Conversation</h2>
+      <p class="subtitle">Client seul → Conversation LiveKit (CH_HB_PREMIUM)</p>
+
+      <div class="form-group">
+        <label for="livekit-client">Client (VIRTUAL)</label>
+        <select
+          [(ngModel)]="selectedClient"
+          [disabled]="loading"
+          class="form-control"
+          id="livekit-client">
+          <option [ngValue]="null">-- Sélectionner un client --</option>
+          <option *ngFor="let client of clients" [ngValue]="client">
+            {{ client.displayName }} ({{ client.id }})
+          </option>
+        </select>
+      </div>
+
+      <div class="button-group">
+        <button
+          (click)="startLiveKitConversation()"
+          [disabled]="loading || !selectedClient"
+          class="btn btn-primary">
+          {{ loading ? 'Création...' : 'Démarrer Conversation LiveKit' }}
+        </button>
+      </div>
+
+      <div *ngIf="liveKitResult" class="result">
+        <h3>✅ Conversation LiveKit créée!</h3>
+        <p><strong>ID Conversation:</strong> {{ liveKitResult.conversationId }}</p>
+        <p><strong>URL:</strong> <a [href]="liveKitResult.joinUrl" target="_blank">{{ liveKitResult.joinUrl }}</a></p>
+      </div>
+    </div>
   </div>
 </div>

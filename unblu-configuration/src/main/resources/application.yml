@@ -105,6 +105,10 @@ resilience4j:
         maxAttempts: 3
         waitDuration: 2000
 
+# LiveKit reverse proxy configuration
+livekit:
+  base-url: ${LIVEKIT_BASE_URL:http://localhost:8082}
+
 # Mock configuration
 mock:
   rule-engine:
