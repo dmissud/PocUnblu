@@ -48,7 +48,13 @@
       class="tab-btn"
       [class.active]="activeTab === 'conversations'"
       (click)="activeTab = 'conversations'">
-      💬 Conversations
+      💬 First Step
+    </button>
+    <button
+      (click)="activeTab = 'livekit'"
+      [class.active]="activeTab === 'livekit'"
+      class="tab-btn">
+      🎥 LiveKit
     </button>
     <button
       class="tab-btn"
@@ -64,7 +70,7 @@
     </button>
   </nav>
 
-  <div *ngIf="loadingData && activeTab === 'conversations'" class="loading">
+  <div *ngIf="loadingData && (activeTab === 'conversations' || activeTab === 'livekit')" class="loading">
     <p>Chargement des données...</p>
   </div>
 
@@ -257,7 +263,9 @@
         <p *ngIf="teamResult.agentPersonId"><strong>Agent ID:</strong> {{ teamResult.agentPersonId }}</p>
       </div>
     </div>
+  </div>
 
+  <div *ngIf="!loadingData && activeTab === 'livekit'" class="content">
     <!-- Workflow 3: LiveKit Conversation -->
     <div class="card">
       <h2>🎥 LiveKit Conversation</h2>
@@ -283,6 +291,12 @@
           [disabled]="loading || !selectedClient"
           class="btn btn-primary">
           {{ loading ? 'Création...' : 'Démarrer Conversation LiveKit' }}
+        </button>
+        <button
+          (click)="resetLiveKitForm()"
+          [disabled]="loading"
+          class="btn btn-secondary">
+          Réinitialiser
         </button>
       </div>
 

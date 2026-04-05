@@ -18,7 +18,7 @@ import {InactiveConversationsComponent} from './components/inactive-conversation
 export class App implements OnInit {
   title = 'Unblu Conversation Manager';
 
-  activeTab: 'conversations' | 'history' | 'search' = 'conversations';
+  activeTab: 'conversations' | 'history' | 'search' | 'livekit' = 'conversations';
 
   // Lists
   clients: PersonInfo[] = [];
@@ -76,6 +76,12 @@ export class App implements OnInit {
       this.error = 'Erreur lors du chargement des données: ' + err.message;
       this.loadingData = false;
     });
+  }
+
+  resetLiveKitForm(): void {
+    this.selectedClient = null;
+    this.liveKitResult = null;
+    this.error = null;
   }
 
   startDirectConversation(): void {
