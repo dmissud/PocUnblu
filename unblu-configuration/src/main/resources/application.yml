@@ -109,6 +109,11 @@ resilience4j:
 livekit:
   base-url: ${LIVEKIT_BASE_URL:http://localhost:8082}
 
+# Webhook entrypoint reverse proxy configuration
+webhook:
+  entrypoint:
+    base-url: ${WEBHOOK_ENTRYPOINT_BASE_URL:http://localhost:8083}
+
 # Mock configuration
 mock:
   rule-engine:
