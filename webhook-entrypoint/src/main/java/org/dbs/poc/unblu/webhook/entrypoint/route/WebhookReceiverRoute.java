@@ -89,19 +89,22 @@ public class WebhookReceiverRoute extends RouteBuilder {
      * Deserializes the raw exchange body to a typed {@link UnbluWebhookPayload}.
      * Supports three input formats: already-typed payload, {@code Map}, or JSON {@code String}.
      */
-    @SuppressWarnings("unchecked")
     private UnbluWebhookPayload deserializePayload(Object body) throws Exception {
-        if (body == null) {
-            return null;
-        }
-        if (body instanceof UnbluWebhookPayload typed) {
-            return typed;
-        }
-        if (body instanceof Map<?, ?> map) {
-            return objectMapper.convertValue(map, UnbluWebhookPayload.class);
-        }
-        if (body instanceof String json && !json.isBlank()) {
-            return objectMapper.readValue(json, UnbluWebhookPayload.class);
+        switch (body) {
+            case null -> {
+                return null;
+            }
+            case UnbluWebhookPayload typed -> {
+                return typed;
+            }
+            case Map<?, ?> map -> {
+                return objectMapper.convertValue(map, UnbluWebhookPayload.class);
+            }
+            case String json when !json.isBlank() -> {
+                return objectMapper.readValue(json, UnbluWebhookPayload.class);
+            }
+            default -> {
+            }
         }
         log.warn("Unexpected payload type: {}", body.getClass().getName());
         return null;
