@@ -8,17 +8,18 @@ import {NamedAreaInfo} from './models/named-area.model';
 import {WebhookStatus} from './models/webhook.model';
 import {ConversationHistoryComponent} from './components/conversation-history/conversation-history.component';
 import {InactiveConversationsComponent} from './components/inactive-conversations/inactive-conversations.component';
+import {WebhookSimulatorComponent} from './components/webhook-simulator/webhook-simulator.component';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, FormsModule, ConversationHistoryComponent, InactiveConversationsComponent],
+  imports: [CommonModule, FormsModule, ConversationHistoryComponent, InactiveConversationsComponent, WebhookSimulatorComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
 export class App implements OnInit {
   title = 'Unblu Conversation Manager';
 
-  activeTab: 'conversations' | 'history' | 'search' | 'livekit' = 'conversations';
+  activeTab: 'conversations' | 'history' | 'search' | 'livekit' | 'webhook-simulator' = 'conversations';
 
   // Lists
   clients: PersonInfo[] = [];

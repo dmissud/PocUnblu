@@ -1,5 +1,5 @@
 import {Injectable} from '@angular/core';
-import {HttpClient} from '@angular/common/http';
+import {HttpClient, HttpHeaders, HttpResponse} from '@angular/common/http';
 import {Observable} from 'rxjs';
 import {PersonInfo} from '../models/person.model';
 import {TeamInfo} from '../models/team.model';
@@ -97,5 +97,17 @@ export class ApiService {
 
   teardownWebhook(deleteWebhook: boolean = false): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/webhooks/teardown?deleteWebhook=${deleteWebhook}`);
+  }
+
+  simulateWebhookEvent(eventType: string, payload: object): Observable<HttpResponse<string>> {
+    const headers = new HttpHeaders({
+      'X-Unblu-Event': eventType,
+      'X-Unblu-Event-Type': eventType
+    });
+    return this.http.post('/api/webhooks/unblu', payload, {
+      headers,
+      observe: 'response',
+      responseType: 'text'
+    });
   }
 }

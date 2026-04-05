@@ -1,0 +1,167 @@
+<div class="content">
+  <div class="card">
+    <h2>🪝 Webhook Simulator</h2>
+    <p class="subtitle">Simule un événement <code>conversation.created</code> en provenance d'Unblu</p>
+
+    @if (error) {
+      <div class="alert alert-error">
+        {{ error }}
+        <button (click)="error = null">✕</button>
+      </div>
+    }
+
+    <!-- Visiteur -->
+    <div class="form-group">
+      <label for="sim-client">Visiteur (CONTEXT_PERSON)</label>
+      <select
+        [(ngModel)]="selectedClient"
+        [disabled]="loading"
+        class="form-control"
+        id="sim-client">
+        <option [ngValue]="null">-- Sélectionner un visiteur --</option>
+        @for (client of clients; track client.id) {
+          <option [ngValue]="client">
+            {{ client.displayName }} ({{ client.id }})
+          </option>
+        }
+      </select>
+    </div>
+
+    <!-- Agent -->
+    <div class="form-group">
+      <label for="sim-agent">Agent (ASSIGNED_AGENT + recipient)</label>
+      <select
+        [(ngModel)]="selectedAgent"
+        [disabled]="loading"
+        class="form-control"
+        id="sim-agent">
+        <option [ngValue]="null">-- Sélectionner un agent --</option>
+        @for (agent of agents; track agent.id) {
+          <option [ngValue]="agent">
+            {{ agent.displayName }} ({{ agent.id }})
+          </option>
+        }
+      </select>
+    </div>
+
+    <!-- Conversation ID -->
+    <div class="form-group">
+      <label for="sim-conv-id">Conversation ID</label>
+      <div class="input-with-action">
+        <input
+          [(ngModel)]="conversationId"
+          [disabled]="loading"
+          class="form-control"
+          id="sim-conv-id"
+          type="text">
+        <button
+          (click)="regenerateId()"
+          [disabled]="loading"
+          class="btn-inline"
+          title="Générer un nouvel ID">
+          🔄
+        </button>
+      </div>
+    </div>
+
+    <!-- Topic -->
+    <div class="form-group">
+      <label for="sim-topic">Sujet</label>
+      <input
+        [(ngModel)]="topic"
+        [disabled]="loading"
+        class="form-control"
+        id="sim-topic"
+        placeholder="Conversation directe"
+        type="text">
+    </div>
+
+    <div class="form-row">
+      <!-- Engagement type -->
+      <div class="form-group">
+        <label for="sim-engagement">Type d'engagement</label>
+        <select
+          [(ngModel)]="engagementType"
+          [disabled]="loading"
+          class="form-control"
+          id="sim-engagement">
+          @for (type of engagementTypes; track type) {
+            <option [value]="type">{{ type }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Locale -->
+      <div class="form-group">
+        <label for="sim-locale">Locale</label>
+        <select
+          [(ngModel)]="locale"
+          [disabled]="loading"
+          class="form-control"
+          id="sim-locale">
+          @for (loc of locales; track loc) {
+            <option [value]="loc">{{ loc }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- State -->
+      <div class="form-group">
+        <label for="sim-state">État</label>
+        <select
+          [(ngModel)]="state"
+          [disabled]="loading"
+          class="form-control"
+          id="sim-state">
+          @for (s of states; track s) {
+            <option [value]="s">{{ s }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <!-- Payload preview toggle -->
+    <div class="payload-toggle">
+      <button
+        (click)="showPayload = !showPayload"
+        [disabled]="loading"
+        class="btn-link">
+        {{ showPayload ? '▲ Masquer le payload' : '▼ Voir le payload JSON' }}
+      </button>
+    </div>
+
+    @if (showPayload) {
+      <pre class="payload-preview">{{ generatedPayload }}</pre>
+    }
+
+    <!-- Actions -->
+    <div class="button-group">
+      <button
+        (click)="sendWebhook()"
+        [disabled]="loading || !selectedClient || !selectedAgent"
+        class="btn btn-primary">
+        {{ loading ? '⏳ Envoi...' : '🚀 Envoyer le webhook' }}
+      </button>
+      <button
+        (click)="reset()"
+        [disabled]="loading"
+        class="btn btn-secondary">
+        Réinitialiser
+      </button>
+    </div>
+
+    <!-- Résultat -->
+    @if (simulationResult) {
+      <div [class.result-error]="!simulationResult.success" class="result">
+        <h3>
+          {{ simulationResult.success ? '✅' : '❌' }}
+          HTTP {{ simulationResult.statusCode }}
+          {{ simulationResult.success ? '— Webhook traité' : '— Erreur' }}
+        </h3>
+        @if (simulationResult.body) {
+          <p><strong>Réponse :</strong> {{ simulationResult.body }}</p>
+        }
+      </div>
+    }
+  </div>
+</div>

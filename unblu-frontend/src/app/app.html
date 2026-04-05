@@ -68,9 +68,17 @@
       class="tab-btn">
       🔍 Recherche par état
     </button>
+    <button
+      (click)="activeTab = 'webhook-simulator'"
+      [class.active]="activeTab === 'webhook-simulator'"
+      class="tab-btn">
+      🪝 Webhook Simulator
+    </button>
   </nav>
 
-  <div *ngIf="loadingData && (activeTab === 'conversations' || activeTab === 'livekit')" class="loading">
+  <div
+    *ngIf="loadingData && (activeTab === 'conversations' || activeTab === 'livekit' || activeTab === 'webhook-simulator')"
+    class="loading">
     <p>Chargement des données...</p>
   </div>
 
@@ -87,6 +95,14 @@
   <!-- Tab: Recherche par état -->
   <div *ngIf="activeTab === 'search'" class="tab-content">
     <app-inactive-conversations></app-inactive-conversations>
+  </div>
+
+  <!-- Tab: Webhook Simulator -->
+  <div *ngIf="!loadingData && activeTab === 'webhook-simulator'" class="tab-content">
+    <app-webhook-simulator
+      [agents]="agents"
+      [clients]="clients">
+    </app-webhook-simulator>
   </div>
 
   <div *ngIf="!loadingData && activeTab === 'conversations'" class="content">
