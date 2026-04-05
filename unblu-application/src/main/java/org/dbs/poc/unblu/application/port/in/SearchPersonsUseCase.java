@@ -1,5 +1,6 @@
 package org.dbs.poc.unblu.application.port.in;
 
+import org.dbs.poc.unblu.application.port.in.query.SearchPersonsQuery;
 import org.dbs.poc.unblu.domain.model.PersonInfo;
 
 import java.util.List;

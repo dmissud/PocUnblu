@@ -26,8 +26,8 @@ public class WebConfig implements WebMvcConfigurer {
      */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/swagger/**")
-                .addResourceLocations("classpath:/static/swagger/");
+        // SpringDoc OpenAPI s'occupe de ses propres ressources.
+        // On garde la méthode vide ou on la supprime si non nécessaire d'étendre WebMvcConfigurer.
     }
 
     /**
@@ -40,7 +40,7 @@ public class WebConfig implements WebMvcConfigurer {
     public FilterRegistrationBean<SimpleCorsFilter> corsFilter() {
         FilterRegistrationBean<SimpleCorsFilter> bean = new FilterRegistrationBean<>();
         bean.setFilter(new SimpleCorsFilter());
-        bean.addUrlPatterns("/api/*");
+        bean.addUrlPatterns("/api/*", "/api-docs/*", "/swagger-ui/*");
         bean.setOrder(-100);
         return bean;
     }

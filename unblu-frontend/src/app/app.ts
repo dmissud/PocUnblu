@@ -168,7 +168,7 @@ export class App implements OnInit {
   }
 
   openSwagger(): void {
-    window.open('http://localhost:8081/swagger/index.html', '_blank');
+    window.open('http://localhost:8081/swagger', '_blank');
   }
 
   // Webhook methods

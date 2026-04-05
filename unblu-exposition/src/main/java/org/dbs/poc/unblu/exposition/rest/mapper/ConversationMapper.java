@@ -1,20 +1,17 @@
 package org.dbs.poc.unblu.exposition.rest.mapper;
 
-import org.apache.camel.Exchange;
-import org.dbs.poc.unblu.application.model.ConversationOrchestrationState;
-import org.dbs.poc.unblu.application.port.in.StartConversationCommand;
-import org.dbs.poc.unblu.application.port.in.StartDirectConversationCommand;
+import org.dbs.poc.unblu.application.port.in.command.StartConversationCommand;
+import org.dbs.poc.unblu.application.port.in.command.StartDirectConversationCommand;
+import org.dbs.poc.unblu.domain.model.ConversationOrchestrationState;
 import org.dbs.poc.unblu.domain.model.UnbluConversationInfo;
 import org.dbs.poc.unblu.exposition.rest.dto.StartConversationRequest;
 import org.dbs.poc.unblu.exposition.rest.dto.StartConversationResponse;
 import org.dbs.poc.unblu.exposition.rest.dto.StartDirectConversationRequest;
-import org.springframework.stereotype.Component;
 
 /**
  * Mapper for conversation-related DTO transformations.
  * Handles conversion between REST DTOs and domain commands/models.
  */
-@Component
 public class ConversationMapper {
 
     private static final String STATUS_CREATED = "CREATED";
@@ -74,37 +71,5 @@ public class ConversationMapper {
                 .status(STATUS_CREATED)
                 .message(MESSAGE_DIRECT_CONVERSATION_CREATED)
                 .build();
-    }
-
-    /**
-     * Extracts and maps StartConversationRequest from Camel Exchange to Command.
-     */
-    public void mapRequestToCommand(Exchange exchange) {
-        StartConversationRequest request = exchange.getIn().getBody(StartConversationRequest.class);
-        exchange.getIn().setBody(toCommand(request));
-    }
-
-    /**
-     * Extracts and maps StartDirectConversationRequest from Camel Exchange to Command.
-     */
-    public void mapDirectRequestToCommand(Exchange exchange) {
-        StartDirectConversationRequest request = exchange.getIn().getBody(StartDirectConversationRequest.class);
-        exchange.getIn().setBody(toCommand(request));
-    }
-
-    /**
-     * Extracts and maps ConversationOrchestrationState from Camel Exchange to Response.
-     */
-    public void mapContextToResponse(Exchange exchange) {
-        ConversationOrchestrationState state = exchange.getIn().getBody(ConversationOrchestrationState.class);
-        exchange.getIn().setBody(toResponse(state));
-    }
-
-    /**
-     * Extracts and maps UnbluConversationInfo from Camel Exchange to Response.
-     */
-    public void mapInfoToResponse(Exchange exchange) {
-        UnbluConversationInfo info = exchange.getIn().getBody(UnbluConversationInfo.class);
-        exchange.getIn().setBody(toResponse(info));
     }
 }

@@ -1,6 +1,4 @@
-package org.dbs.poc.unblu.application.model;
-
-import org.dbs.poc.unblu.domain.model.ConversationContext;
+package org.dbs.poc.unblu.domain.model;
 
 import java.util.Objects;
 
@@ -51,4 +49,11 @@ public class ConversationOrchestrationState {
 
     /** @return URL de rejoindre la conversation Unblu, ou {@code null} si non encore créée */
     public String unbluJoinUrl() { return unbluJoinUrl; }
+
+    /**
+     * @return {@code true} si la conversation Unblu a été créée avec succès.
+     */
+    public boolean isSuccess() {
+        return unbluConversationId != null && !"OFFLINE-PENDING".equals(unbluConversationId);
+    }
 }

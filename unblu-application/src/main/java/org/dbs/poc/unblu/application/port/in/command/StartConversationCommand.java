@@ -1,4 +1,4 @@
-package org.dbs.poc.unblu.application.port.in;
+package org.dbs.poc.unblu.application.port.in.command;
 
 import java.util.Objects;
 

@@ -339,7 +339,7 @@ Les ports IN sont les interfaces que l'application expose pour être utilisées 
 ConversationContext startConversation(StartConversationCommand command);
 ```
 
-📄 Fichier : `unblu-domain/src/main/java/org/dbs/poc/unblu/domain/port/in/StartConversationUseCase.java`
+📄 Fichier : `unblu-application/src/main/java/org/dbs/poc/unblu/application/port/in/StartConversationUseCase.java`
 
 ---
 
@@ -352,7 +352,7 @@ ConversationContext startConversation(StartConversationCommand command);
 UnbluConversationInfo startDirectConversation(StartDirectConversationCommand command);
 ```
 
-📄 Fichier : `unblu-domain/src/main/java/org/dbs/poc/unblu/domain/port/in/StartDirectConversationUseCase.java`
+📄 Fichier : `unblu-application/src/main/java/org/dbs/poc/unblu/application/port/in/StartDirectConversationUseCase.java`
 
 ---
 
@@ -365,7 +365,7 @@ UnbluConversationInfo startDirectConversation(StartDirectConversationCommand com
 List<PersonInfo> searchPersons(PersonSource source, String sourceId);
 ```
 
-📄 Fichier : `unblu-domain/src/main/java/org/dbs/poc/unblu/domain/port/in/SearchPersonsUseCase.java`
+📄 Fichier : `unblu-application/src/main/java/org/dbs/poc/unblu/application/port/in/SearchPersonsUseCase.java`
 
 ---
 
@@ -378,7 +378,7 @@ List<PersonInfo> searchPersons(PersonSource source, String sourceId);
 String createBot(String name, String description);
 ```
 
-📄 Fichier : `unblu-domain/src/main/java/org/dbs/poc/unblu/domain/port/in/CreateBotUseCase.java`
+📄 Fichier : `unblu-application/src/main/java/org/dbs/poc/unblu/application/port/in/CreateBotUseCase.java`
 
 ---
 

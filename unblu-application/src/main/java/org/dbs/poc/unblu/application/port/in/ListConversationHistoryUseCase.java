@@ -1,5 +1,6 @@
 package org.dbs.poc.unblu.application.port.in;
 
+import org.dbs.poc.unblu.application.port.in.query.ListConversationHistoryQuery;
 import org.dbs.poc.unblu.domain.model.history.ConversationHistoryPage;
 
 /**

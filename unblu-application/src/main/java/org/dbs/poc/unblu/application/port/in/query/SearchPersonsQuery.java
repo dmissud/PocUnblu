@@ -1,4 +1,4 @@
-package org.dbs.poc.unblu.application.port.in;
+package org.dbs.poc.unblu.application.port.in.query;
 
 import org.dbs.poc.unblu.domain.model.PersonSource;
 

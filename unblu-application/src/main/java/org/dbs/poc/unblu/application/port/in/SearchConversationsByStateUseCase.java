@@ -1,5 +1,6 @@
 package org.dbs.poc.unblu.application.port.in;
 
+import org.dbs.poc.unblu.application.port.in.query.SearchConversationsByStateQuery;
 import org.dbs.poc.unblu.domain.model.UnbluConversationSummary;
 
 import java.util.List;
