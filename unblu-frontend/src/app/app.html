@@ -48,7 +48,13 @@
       class="tab-btn"
       [class.active]="activeTab === 'conversations'"
       (click)="activeTab = 'conversations'">
-      💬 Conversations
+      💬 First Step
+    </button>
+    <button
+      (click)="activeTab = 'livekit'"
+      [class.active]="activeTab === 'livekit'"
+      class="tab-btn">
+      🎥 LiveKit
     </button>
     <button
       class="tab-btn"
@@ -62,9 +68,17 @@
       class="tab-btn">
       🔍 Recherche par état
     </button>
+    <button
+      (click)="activeTab = 'webhook-simulator'"
+      [class.active]="activeTab === 'webhook-simulator'"
+      class="tab-btn">
+      🪝 Webhook Simulator
+    </button>
   </nav>
 
-  <div *ngIf="loadingData && activeTab === 'conversations'" class="loading">
+  <div
+    *ngIf="loadingData && (activeTab === 'conversations' || activeTab === 'livekit' || activeTab === 'webhook-simulator')"
+    class="loading">
     <p>Chargement des données...</p>
   </div>
 
@@ -81,6 +95,14 @@
   <!-- Tab: Recherche par état -->
   <div *ngIf="activeTab === 'search'" class="tab-content">
     <app-inactive-conversations></app-inactive-conversations>
+  </div>
+
+  <!-- Tab: Webhook Simulator -->
+  <div *ngIf="!loadingData && activeTab === 'webhook-simulator'" class="tab-content">
+    <app-webhook-simulator
+      [agents]="agents"
+      [clients]="clients">
+    </app-webhook-simulator>
   </div>
 
   <div *ngIf="!loadingData && activeTab === 'conversations'" class="content">
@@ -255,6 +277,49 @@
         <p><strong>URL:</strong> <a [href]="teamResult.unbluJoinUrl" target="_blank">{{ teamResult.unbluJoinUrl }}</a></p>
         <p *ngIf="teamResult.teamId"><strong>Team ID:</strong> {{ teamResult.teamId }}</p>
         <p *ngIf="teamResult.agentPersonId"><strong>Agent ID:</strong> {{ teamResult.agentPersonId }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loadingData && activeTab === 'livekit'" class="content">
+    <!-- Workflow 3: LiveKit Conversation -->
+    <div class="card">
+      <h2>🎥 LiveKit Conversation</h2>
+      <p class="subtitle">Client seul → Conversation LiveKit (CH_HB_PREMIUM)</p>
+
+      <div class="form-group">
+        <label for="livekit-client">Client (VIRTUAL)</label>
+        <select
+          [(ngModel)]="selectedClient"
+          [disabled]="loading"
+          class="form-control"
+          id="livekit-client">
+          <option [ngValue]="null">-- Sélectionner un client --</option>
+          <option *ngFor="let client of clients" [ngValue]="client">
+            {{ client.displayName }} ({{ client.id }})
+          </option>
+        </select>
+      </div>
+
+      <div class="button-group">
+        <button
+          (click)="startLiveKitConversation()"
+          [disabled]="loading || !selectedClient"
+          class="btn btn-primary">
+          {{ loading ? 'Création...' : 'Démarrer Conversation LiveKit' }}
+        </button>
+        <button
+          (click)="resetLiveKitForm()"
+          [disabled]="loading"
+          class="btn btn-secondary">
+          Réinitialiser
+        </button>
+      </div>
+
+      <div *ngIf="liveKitResult" class="result">
+        <h3>✅ Conversation LiveKit créée!</h3>
+        <p><strong>ID Conversation:</strong> {{ liveKitResult.conversationId }}</p>
+        <p><strong>URL:</strong> <a [href]="liveKitResult.joinUrl" target="_blank">{{ liveKitResult.joinUrl }}</a></p>
       </div>
     </div>
   </div>

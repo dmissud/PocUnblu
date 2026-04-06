@@ -1,5 +1,5 @@
 import {Injectable} from '@angular/core';
-import {HttpClient} from '@angular/common/http';
+import {HttpClient, HttpHeaders, HttpResponse} from '@angular/common/http';
 import {Observable} from 'rxjs';
 import {PersonInfo} from '../models/person.model';
 import {TeamInfo} from '../models/team.model';
@@ -19,6 +19,7 @@ import {WebhookSetupResult, WebhookStatus} from '../models/webhook.model';
 })
 export class ApiService {
   private readonly baseUrl = '/api/v1';
+  private readonly livekitBaseUrl = '/api/v1/livekit';
 
   constructor(private http: HttpClient) {}
 
@@ -45,6 +46,10 @@ export class ApiService {
       origin: 'FRONTEND_TEST'
     };
     return this.http.post<StartConversationResponse>(`${this.baseUrl}/conversations/start`, camelRequest);
+  }
+
+  startLiveKitConversation(clientId: string): Observable<StartConversationResponse> {
+    return this.http.post<StartConversationResponse>(`${this.livekitBaseUrl}/conversations/start`, {clientId});
   }
 
   syncConversations(): Observable<ConversationSyncResult> {
@@ -92,5 +97,17 @@ export class ApiService {
 
   teardownWebhook(deleteWebhook: boolean = false): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/webhooks/teardown?deleteWebhook=${deleteWebhook}`);
+  }
+
+  simulateWebhookEvent(eventType: string, payload: object): Observable<HttpResponse<string>> {
+    const headers = new HttpHeaders({
+      'X-Unblu-Event': eventType,
+      'X-Unblu-Event-Type': eventType
+    });
+    return this.http.post('/api/webhooks/unblu', payload, {
+      headers,
+      observe: 'response',
+      responseType: 'text'
+    });
   }
 }

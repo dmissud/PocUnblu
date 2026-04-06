@@ -1,6 +1,8 @@
 package org.dbs.poc.unblu.infrastructure.adapter.unblu;
 
 import com.unblu.webapi.model.v4.ConversationCreationData;
+import com.unblu.webapi.model.v4.ConversationCreationParticipantData;
+import com.unblu.webapi.model.v4.EConversationRealParticipationType;
 import com.unblu.webapi.model.v4.EInitialEngagementType;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -33,17 +35,29 @@ public class UnbluApiAdapter implements UnbluPort {
     @Override
     @CircuitBreaker(name = "unblu", fallbackMethod = "fallbackCreateConversation")
     @Retry(name = "unblu")
-    public UnbluConversationInfo createConversation(ConversationContext context) {
+    public UnbluConversationInfo createConversation(ConversationCreationRequest request) {
         var creationData = new ConversationCreationData();
-        creationData.setTopic(context.routingDecision().routingReason());
+        creationData.setTopic(request.topic());
         creationData.setInitialEngagementType(EInitialEngagementType.CHAT_REQUEST);
+        creationData.setVisitorData(request.visitorData());
+        // creationData.setNamedAreaId(request.namedAreaId()); // Removed as it was causing compilation error
+        creationData.setConversationTemplateId(request.conversationTemplate());
+
+        if (request.participants() != null) {
+            request.participants().forEach(p -> {
+                var participant = new ConversationCreationParticipantData();
+                participant.setPersonId(p.personId());
+                participant.setParticipationType(EConversationRealParticipationType.valueOf(p.participationType()));
+                creationData.addParticipantsItem(participant);
+            });
+        }
 
         var data = conversationService.createConversation(creationData);
         return new UnbluConversationInfo(data.getId(), data.getId());
     }
 
-    private UnbluConversationInfo fallbackCreateConversation(ConversationContext context, Throwable t) {
-        log.warn("Unblu indisponible pour createConversation (team) : {}", t.getMessage());
+    private UnbluConversationInfo fallbackCreateConversation(ConversationCreationRequest request, Throwable t) {
+        log.warn("Unblu indisponible pour createConversation : {}", t.getMessage());
         return new UnbluConversationInfo("OFFLINE-PENDING", null);
     }
 

@@ -8,17 +8,18 @@ import {NamedAreaInfo} from './models/named-area.model';
 import {WebhookStatus} from './models/webhook.model';
 import {ConversationHistoryComponent} from './components/conversation-history/conversation-history.component';
 import {InactiveConversationsComponent} from './components/inactive-conversations/inactive-conversations.component';
+import {WebhookSimulatorComponent} from './components/webhook-simulator/webhook-simulator.component';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, FormsModule, ConversationHistoryComponent, InactiveConversationsComponent],
+  imports: [CommonModule, FormsModule, ConversationHistoryComponent, InactiveConversationsComponent, WebhookSimulatorComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
 export class App implements OnInit {
   title = 'Unblu Conversation Manager';
 
-  activeTab: 'conversations' | 'history' | 'search' = 'conversations';
+  activeTab: 'conversations' | 'history' | 'search' | 'livekit' | 'webhook-simulator' = 'conversations';
 
   // Lists
   clients: PersonInfo[] = [];
@@ -40,6 +41,7 @@ export class App implements OnInit {
   // Results
   directResult: any = null;
   teamResult: any = null;
+  liveKitResult: any = null;
   error: string | null = null;
 
   // Loading states
@@ -75,6 +77,12 @@ export class App implements OnInit {
       this.error = 'Erreur lors du chargement des données: ' + err.message;
       this.loadingData = false;
     });
+  }
+
+  resetLiveKitForm(): void {
+    this.selectedClient = null;
+    this.liveKitResult = null;
+    this.error = null;
   }
 
   startDirectConversation(): void {
@@ -140,6 +148,28 @@ export class App implements OnInit {
       },
       error: (err) => {
         this.error = 'Erreur lors de la création de la conversation: ' + err.message;
+        this.loading = false;
+      }
+    });
+  }
+
+  startLiveKitConversation(): void {
+    if (!this.selectedClient) {
+      this.error = 'Veuillez sélectionner un client';
+      return;
+    }
+
+    this.loading = true;
+    this.error = null;
+    this.liveKitResult = null;
+
+    this.apiService.startLiveKitConversation(this.selectedClient.sourceId).subscribe({
+      next: (result) => {
+        this.liveKitResult = result;
+        this.loading = false;
+      },
+      error: (err) => {
+        this.error = 'Erreur lors de la création de la conversation LiveKit: ' + err.message;
         this.loading = false;
       }
     });

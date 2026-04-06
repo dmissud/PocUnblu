@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.dbs.poc.unblu.application.port.in.StartConversationUseCase;
 import org.dbs.poc.unblu.application.port.in.command.StartConversationCommand;
 import org.dbs.poc.unblu.domain.model.ConversationContext;
+import org.dbs.poc.unblu.domain.model.ConversationCreationRequest;
 import org.dbs.poc.unblu.domain.model.ConversationOrchestrationState;
 import org.dbs.poc.unblu.domain.port.out.ErpPort;
 import org.dbs.poc.unblu.domain.port.out.RuleEnginePort;
@@ -48,7 +49,11 @@ public class ConversationOrchestratorService implements StartConversationUseCase
         ConversationOrchestrationState state = new ConversationOrchestrationState(context);
 
         // 5. Création conversation Unblu (l'adapter gère sa propre résilience)
-        var unbluInfo = unbluPort.createConversation(context);
+        var unbluRequest = ConversationCreationRequest.builder()
+                .topic(context.routingDecision().routingReason())
+                .visitorData(context.initialClientId())
+                .build();
+        var unbluInfo = unbluPort.createConversation(unbluRequest);
         state.updateUnbluConversation(unbluInfo.unbluConversationId(), unbluInfo.unbluJoinUrl());
 
         // 6. Post-traitement : ajout du résumé (si succès Unblu)

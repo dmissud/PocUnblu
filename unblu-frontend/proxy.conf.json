@@ -1,11 +1,17 @@
 {
-  "/rest": {
+  "/api/v1/livekit/**": {
+    "target": "http://localhost:8082",
+    "secure": false,
+    "logLevel": "debug",
+    "changeOrigin": true
+  },
+  "/api/v1/**": {
     "target": "http://localhost:8081",
     "secure": false,
     "logLevel": "debug",
     "changeOrigin": true
   },
-  "/api": {
+  "/rest/**": {
     "target": "http://localhost:8081",
     "secure": false,
     "logLevel": "debug",

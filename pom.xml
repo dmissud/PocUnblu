@@ -31,6 +31,8 @@
         <module>unblu-application</module>
         <module>unblu-exposition</module>
         <module>unblu-configuration</module>
+        <module>livekit</module>
+        <module>webhook-entrypoint</module>
     </modules>
 
     <dependencyManagement>
@@ -59,6 +61,16 @@
             <dependency>
                 <groupId>org.dbs.poc</groupId>
                 <artifactId>unblu-configuration</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.dbs.poc</groupId>
+                <artifactId>livekit</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.dbs.poc</groupId>
+                <artifactId>webhook-entrypoint</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
