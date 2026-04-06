@@ -6,27 +6,17 @@ spring:
     name: webhook-entrypoint
   dotenv:
     enabled: true
-  datasource:
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: none
-    show-sql: false
-  liquibase:
-    enabled: false
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
 
-camel:
-  springboot:
-    jmx-enabled: false
-
-unblu:
-  api:
-    base-url: ${UNBLU_API_BASE_URL:https://services8.unblu.com/app/rest/v4}
-    username: ${UNBLU_API_USERNAME}
-    password: ${UNBLU_API_PASSWORD}
+kafka:
+  topic:
+    webhook-events: ${KAFKA_TOPIC_WEBHOOK_EVENTS:unblu.webhook.events}
 
 logging:
   level:
@@ -38,15 +28,8 @@ springdoc:
   swagger-ui:
     path: /swagger-ui/index.html
 
-resilience4j:
-  circuitbreaker:
-    instances:
-      unblu:
-        registerHealthIndicator: true
-        slidingWindowSize: 20
-        failureRateThreshold: 50
-  retry:
-    instances:
-      unblu:
-        maxAttempts: 3
-        waitDuration: 2000
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

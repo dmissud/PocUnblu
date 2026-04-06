@@ -1,33 +1,33 @@
 package org.dbs.poc.unblu.webhook.entrypoint.rest;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.camel.Exchange;
-import org.apache.camel.ProducerTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * REST entry point for Unblu webhook callbacks.
  *
- * <p>Receives POST /api/webhooks/unblu from Unblu (via ngrok tunnel),
- * bridges the HTTP request into the Camel route {@code direct:webhook-receiver-internal}.
+ * <p>Validates the incoming request (non-blank body, known event type header) and publishes
+ * the raw JSON payload to the Kafka topic {@code unblu.webhook.events}.
+ *
+ * <p>Returns 202 Accepted immediately — processing is asynchronous.
  */
 @Slf4j
 @RestController
 public class WebhookReceiverController {
 
-    private static final String DIRECT_WEBHOOK_RECEIVER = "direct:webhook-receiver-internal";
+    private final KafkaTemplate<String, String> kafkaTemplate;
 
-    private final ProducerTemplate producerTemplate;
+    @Value("${kafka.topic.webhook-events:unblu.webhook.events}")
+    private String topic;
 
-    public WebhookReceiverController(ProducerTemplate producerTemplate) {
-        this.producerTemplate = producerTemplate;
+    public WebhookReceiverController(KafkaTemplate<String, String> kafkaTemplate) {
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     @PostMapping("/api/webhooks/unblu")
@@ -36,22 +36,19 @@ public class WebhookReceiverController {
             @RequestHeader(value = "X-Unblu-Event-Type", required = false) String eventType,
             @RequestBody(required = false) String body) {
 
-        log.debug("Webhook received — eventType={}", eventType);
+        if (body == null || body.isBlank()) {
+            log.warn("Webhook rejected — empty body (eventType={})", eventType);
+            return ResponseEntity.badRequest().body("Bad Request: empty payload");
+        }
 
-        Map<String, Object> headers = new HashMap<>();
-        headers.put("X-Unblu-Signature", signature);
-        headers.put("X-Unblu-Event-Type", eventType);
+        if (eventType == null || eventType.isBlank()) {
+            log.warn("Webhook rejected — missing X-Unblu-Event-Type header");
+            return ResponseEntity.badRequest().body("Bad Request: missing X-Unblu-Event-Type header");
+        }
 
-        Exchange result = producerTemplate.request(DIRECT_WEBHOOK_RECEIVER, exchange -> {
-            exchange.getIn().setBody(body);
-            exchange.getIn().getHeaders().putAll(headers);
-        });
+        log.info("Webhook received — eventType={}, publishing to Kafka topic={}", eventType, topic);
+        kafkaTemplate.send(topic, eventType, body);
 
-        Integer statusCode = result.getIn().getHeader("CamelHttpResponseCode", Integer.class);
-        String responseBody = result.getIn().getBody(String.class);
-
-        return ResponseEntity
-                .status(statusCode != null ? statusCode : 200)
-                .body(responseBody);
+        return ResponseEntity.accepted().build();
     }
 }

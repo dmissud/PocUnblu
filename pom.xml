@@ -33,6 +33,7 @@
         <module>unblu-configuration</module>
         <module>livekit</module>
         <module>webhook-entrypoint</module>
+        <module>unblu-event-processor</module>
     </modules>
 
     <dependencyManagement>
@@ -71,6 +72,11 @@
             <dependency>
                 <groupId>org.dbs.poc</groupId>
                 <artifactId>webhook-entrypoint</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.dbs.poc</groupId>
+                <artifactId>unblu-event-processor</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -113,6 +119,11 @@
             <dependency>
                 <groupId>org.apache.camel.springboot</groupId>
                 <artifactId>camel-micrometer-starter</artifactId>
+                <version>${camel.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.camel.springboot</groupId>
+                <artifactId>camel-kafka-starter</artifactId>
                 <version>${camel.version}</version>
             </dependency>
 
