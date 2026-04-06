@@ -23,6 +23,7 @@
         <camel.version>4.18.0</camel.version>
         <dotenv.version>4.0.0</dotenv.version>
         <kotlin.version>1.9.22</kotlin.version>
+        <cucumber.version>7.18.0</cucumber.version>
     </properties>
 
     <modules>
@@ -152,6 +153,23 @@
                 <groupId>me.paulschwarz</groupId>
                 <artifactId>spring-dotenv</artifactId>
                 <version>${dotenv.version}</version>
+            </dependency>
+
+            <!-- Cucumber BDD -->
+            <dependency>
+                <groupId>io.cucumber</groupId>
+                <artifactId>cucumber-java</artifactId>
+                <version>${cucumber.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.cucumber</groupId>
+                <artifactId>cucumber-spring</artifactId>
+                <version>${cucumber.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.cucumber</groupId>
+                <artifactId>cucumber-junit-platform-engine</artifactId>
+                <version>${cucumber.version}</version>
             </dependency>
 
             <!-- Swagger UI -->
