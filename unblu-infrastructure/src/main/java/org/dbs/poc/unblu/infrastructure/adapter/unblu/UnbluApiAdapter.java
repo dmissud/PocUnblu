@@ -53,7 +53,8 @@ public class UnbluApiAdapter implements UnbluPort {
         }
 
         var data = conversationService.createConversation(creationData);
-        return new UnbluConversationInfo(data.getId(), data.getId());
+        String joinUrl = conversationService.generateVisitorJoinUrl(data.getId());
+        return new UnbluConversationInfo(data.getId(), joinUrl);
     }
 
     private UnbluConversationInfo fallbackCreateConversation(ConversationCreationRequest request, Throwable t) {

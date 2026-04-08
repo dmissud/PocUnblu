@@ -3,6 +3,7 @@ package org.dbs.poc.unblu.infrastructure.adapter.unblu;
 import com.unblu.webapi.jersey.v4.api.BotsApi;
 import com.unblu.webapi.jersey.v4.api.ConversationHistoryApi;
 import com.unblu.webapi.jersey.v4.api.ConversationsApi;
+import com.unblu.webapi.jersey.v4.api.InvitationsApi;
 import com.unblu.webapi.jersey.v4.invoker.ApiClient;
 import com.unblu.webapi.jersey.v4.invoker.ApiException;
 import com.unblu.webapi.model.v4.*;
@@ -287,6 +288,45 @@ public class UnbluConversationService {
             log.error("Erreur lors de la recherche des conversations par état {} - Status: {}", state, e.getCode(), e);
             throw new UnbluApiException(e.getCode(), "Error",
                     "Erreur lors de la recherche des conversations : " + e.getMessage());
+        }
+    }
+
+    /**
+     * Génère une URL permettant à un visiteur anonyme de rejoindre une conversation Unblu.
+     * Utilise l'InvitationsApi pour créer une invitation avec lien, puis récupère
+     * l'URL de type ACCEPT_IN_VISITOR_DESK.
+     *
+     * @param conversationId identifiant de la conversation cible
+     * @return URL d'accès visiteur, ou {@code null} si l'invitation échoue
+     */
+    public String generateVisitorJoinUrl(String conversationId) {
+        try {
+            InvitationsApi invitationsApi = new InvitationsApi(apiClient);
+
+            InvitationsInviteAnonymousVisitorToConversationWithLinkBody inviteBody =
+                    new InvitationsInviteAnonymousVisitorToConversationWithLinkBody();
+            inviteBody.setConversationId(conversationId);
+
+            ConversationInvitationData invitation =
+                    invitationsApi.invitationsInviteAnonymousVisitorToConversationWithLink(inviteBody);
+            log.info("Invitation créée pour conversationId={}, token={}", conversationId, invitation.getToken());
+
+            AcceptLinkData acceptLink = invitationsApi.invitationsGetAcceptLink(
+                    new InvitationsGetAcceptLinkBody().token(invitation.getToken())
+            );
+
+            String joinUrl = acceptLink.getLinks().stream()
+                    .filter(l -> EConversationLinkType.ACCEPT_IN_VISITOR_DESK.equals(l.getType()))
+                    .map(ConversationLink::getUrl)
+                    .findFirst()
+                    .orElse(null);
+
+            log.info("URL visiteur générée pour conversationId={} : {}", conversationId, joinUrl);
+            return joinUrl;
+        } catch (ApiException e) {
+            log.error("Échec de la génération de l'URL visiteur pour conversationId={} - Status: {}",
+                    conversationId, e.getCode(), e);
+            return null;
         }
     }
 
