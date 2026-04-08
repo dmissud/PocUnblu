@@ -111,4 +111,11 @@ public interface UnbluPort {
      * @return liste des résumés de conversations correspondantes (jamais {@code null}, peut être vide)
      */
     List<UnbluConversationSummary> searchConversationsByState(String state);
+
+    /**
+     * Retourne la liste de tous les bots configurés dans Unblu.
+     *
+     * @return liste des bots (jamais {@code null}, peut être vide)
+     */
+    List<BotInfo> listBots();
 }

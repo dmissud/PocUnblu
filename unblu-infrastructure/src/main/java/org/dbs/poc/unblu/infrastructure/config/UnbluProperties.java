@@ -24,6 +24,10 @@ public class UnbluProperties {
     private String summaryBotPersonId;
     /** Nom du bot Unblu à créer ou utiliser (défaut : {@code Boby}). */
     private String botName = "Boby";
+    /** Nom du bot d'onboarding PocBot (défaut : {@code PocBot}). */
+    private String pocBotName = "PocBot";
+    /** Ordre de priorité du bot PocBot pour l'onboarding (plus petit = priorité plus haute). */
+    private int pocBotOnboardingOrder = 1;
 
     /** Configuration du proxy HTTP, initialisée avec des valeurs vides par défaut. */
     private ProxyProperties proxy = new ProxyProperties();

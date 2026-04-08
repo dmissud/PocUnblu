@@ -51,6 +51,8 @@ unblu:
     username: ${UNBLU_API_USERNAME}
     password: ${UNBLU_API_PASSWORD}
     bot-name: ${UNBLU_BOT_NAME:Boby}
+    poc-bot-name: ${UNBLU_POC_BOT_NAME:PocBot}
+    poc-bot-onboarding-order: ${UNBLU_POC_BOT_ONBOARDING_ORDER:1}
     summary-bot-person-id: I2mWhL8AREW88xHy3BmdcA
     proxy:
       host: ${UNBLU_PROXY_HOST:}
@@ -61,6 +63,8 @@ unblu:
     name: ${UNBLU_WEBHOOK_NAME:unblu-poc-webhook}
     local-port: ${UNBLU_WEBHOOK_LOCAL_PORT:8081}
     endpoint-path: ${UNBLU_WEBHOOK_ENDPOINT_PATH:/api/webhooks/unblu}
+  bot:
+    local-port: ${UNBLU_BOT_LOCAL_PORT:8082}
 
 # Actuator configuration for monitoring
 management:
