@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * Handles Unblu bot operations: create, idempotent create-or-get.
+ * Handles Unblu bot operations: create, idempotent create-or-get, setup PocBot.
  */
 @Slf4j
 @Service
@@ -22,7 +22,103 @@ public class UnbluBotService {
 
     private final ApiClient apiClient;
 
+    static final String POC_BOT_NAME = "PocBot";
+    private static final String POC_BOT_DESCRIPTION = "Bot d'onboarding PocUnblu";
+    private static final String POC_BOT_ENDPOINT_PATH = "/api/bot/outbound";
+
     private static final List<ExpandFields> NO_EXPAND = null;
+
+    /**
+     * Crée ou met à jour le bot PocBot avec l'URL ngrok fournie.
+     * Idempotent : si le bot existe, son endpoint et son statut sont mis à jour.
+     *
+     * @param ngrokUrl URL publique ngrok
+     * @return les données du bot après création ou mise à jour
+     */
+    public CustomDialogBotData setupPocBot(String ngrokUrl) {
+        String botEndpoint = ngrokUrl + POC_BOT_ENDPOINT_PATH;
+        log.info("Setting up PocBot with endpoint: {}", botEndpoint);
+
+        BotsApi botsApi = new BotsApi(apiClient);
+
+        try {
+            DialogBotData existing = botsApi.botsGetByName(POC_BOT_NAME);
+            log.info("PocBot already exists (id={}), updating endpoint and activating...", existing.getId());
+            CustomDialogBotData botData = (CustomDialogBotData) existing;
+            botData.setWebhookEndpoint(botEndpoint);
+            botData.setWebhookStatus(ERegistrationStatus.ACTIVE);
+            botData.setOnboardingFilter(EBotDialogFilter.VISITORS);
+            CustomDialogBotData updated = (CustomDialogBotData) botsApi.botsUpdate(botData);
+            log.info("PocBot updated: id={}, endpoint={}", updated.getId(), updated.getWebhookEndpoint());
+            return updated;
+        } catch (ApiException e) {
+            if (e.getCode() != 404) {
+                log.error("Unexpected error fetching PocBot - Status: {}", e.getCode(), e);
+                throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la récupération de PocBot : " + e.getMessage());
+            }
+        }
+
+        log.info("PocBot not found, creating bot person and bot...");
+        return createPocBot(botsApi, botEndpoint);
+    }
+
+    /**
+     * Désactive le bot PocBot dans Unblu (webhookStatus = INACTIVE).
+     * Appelé lors du teardown pour éviter qu'Unblu appelle une URL ngrok périmée.
+     */
+    public void deactivatePocBot() {
+        log.info("Deactivating PocBot...");
+        BotsApi botsApi = new BotsApi(apiClient);
+        try {
+            DialogBotData existing = botsApi.botsGetByName(POC_BOT_NAME);
+            CustomDialogBotData botData = (CustomDialogBotData) existing;
+            botData.setWebhookStatus(ERegistrationStatus.INACTIVE);
+            botsApi.botsUpdate(botData);
+            log.info("PocBot deactivated (id={})", existing.getId());
+        } catch (ApiException e) {
+            if (e.getCode() == 404) {
+                log.info("PocBot not found in Unblu, nothing to deactivate");
+            } else {
+                log.error("Error deactivating PocBot - Status: {}", e.getCode(), e);
+                throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la désactivation de PocBot : " + e.getMessage());
+            }
+        }
+    }
+
+    private CustomDialogBotData createPocBot(BotsApi botsApi, String botEndpoint) {
+        try {
+            PersonsApi personsApi = new PersonsApi(apiClient);
+
+            PersonData botPerson = new PersonData();
+            botPerson.setDisplayName(POC_BOT_NAME);
+            botPerson.setSourceId(toSourceId(POC_BOT_NAME));
+            PersonData createdPerson = personsApi.personsCreateOrUpdateBot(botPerson, NO_EXPAND);
+            log.info("PocBot person created: id={}", createdPerson.getId());
+
+            CustomDialogBotData botData = new CustomDialogBotData();
+            botData.setName(POC_BOT_NAME);
+            botData.setDescription(POC_BOT_DESCRIPTION);
+            botData.setType(EBotType.CUSTOM);
+            botData.setBotPersonId(createdPerson.getId());
+            botData.setOnboardingFilter(EBotDialogFilter.VISITORS);
+            botData.setOffboardingFilter(EBotDialogFilter.NONE);
+            botData.setOnboardingOrder(100);
+            botData.setWebhookStatus(ERegistrationStatus.ACTIVE);
+            botData.setWebhookEndpoint(botEndpoint);
+            botData.setWebhookApiVersion(EWebApiVersion.V4);
+            botData.setOutboundTimeoutMillis(5000L);
+            botData.setOnTimeoutBehavior(EBotDialogTimeoutBehavior.ABORT);
+            botData.setRetryCount(3L);
+            botData.setRetryDelay(1000L);
+
+            CustomDialogBotData created = (CustomDialogBotData) botsApi.botsCreate(botData);
+            log.info("PocBot created: id={}, endpoint={}", created.getId(), created.getWebhookEndpoint());
+            return created;
+        } catch (ApiException e) {
+            log.error("Error creating PocBot - Status: {}", e.getCode(), e);
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la création de PocBot : " + e.getMessage());
+        }
+    }
 
     /**
      * Creates a bot in Unblu. Returns the botPersonId.

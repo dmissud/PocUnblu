@@ -6,6 +6,7 @@ import org.dbs.poc.unblu.application.port.in.SetupWebhookUseCase;
 import org.dbs.poc.unblu.domain.exception.UnbluApiException;
 import org.dbs.poc.unblu.domain.model.webhook.WebhookSetupResult;
 import org.dbs.poc.unblu.domain.model.webhook.WebhookStatus;
+import org.dbs.poc.unblu.domain.port.out.BotRegistrationPort;
 import org.dbs.poc.unblu.domain.port.out.TunnelPort;
 import org.dbs.poc.unblu.domain.port.out.WebhookRegistrationPort;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +32,7 @@ public class WebhookSetupService implements SetupWebhookUseCase {
 
     private final TunnelPort tunnelPort;
     private final WebhookRegistrationPort webhookRegistrationPort;
+    private final BotRegistrationPort botRegistrationPort;
 
     @Value("${unblu.webhook.name:unblu-poc-webhook}")
     private String webhookName;
@@ -93,7 +95,11 @@ public class WebhookSetupService implements SetupWebhookUseCase {
                 throw e;
             }
 
-            log.info("Webhook setup completed successfully!");
+            log.info("Step 3: Setting up PocBot with endpoint: {}/api/bot/outbound", ngrokUrl);
+            BotRegistrationPort.BotRegistration bot = botRegistrationPort.setupPocBot(ngrokUrl);
+            log.info("PocBot setup completed: id={}, endpoint={}", bot.id(), bot.endpoint());
+
+            log.info("Webhook and PocBot setup completed successfully!");
             return WebhookSetupResult.success(ngrokUrl, webhook.id(), webhook.name());
 
         } catch (Exception e) {
@@ -142,6 +148,13 @@ public class WebhookSetupService implements SetupWebhookUseCase {
 
         tunnelPort.stop();
         log.info("Ngrok tunnel stopped");
+
+        try {
+            botRegistrationPort.deactivatePocBot();
+            log.info("PocBot deactivated");
+        } catch (UnbluApiException e) {
+            log.warn("Could not deactivate PocBot during teardown: {}", e.getMessage());
+        }
 
         if (deleteWebhook) {
             try {
