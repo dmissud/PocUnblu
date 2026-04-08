@@ -5,6 +5,6 @@ import lombok.Data;
 
 @Data
 public class LiveKitStartRequest {
-    @NotBlank(message = "L'identifiant client est obligatoire")
-    private String clientId;
+    @NotBlank(message = "L'identifiant de la personne Unblu est obligatoire")
+    private String personId;
 }

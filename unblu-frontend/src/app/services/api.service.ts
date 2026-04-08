@@ -48,8 +48,8 @@ export class ApiService {
     return this.http.post<StartConversationResponse>(`${this.baseUrl}/conversations/start`, camelRequest);
   }
 
-  startLiveKitConversation(clientId: string): Observable<StartConversationResponse> {
-    return this.http.post<StartConversationResponse>(`${this.livekitBaseUrl}/conversations/start`, {clientId});
+  startLiveKitConversation(personId: string): Observable<StartConversationResponse> {
+    return this.http.post<StartConversationResponse>(`${this.livekitBaseUrl}/conversations/start`, {personId});
   }
 
   syncConversations(): Observable<ConversationSyncResult> {
