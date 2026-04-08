@@ -7,6 +7,7 @@ import com.unblu.webapi.jersey.v4.invoker.ApiException;
 import com.unblu.webapi.model.v4.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.dbs.poc.unblu.infrastructure.config.UnbluProperties;
 import org.dbs.poc.unblu.infrastructure.exception.UnbluApiException;
 import org.springframework.stereotype.Service;
 
@@ -21,8 +22,8 @@ import java.util.List;
 public class UnbluBotService {
 
     private final ApiClient apiClient;
+    private final UnbluProperties unbluProperties;
 
-    static final String POC_BOT_NAME = "PocBot";
     private static final String POC_BOT_DESCRIPTION = "Bot d'onboarding PocUnblu";
     private static final String POC_BOT_ENDPOINT_PATH = "/api/bot/outbound";
 
@@ -36,13 +37,14 @@ public class UnbluBotService {
      * @return les données du bot après création ou mise à jour
      */
     public CustomDialogBotData setupPocBot(String ngrokUrl) {
+        String pocBotName = unbluProperties.getPocBotName();
         String botEndpoint = ngrokUrl + POC_BOT_ENDPOINT_PATH;
-        log.info("Setting up PocBot with endpoint: {}", botEndpoint);
+        log.info("Setting up bot '{}' with endpoint: {}", pocBotName, botEndpoint);
 
         BotsApi botsApi = new BotsApi(apiClient);
 
         try {
-            DialogBotData existing = botsApi.botsGetByName(POC_BOT_NAME);
+            DialogBotData existing = botsApi.botsGetByName(pocBotName);
             log.info("PocBot already exists (id={}), updating endpoint and activating...", existing.getId());
             CustomDialogBotData botData = (CustomDialogBotData) existing;
             botData.setWebhookEndpoint(botEndpoint);
@@ -58,8 +60,8 @@ public class UnbluBotService {
             }
         }
 
-        log.info("PocBot not found, creating bot person and bot...");
-        return createPocBot(botsApi, botEndpoint);
+        log.info("Bot '{}' not found, creating bot person and bot...", pocBotName);
+        return createPocBot(botsApi, pocBotName, botEndpoint);
     }
 
     /**
@@ -67,10 +69,11 @@ public class UnbluBotService {
      * Appelé lors du teardown pour éviter qu'Unblu appelle une URL ngrok périmée.
      */
     public void deactivatePocBot() {
-        log.info("Deactivating PocBot...");
+        String pocBotName = unbluProperties.getPocBotName();
+        log.info("Deactivating bot '{}'...", pocBotName);
         BotsApi botsApi = new BotsApi(apiClient);
         try {
-            DialogBotData existing = botsApi.botsGetByName(POC_BOT_NAME);
+            DialogBotData existing = botsApi.botsGetByName(pocBotName);
             CustomDialogBotData botData = (CustomDialogBotData) existing;
             botData.setWebhookStatus(ERegistrationStatus.INACTIVE);
             botsApi.botsUpdate(botData);
@@ -85,18 +88,18 @@ public class UnbluBotService {
         }
     }
 
-    private CustomDialogBotData createPocBot(BotsApi botsApi, String botEndpoint) {
+    private CustomDialogBotData createPocBot(BotsApi botsApi, String pocBotName, String botEndpoint) {
         try {
             PersonsApi personsApi = new PersonsApi(apiClient);
 
             PersonData botPerson = new PersonData();
-            botPerson.setDisplayName(POC_BOT_NAME);
-            botPerson.setSourceId(toSourceId(POC_BOT_NAME));
+            botPerson.setDisplayName(pocBotName);
+            botPerson.setSourceId(toSourceId(pocBotName));
             PersonData createdPerson = personsApi.personsCreateOrUpdateBot(botPerson, NO_EXPAND);
-            log.info("PocBot person created: id={}", createdPerson.getId());
+            log.info("Bot person '{}' created: id={}", pocBotName, createdPerson.getId());
 
             CustomDialogBotData botData = new CustomDialogBotData();
-            botData.setName(POC_BOT_NAME);
+            botData.setName(pocBotName);
             botData.setDescription(POC_BOT_DESCRIPTION);
             botData.setType(EBotType.CUSTOM);
             botData.setBotPersonId(createdPerson.getId());

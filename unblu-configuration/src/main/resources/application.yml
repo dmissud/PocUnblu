@@ -51,6 +51,7 @@ unblu:
     username: ${UNBLU_API_USERNAME}
     password: ${UNBLU_API_PASSWORD}
     bot-name: ${UNBLU_BOT_NAME:Boby}
+    poc-bot-name: ${UNBLU_POC_BOT_NAME:PocBot}
     summary-bot-person-id: I2mWhL8AREW88xHy3BmdcA
     proxy:
       host: ${UNBLU_PROXY_HOST:}
