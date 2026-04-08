@@ -55,11 +55,13 @@ public class WebhookSetupService implements SetupWebhookUseCase {
             }
 
             String ngrokUrl = tunnelPort.getPublicUrl();
-            if (ngrokUrl == null) {
+            String botNgrokUrl = tunnelPort.getBotPublicUrl();
+            if (ngrokUrl == null || botNgrokUrl == null) {
                 tunnelPort.stop();
-                return WebhookSetupResult.failure("Impossible de récupérer l'URL publique de ngrok");
+                return WebhookSetupResult.failure(
+                        "Impossible de récupérer les URLs ngrok (webhook=" + ngrokUrl + ", bot=" + botNgrokUrl + ")");
             }
-            log.info("Ngrok tunnel active: {}", ngrokUrl);
+            log.info("Ngrok tunnels active — webhook: {}, bot: {}", ngrokUrl, botNgrokUrl);
 
             String webhookEndpoint = ngrokUrl + webhookEndpointPath;
             log.info("Webhook endpoint will be: {}", webhookEndpoint);
@@ -95,8 +97,8 @@ public class WebhookSetupService implements SetupWebhookUseCase {
                 throw e;
             }
 
-            log.info("Step 3: Setting up PocBot with endpoint: {}/api/bot/outbound", ngrokUrl);
-            BotRegistrationPort.BotRegistration bot = botRegistrationPort.setupPocBot(ngrokUrl);
+            log.info("Step 3: Setting up PocBot with endpoint: {}/api/bot/outbound", botNgrokUrl);
+            BotRegistrationPort.BotRegistration bot = botRegistrationPort.setupPocBot(botNgrokUrl);
             log.info("PocBot setup completed: id={}, endpoint={}", bot.id(), bot.endpoint());
 
             log.info("Webhook and PocBot setup completed successfully!");

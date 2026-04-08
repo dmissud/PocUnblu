@@ -12,212 +12,39 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Adapter implementing {@link TunnelPort} using ngrok as the underlying tunnel provider.
  *
- * <p>Manages the full lifecycle of an ngrok process: install check, start, public URL discovery
- * via ngrok's local API ({@code http://localhost:4040/api/tunnels}), and graceful shutdown.
+ * <p>Starts two ngrok tunnels via a temporary config file:
+ * <ul>
+ *   <li><b>webhook</b>: exposes the main app (default port 8081) for Unblu webhook callbacks</li>
+ *   <li><b>bot</b>: exposes the livekit app (default port 8082) for Unblu bot outbound requests</li>
+ * </ul>
  *
- * <p>Used during local development to expose the webhook callback endpoint ({@code /api/webhooks/unblu})
- * to the Unblu cloud service.
+ * <p>Requires an ngrok authtoken configured ({@code ngrok config add-authtoken <token>}).
  */
 @Slf4j
 @Service
 public class NgrokManager implements TunnelPort {
 
     @Value("${unblu.webhook.local-port:8081}")
-    private int localPort;
+    private int webhookLocalPort;
+
+    @Value("${unblu.bot.local-port:8082}")
+    private int botLocalPort;
 
     private Process ngrokProcess;
-    private String currentPublicUrl;
+    private String webhookPublicUrl;
+    private String botPublicUrl;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    /**
-     * Check if ngrok is installed on the system
-     */
-    public boolean isNgrokInstalled() {
-        try {
-            Process process = Runtime.getRuntime().exec("which ngrok");
-            int exitCode = process.waitFor();
-            return exitCode == 0;
-        } catch (Exception e) {
-            log.warn("Error checking if ngrok is installed", e);
-            return false;
-        }
-    }
-
-    /**
-     * Install ngrok using snap (requires sudo)
-     * Returns true if installation successful
-     */
-    public boolean installNgrok() {
-        log.info("Attempting to install ngrok via snap...");
-        try {
-            ProcessBuilder pb = new ProcessBuilder("sudo", "snap", "install", "ngrok");
-            pb.inheritIO();
-            Process process = pb.start();
-            boolean finished = process.waitFor(60, TimeUnit.SECONDS);
-
-            if (finished && process.exitValue() == 0) {
-                log.info("Ngrok installed successfully");
-                return true;
-            } else {
-                log.error("Failed to install ngrok, exit code: {}", process.exitValue());
-                return false;
-            }
-        } catch (Exception e) {
-            log.error("Error installing ngrok", e);
-            return false;
-        }
-    }
-
-    /**
-     * Start ngrok tunnel on the configured local port
-     * Returns true if started successfully
-     */
-    public boolean startNgrok() {
-        if (isNgrokRunning()) {
-            log.info("Ngrok is already running");
-            return true;
-        }
-
-        if (!isNgrokInstalled()) {
-            log.warn("Ngrok is not installed, attempting to install...");
-            if (!installNgrok()) {
-                log.error("Cannot start ngrok: installation failed");
-                return false;
-            }
-        }
-
-        try {
-            log.info("Starting ngrok tunnel on port {}...", localPort);
-            ProcessBuilder pb = new ProcessBuilder("ngrok", "http", String.valueOf(localPort));
-            pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
-            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
-            ngrokProcess = pb.start();
-
-            // Poll ngrok API until tunnel is ready (up to 10 seconds)
-            String url = null;
-            for (int i = 0; i < 10; i++) {
-                Thread.sleep(1000);
-                if (!ngrokProcess.isAlive()) {
-                    log.error("Ngrok process exited unexpectedly (exit code: {})", ngrokProcess.exitValue());
-                    return false;
-                }
-                url = fetchPublicUrl();
-                if (url != null) break;
-                log.debug("Waiting for ngrok tunnel... ({}/10)", i + 1);
-            }
-
-            if (url != null) {
-                currentPublicUrl = url;
-                log.info("Ngrok tunnel started successfully: {}", currentPublicUrl);
-                return true;
-            } else {
-                log.error("Ngrok started but failed to get public URL after 10 seconds");
-                stopNgrok();
-                return false;
-            }
-        } catch (Exception e) {
-            log.error("Error starting ngrok", e);
-            stopNgrok();
-            return false;
-        }
-    }
-
-    /**
-     * Get the current public URL from ngrok API
-     */
-    public String getPublicUrl() {
-        if (currentPublicUrl != null) {
-            return currentPublicUrl;
-        }
-
-        currentPublicUrl = fetchPublicUrl();
-        return currentPublicUrl;
-    }
-
-    /**
-     * Fetch public URL from ngrok's local API
-     */
-    private String fetchPublicUrl() {
-        try {
-            URL url = new URL("http://localhost:4040/api/tunnels");
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setConnectTimeout(5000);
-            conn.setReadTimeout(5000);
-
-            int responseCode = conn.getResponseCode();
-            if (responseCode == 200) {
-                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder response = new StringBuilder();
-                String inputLine;
-                while ((inputLine = in.readLine()) != null) {
-                    response.append(inputLine);
-                }
-                in.close();
-
-                // Parse JSON response
-                JsonNode root = objectMapper.readTree(response.toString());
-                JsonNode tunnels = root.get("tunnels");
-
-                if (tunnels != null && tunnels.isArray() && tunnels.size() > 0) {
-                    // Get the first HTTPS tunnel
-                    for (JsonNode tunnel : tunnels) {
-                        String publicUrl = tunnel.get("public_url").asText();
-                        if (publicUrl.startsWith("https://")) {
-                            return publicUrl;
-                        }
-                    }
-                }
-            } else {
-                log.warn("Ngrok API returned status code: {}", responseCode);
-            }
-        } catch (IOException e) {
-            log.debug("Could not fetch ngrok public URL (ngrok may not be running)", e);
-        }
-        return null;
-    }
-
-    /**
-     * Check if ngrok is currently running
-     */
-    public boolean isNgrokRunning() {
-        // Check if we have a process reference and it's alive
-        if (ngrokProcess != null && ngrokProcess.isAlive()) {
-            return true;
-        }
-
-        // Also check by trying to reach ngrok API
-        String url = fetchPublicUrl();
-        return url != null;
-    }
-
-    /**
-     * Stop the ngrok tunnel
-     */
-    public void stopNgrok() {
-        if (ngrokProcess != null && ngrokProcess.isAlive()) {
-            log.info("Stopping ngrok tunnel...");
-            ngrokProcess.destroy();
-            try {
-                ngrokProcess.waitFor(5, TimeUnit.SECONDS);
-                if (ngrokProcess.isAlive()) {
-                    log.warn("Ngrok didn't stop gracefully, forcing kill...");
-                    ngrokProcess.destroyForcibly();
-                }
-                log.info("Ngrok tunnel stopped");
-            } catch (InterruptedException e) {
-                log.error("Error waiting for ngrok to stop", e);
-                Thread.currentThread().interrupt();
-            }
-        }
-        ngrokProcess = null;
-        currentPublicUrl = null;
-    }
+    // -------------------------------------------------------------------------
+    // TunnelPort implementation
+    // -------------------------------------------------------------------------
 
     @Override
     public boolean start() {
@@ -229,13 +56,225 @@ public class NgrokManager implements TunnelPort {
         stopNgrok();
     }
 
-    /**
-     * Get ngrok status information
-     */
+    @Override
+    public String getPublicUrl() {
+        if (webhookPublicUrl != null) {
+            return webhookPublicUrl;
+        }
+        fetchPublicUrls();
+        return webhookPublicUrl;
+    }
+
+    @Override
+    public String getBotPublicUrl() {
+        if (botPublicUrl != null) {
+            return botPublicUrl;
+        }
+        fetchPublicUrls();
+        return botPublicUrl;
+    }
+
     @Override
     public TunnelStatus getStatus() {
         boolean running = isNgrokRunning();
-        String url = running ? getPublicUrl() : null;
-        return new TunnelStatus(running, url);
+        if (running) {
+            fetchPublicUrls();
+        }
+        return new TunnelStatus(running, webhookPublicUrl, botPublicUrl);
+    }
+
+    // -------------------------------------------------------------------------
+    // Internal lifecycle
+    // -------------------------------------------------------------------------
+
+    public boolean startNgrok() {
+        if (isNgrokRunning()) {
+            log.info("Ngrok is already running");
+            fetchPublicUrls();
+            return true;
+        }
+
+        if (!isNgrokInstalled()) {
+            log.error("Ngrok is not installed. Please install ngrok and configure an authtoken.");
+            return false;
+        }
+
+        try {
+            Path configFile = writeNgrokConfig();
+            log.info("Starting ngrok with 2 tunnels (webhook:{}, bot:{})...", webhookLocalPort, botLocalPort);
+
+            // Pass both the default config (authtoken) and our tunnel config
+            String defaultConfig = resolveDefaultNgrokConfig();
+            ProcessBuilder pb = defaultConfig != null
+                    ? new ProcessBuilder("ngrok", "start", "--all",
+                    "--config", defaultConfig,
+                    "--config", configFile.toString())
+                    : new ProcessBuilder("ngrok", "start", "--all",
+                    "--config", configFile.toString());
+            pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
+            ngrokProcess = pb.start();
+
+            // Poll until both tunnels are ready (up to 15 seconds)
+            for (int i = 0; i < 15; i++) {
+                Thread.sleep(1000);
+                if (!ngrokProcess.isAlive()) {
+                    log.error("Ngrok process exited unexpectedly (exit code: {})", ngrokProcess.exitValue());
+                    return false;
+                }
+                fetchPublicUrls();
+                if (webhookPublicUrl != null && botPublicUrl != null) {
+                    log.info("Ngrok tunnels ready — webhook: {}, bot: {}", webhookPublicUrl, botPublicUrl);
+                    return true;
+                }
+                log.debug("Waiting for ngrok tunnels... ({}/15)", i + 1);
+            }
+
+            log.error("Ngrok started but tunnels not ready after 15 seconds");
+            stopNgrok();
+            return false;
+
+        } catch (Exception e) {
+            log.error("Error starting ngrok", e);
+            stopNgrok();
+            return false;
+        }
+    }
+
+    public void stopNgrok() {
+        if (ngrokProcess != null && ngrokProcess.isAlive()) {
+            log.info("Stopping ngrok tunnels...");
+            ngrokProcess.destroy();
+            try {
+                ngrokProcess.waitFor(5, TimeUnit.SECONDS);
+                if (ngrokProcess.isAlive()) {
+                    log.warn("Ngrok didn't stop gracefully, forcing kill...");
+                    ngrokProcess.destroyForcibly();
+                }
+                log.info("Ngrok tunnels stopped");
+            } catch (InterruptedException e) {
+                log.error("Error waiting for ngrok to stop", e);
+                Thread.currentThread().interrupt();
+            }
+        }
+        ngrokProcess = null;
+        webhookPublicUrl = null;
+        botPublicUrl = null;
+    }
+
+    public boolean isNgrokRunning() {
+        if (ngrokProcess != null && ngrokProcess.isAlive()) {
+            return true;
+        }
+        // Also check by reaching the ngrok API
+        return fetchPublicUrlsFromApi() != null;
+    }
+
+    // -------------------------------------------------------------------------
+    // Ngrok config file generation
+    // -------------------------------------------------------------------------
+
+    /**
+     * Writes a temporary ngrok config file with two tunnels: webhook and bot.
+     */
+    private Path writeNgrokConfig() throws IOException {
+        String config = String.format("""
+                version: "3"
+                tunnels:
+                  webhook:
+                    addr: %d
+                    proto: http
+                  bot:
+                    addr: %d
+                    proto: http
+                """, webhookLocalPort, botLocalPort);
+
+        Path configFile = Files.createTempFile("ngrok-poc-", ".yml");
+        Files.writeString(configFile, config);
+        configFile.toFile().deleteOnExit();
+        log.debug("Ngrok config written to: {}", configFile);
+        return configFile;
+    }
+
+    // -------------------------------------------------------------------------
+    // URL discovery via ngrok local API
+    // -------------------------------------------------------------------------
+
+    /**
+     * Fetches both tunnel URLs from the ngrok local API and updates the cached fields.
+     */
+    private void fetchPublicUrls() {
+        JsonNode tunnels = fetchPublicUrlsFromApi();
+        if (tunnels == null) return;
+
+        for (JsonNode tunnel : tunnels) {
+            String name = tunnel.path("name").asText("");
+            String publicUrl = tunnel.path("public_url").asText("");
+            if (!publicUrl.startsWith("https://")) continue;
+
+            if ("webhook".equals(name)) {
+                webhookPublicUrl = publicUrl;
+                log.debug("Webhook tunnel URL: {}", webhookPublicUrl);
+            } else if ("bot".equals(name)) {
+                botPublicUrl = publicUrl;
+                log.debug("Bot tunnel URL: {}", botPublicUrl);
+            }
+        }
+    }
+
+    private JsonNode fetchPublicUrlsFromApi() {
+        try {
+            URL url = new URL("http://localhost:4040/api/tunnels");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(3000);
+            conn.setReadTimeout(3000);
+
+            if (conn.getResponseCode() == 200) {
+                try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = in.readLine()) != null) sb.append(line);
+                    JsonNode root = objectMapper.readTree(sb.toString());
+                    JsonNode tunnels = root.get("tunnels");
+                    if (tunnels != null && tunnels.isArray() && !tunnels.isEmpty()) {
+                        return tunnels;
+                    }
+                }
+            }
+        } catch (IOException e) {
+            log.debug("Could not reach ngrok API (ngrok may not be running)", e);
+        }
+        return null;
+    }
+
+    /**
+     * Resolves the path to the default ngrok config file (contains the authtoken).
+     * Returns null if not found.
+     */
+    private String resolveDefaultNgrokConfig() {
+        String[] candidates = {
+                System.getProperty("user.home") + "/.config/ngrok/ngrok.yml",
+                System.getProperty("user.home") + "/Library/Application Support/ngrok/ngrok.yml",
+                System.getProperty("user.home") + "/.ngrok2/ngrok.yml"
+        };
+        for (String path : candidates) {
+            if (new java.io.File(path).exists()) {
+                log.debug("Found default ngrok config: {}", path);
+                return path;
+            }
+        }
+        log.warn("Default ngrok config not found, authtoken may be missing");
+        return null;
+    }
+
+    public boolean isNgrokInstalled() {
+        try {
+            Process process = Runtime.getRuntime().exec("which ngrok");
+            return process.waitFor() == 0;
+        } catch (Exception e) {
+            log.warn("Error checking if ngrok is installed", e);
+            return false;
+        }
     }
 }

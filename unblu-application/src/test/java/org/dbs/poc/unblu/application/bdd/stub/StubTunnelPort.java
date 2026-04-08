@@ -24,6 +24,11 @@ public class StubTunnelPort implements TunnelPort {
     }
 
     @Override
+    public String getBotPublicUrl() {
+        return null;
+    }
+
+    @Override
     public TunnelStatus getStatus() {
         return new TunnelStatus(false, null);
     }

@@ -4,10 +4,8 @@ import com.unblu.webapi.jersey.v4.api.BotsApi;
 import com.unblu.webapi.jersey.v4.api.ConversationsApi;
 import com.unblu.webapi.jersey.v4.invoker.ApiClient;
 import com.unblu.webapi.jersey.v4.invoker.ApiException;
-import com.unblu.webapi.model.v4.BotDialogPostMessage;
-import com.unblu.webapi.model.v4.EPostMessageType;
-import com.unblu.webapi.model.v4.NamedAreaData;
-import com.unblu.webapi.model.v4.TextPostMessageData;
+import com.unblu.webapi.model.v4.*;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dbs.poc.unblu.domain.port.out.ConversationSummaryPort;
@@ -46,6 +44,7 @@ public class PocBotDialogService {
             }
             String message = summaryPort.generateSummary(conversationId);
             sendTextMessage(dialogToken, message);
+            handOffToAgent(dialogToken);
         }).exceptionally(ex -> {
             log.error("Erreur lors du traitement de dialog.opened pour dialogToken={}", dialogToken, ex);
             return null;
@@ -77,6 +76,22 @@ public class PocBotDialogService {
      */
     public void onDialogClosed(String dialogToken) {
         log.info("Dialog fermé : dialogToken={}", dialogToken);
+    }
+
+    /**
+     * Termine le dialog bot avec raison HAND_OFF pour rendre la main à un agent.
+     * Doit être appelé après que le bot a terminé son traitement.
+     */
+    private void handOffToAgent(String dialogToken) {
+        try {
+            BotsApi botsApi = new BotsApi(apiClient);
+            botsApi.botsFinishDialog(new BotsFinishDialogBody()
+                    .dialogToken(dialogToken)
+                    .reason(EBotDialogFinishReason.HAND_OFF));
+            log.info("Handoff vers agent effectué pour dialog {}", dialogToken);
+        } catch (ApiException e) {
+            log.error("Échec du handoff vers agent pour dialogToken={} : status={}", dialogToken, e.getCode(), e);
+        }
     }
 
     private void setNamedAreaRecipient(String conversationId) {
