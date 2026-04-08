@@ -23,6 +23,7 @@ export class App implements OnInit {
 
   // Lists
   clients: PersonInfo[] = [];
+  liveKitClients: PersonInfo[] = [];
   agents: PersonInfo[] = [];
   teams: TeamInfo[] = [];
   namedAreas: NamedAreaInfo[] = [];
@@ -69,6 +70,7 @@ export class App implements OnInit {
     ]).then(([persons, teams, namedAreas]) => {
       const allPersons = persons || [];
       this.clients = allPersons.filter(p => p.personType === 'VISITOR');
+      this.liveKitClients = allPersons.filter(p => p.personType === 'VISITOR' && !!p.sourceId);
       this.agents  = allPersons.filter(p => p.personType === 'AGENT');
       this.teams = teams || [];
       this.namedAreas = namedAreas || [];
@@ -163,7 +165,7 @@ export class App implements OnInit {
     this.error = null;
     this.liveKitResult = null;
 
-    this.apiService.startLiveKitConversation(this.selectedClient.sourceId).subscribe({
+    this.apiService.startLiveKitConversation(this.selectedClient.id).subscribe({
       next: (result) => {
         this.liveKitResult = result;
         this.loading = false;

@@ -9,8 +9,8 @@ public interface StartLiveKitConversationUseCase {
     /**
      * Démarre une conversation Unblu avec la zone nommée CH_HB_PREMIUM.
      *
-     * @param clientId Identifiant du client issu de l'IHM
+     * @param personId Identifiant Unblu (UUID) de la personne sélectionnée dans l'IHM
      * @return Informations sur la conversation créée
      */
-    UnbluConversationInfo startConversation(String clientId);
+    UnbluConversationInfo startConversation(String personId);
 }

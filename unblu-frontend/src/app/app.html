@@ -295,8 +295,8 @@
           class="form-control"
           id="livekit-client">
           <option [ngValue]="null">-- Sélectionner un client --</option>
-          <option *ngFor="let client of clients" [ngValue]="client">
-            {{ client.displayName }} ({{ client.id }})
+          <option *ngFor="let client of liveKitClients" [ngValue]="client">
+            {{ client.displayName }} ({{ client.sourceId }})
           </option>
         </select>
       </div>

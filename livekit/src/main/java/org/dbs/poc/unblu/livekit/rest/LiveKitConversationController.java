@@ -24,7 +24,7 @@ public class LiveKitConversationController {
     @PostMapping("/start")
     @Operation(summary = "Démarre une conversation simplifiée pour LiveKit")
     public ResponseEntity<LiveKitStartResponse> start(@RequestBody @Valid LiveKitStartRequest request) {
-        var info = startUseCase.startConversation(request.getClientId());
+        var info = startUseCase.startConversation(request.getPersonId());
         return ResponseEntity.ok(LiveKitStartResponse.builder()
                 .conversationId(info.unbluConversationId())
                 .joinUrl(info.unbluJoinUrl())

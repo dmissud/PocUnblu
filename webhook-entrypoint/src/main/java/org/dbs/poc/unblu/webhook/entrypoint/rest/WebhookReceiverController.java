@@ -32,8 +32,8 @@ public class WebhookReceiverController {
 
     @PostMapping("/api/webhooks/unblu")
     public ResponseEntity<String> receiveWebhook(
-            @RequestHeader(value = "X-Unblu-Signature", required = false) String signature,
-            @RequestHeader(value = "X-Unblu-Event-Type", required = false) String eventType,
+            @RequestHeader(value = "X-Unblu-Delivery", required = false) String delivery,
+            @RequestHeader(value = "X-Unblu-Event", required = false) String eventType,
             @RequestBody(required = false) String body) {
 
         if (body == null || body.isBlank()) {
@@ -42,11 +42,11 @@ public class WebhookReceiverController {
         }
 
         if (eventType == null || eventType.isBlank()) {
-            log.warn("Webhook rejected — missing X-Unblu-Event-Type header");
-            return ResponseEntity.badRequest().body("Bad Request: missing X-Unblu-Event-Type header");
+            log.warn("Webhook rejected — missing X-Unblu-Event header");
+            return ResponseEntity.badRequest().body("Bad Request: missing X-Unblu-Event header");
         }
 
-        log.info("Webhook received — eventType={}, publishing to Kafka topic={}", eventType, topic);
+        log.info("Webhook received — eventType={}, delivery={}, publishing to Kafka topic={}", eventType, delivery, topic);
         kafkaTemplate.send(topic, eventType, body);
 
         return ResponseEntity.accepted().build();
