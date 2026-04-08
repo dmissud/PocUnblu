@@ -48,7 +48,7 @@ public class BotOutboundController {
 
         return switch (serviceName) {
             case SERVICE_ONBOARDING_OFFER, SERVICE_REBOARDING_OFFER -> acceptBoarding();
-            case SERVICE_OFFBOARDING_OFFER                           -> rejectOffboarding();
+            case SERVICE_OFFBOARDING_OFFER -> acceptOffboarding();
             case SERVICE_DIALOG_OPENED                               -> handleDialogOpened(rawBody);
             case SERVICE_DIALOG_MESSAGE                              -> handleDialogMessage(rawBody);
             case SERVICE_DIALOG_CLOSED                               -> handleDialogClosed(rawBody);
@@ -69,11 +69,11 @@ public class BotOutboundController {
         ));
     }
 
-    private ResponseEntity<Map<String, Object>> rejectOffboarding() {
-        log.info("Offboarding refusé par PocBot (le bot garde la main)");
+    private ResponseEntity<Map<String, Object>> acceptOffboarding() {
+        log.info("Offboarding accepté par PocBot (handoff vers les agents)");
         return ResponseEntity.ok(Map.of(
                 "$_type", "BotBoardingOfferResponse",
-                "offerAccepted", false
+                "offerAccepted", true
         ));
     }
 
@@ -104,7 +104,7 @@ public class BotOutboundController {
         } catch (Exception e) {
             log.error("Erreur lors du parsing de dialog.message", e);
         }
-        return ack();
+        return ResponseEntity.ok(Map.of("$_type", "BotDialogMessageResponse"));
     }
 
     private ResponseEntity<Map<String, Object>> handleDialogClosed(String rawBody) {
@@ -115,7 +115,7 @@ public class BotOutboundController {
         } catch (Exception e) {
             log.error("Erreur lors du parsing de dialog.closed", e);
         }
-        return ack();
+        return ResponseEntity.ok(Map.of("$_type", "BotDialogClosedResponse"));
     }
 
     private ResponseEntity<Map<String, Object>> ack() {

@@ -4,7 +4,9 @@ import org.dbs.poc.unblu.domain.model.*;
 import org.dbs.poc.unblu.domain.port.out.UnbluPort;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Stub de {@link UnbluPort} configurable par scénario.
@@ -134,6 +136,11 @@ public class StubUnbluPort implements UnbluPort {
 
     @Override
     public List<UnbluConversationSummary> searchConversationsByState(String state) {
+        return List.of();
+    }
+
+    @Override
+    public List<BotInfo> listBots() {
         return List.of();
     }
 }

@@ -1,0 +1,146 @@
+.supervision-panel {
+  padding: 16px 0;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.panel-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #202124;
+}
+
+.btn-refresh {
+  padding: 6px 14px;
+  background: #1a73e8;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.btn-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-banner {
+  background: #fce8e6;
+  color: #c5221f;
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
+.loading-state,
+.empty-state {
+  text-align: center;
+  color: #5f6368;
+  padding: 40px 0;
+  font-size: 0.95rem;
+}
+
+.bots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.bot-card {
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  transition: box-shadow 0.15s;
+}
+
+.bot-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.bot-card.bot-active {
+  border-left: 4px solid #34a853;
+}
+
+.bot-card.bot-inactive {
+  border-left: 4px solid #ea4335;
+}
+
+.bot-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dadce0;
+}
+
+.bot-status-icon {
+  font-size: 1.1rem;
+}
+
+.bot-name {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #202124;
+}
+
+.bot-card-body {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bot-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.field-label {
+  font-size: 0.78rem;
+  color: #5f6368;
+  font-weight: 500;
+  min-width: 72px;
+  padding-top: 2px;
+}
+
+.field-value {
+  font-size: 0.85rem;
+  color: #202124;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  background: #fce8e6;
+  color: #c5221f;
+}
+
+.status-badge.active {
+  background: #e6f4ea;
+  color: #137333;
+}
+
+.endpoint-value {
+  word-break: break-all;
+  font-family: monospace;
+  font-size: 0.78rem;
+}
+
+.id-value {
+  font-family: monospace;
+  font-size: 0.78rem;
+  color: #5f6368;
+}

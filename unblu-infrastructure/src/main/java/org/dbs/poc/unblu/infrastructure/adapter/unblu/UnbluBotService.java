@@ -7,6 +7,7 @@ import com.unblu.webapi.jersey.v4.invoker.ApiException;
 import com.unblu.webapi.model.v4.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.dbs.poc.unblu.domain.model.BotInfo;
 import org.dbs.poc.unblu.infrastructure.config.UnbluProperties;
 import org.dbs.poc.unblu.infrastructure.exception.UnbluApiException;
 import org.springframework.stereotype.Service;
@@ -186,6 +187,43 @@ public class UnbluBotService {
             }
             log.error("Erreur lors de la recherche du bot - Status: {}", e.getCode(), e);
             throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la recherche du bot : " + e.getMessage());
+        }
+    }
+
+    /**
+     * Liste tous les bots configurés dans Unblu.
+     *
+     * @return liste des bots sous forme de {@link BotInfo}
+     */
+    public List<BotInfo> listBots() {
+        BotsApi botsApi = new BotsApi(apiClient);
+        try {
+            DialogBotQuery query = new DialogBotQuery();
+            DialogBotResult result = botsApi.botsSearch(query);
+            if (result == null || result.getItems() == null) {
+                return List.of();
+            }
+            return result.getItems().stream()
+                    .map(b -> {
+                        String webhookStatus = null;
+                        String webhookEndpoint = null;
+                        if (b instanceof CustomDialogBotData custom) {
+                            webhookStatus = custom.getWebhookStatus() != null ? custom.getWebhookStatus().name() : null;
+                            webhookEndpoint = custom.getWebhookEndpoint();
+                        }
+                        return new BotInfo(
+                                b.getId(),
+                                b.getName(),
+                                b.getOnboardingFilter() != null ? b.getOnboardingFilter().name() : null,
+                                b.getOnboardingOrder() != null ? b.getOnboardingOrder().intValue() : null,
+                                webhookStatus,
+                                webhookEndpoint
+                        );
+                    })
+                    .toList();
+        } catch (ApiException e) {
+            log.error("Error listing bots - Status: {}", e.getCode(), e);
+            throw new UnbluApiException(e.getCode(), "Error", "Erreur lors de la liste des bots : " + e.getMessage());
         }
     }
 

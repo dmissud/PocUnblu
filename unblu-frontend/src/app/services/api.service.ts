@@ -13,6 +13,7 @@ import {
 import {ConversationHistoryDetail, ConversationHistoryPage} from '../models/conversation-history.model';
 import {ConversationSearchResponse, ConversationState} from '../models/conversation-search.model';
 import {WebhookSetupResult, WebhookStatus} from '../models/webhook.model';
+import {BotInfo} from '../models/bot.model';
 
 @Injectable({
   providedIn: 'root'
@@ -84,6 +85,10 @@ export class ApiService {
       `${this.baseUrl}/conversations/search`,
       {params: {state}}
     );
+  }
+
+  getBots(): Observable<BotInfo[]> {
+    return this.http.get<BotInfo[]>(`${this.baseUrl}/supervision/bots`);
   }
 
   // Webhook setup methods

@@ -1,9 +1,6 @@
 package org.dbs.poc.unblu.infrastructure.adapter.unblu;
 
-import com.unblu.webapi.model.v4.ConversationCreationData;
-import com.unblu.webapi.model.v4.ConversationCreationParticipantData;
-import com.unblu.webapi.model.v4.EConversationRealParticipationType;
-import com.unblu.webapi.model.v4.EInitialEngagementType;
+import com.unblu.webapi.model.v4.*;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +37,12 @@ public class UnbluApiAdapter implements UnbluPort {
         creationData.setTopic(request.topic());
         creationData.setInitialEngagementType(EInitialEngagementType.CHAT_REQUEST);
         creationData.setVisitorData(request.visitorData());
-        // creationData.setNamedAreaId(request.namedAreaId()); // Removed as it was causing compilation error
+        if (request.namedAreaId() != null) {
+            var recipient = new ConversationCreationRecipientData();
+            recipient.setType(EConversationRecipientType.NAMED_AREA);
+            recipient.setId(request.namedAreaId());
+            creationData.setRecipient(recipient);
+        }
         creationData.setConversationTemplateId(request.conversationTemplate());
 
         if (request.participants() != null) {
@@ -161,5 +163,10 @@ public class UnbluApiAdapter implements UnbluPort {
     private List<UnbluConversationSummary> fallbackSearchByState(String state, Throwable t) {
         log.warn("Unblu indisponible pour searchByState : {}", t.getMessage());
         return Collections.emptyList();
+    }
+
+    @Override
+    public List<BotInfo> listBots() {
+        return unbluBotService.listBots();
     }
 }

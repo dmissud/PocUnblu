@@ -9,17 +9,18 @@ import {WebhookStatus} from './models/webhook.model';
 import {ConversationHistoryComponent} from './components/conversation-history/conversation-history.component';
 import {InactiveConversationsComponent} from './components/inactive-conversations/inactive-conversations.component';
 import {WebhookSimulatorComponent} from './components/webhook-simulator/webhook-simulator.component';
+import {SupervisionComponent} from './components/supervision/supervision.component';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, FormsModule, ConversationHistoryComponent, InactiveConversationsComponent, WebhookSimulatorComponent],
+  imports: [CommonModule, FormsModule, ConversationHistoryComponent, InactiveConversationsComponent, WebhookSimulatorComponent, SupervisionComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
 export class App implements OnInit {
   title = 'Unblu Conversation Manager';
 
-  activeTab: 'conversations' | 'history' | 'search' | 'livekit' | 'webhook-simulator' = 'conversations';
+  activeTab: 'conversations' | 'history' | 'search' | 'livekit' | 'webhook-simulator' | 'supervision' = 'conversations';
 
   // Lists
   clients: PersonInfo[] = [];

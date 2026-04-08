@@ -1,0 +1,64 @@
+<div class="supervision-panel">
+  <div class="panel-header">
+    <h2>Supervision des bots Unblu</h2>
+    <button (click)="loadBots()" [disabled]="loading" class="btn-refresh">
+      @if (loading) {
+        ⏳ Chargement...
+      } @else {
+        🔄 Actualiser
+      }
+    </button>
+  </div>
+
+  @if (error) {
+    <div class="error-banner">{{ error }}</div>
+  }
+
+  @if (loading && bots.length === 0) {
+    <div class="loading-state">Chargement des bots...</div>
+  }
+
+  @if (!loading && !error && bots.length === 0) {
+    <div class="empty-state">Aucun bot configuré dans Unblu.</div>
+  }
+
+  @if (bots.length > 0) {
+    <div class="bots-grid">
+      @for (bot of bots; track bot.id) {
+        <div [class.bot-active]="bot.webhookStatus === 'ACTIVE'" [class.bot-inactive]="bot.webhookStatus !== 'ACTIVE'"
+             class="bot-card">
+          <div class="bot-card-header">
+            <span class="bot-status-icon">{{ webhookStatusIcon(bot.webhookStatus) }}</span>
+            <span class="bot-name">{{ bot.name }}</span>
+          </div>
+          <div class="bot-card-body">
+            <div class="bot-field">
+              <span class="field-label">Webhook</span>
+              <span [class.active]="bot.webhookStatus === 'ACTIVE'" class="field-value status-badge">
+                {{ bot.webhookStatus ?? '—' }}
+              </span>
+            </div>
+            <div class="bot-field">
+              <span class="field-label">Onboarding</span>
+              <span class="field-value">{{ onboardingFilterLabel(bot.onboardingFilter) }}</span>
+            </div>
+            <div class="bot-field">
+              <span class="field-label">Priorité</span>
+              <span class="field-value">{{ bot.onboardingOrder ?? '—' }}</span>
+            </div>
+            <div class="bot-field endpoint-field">
+              <span class="field-label">Endpoint</span>
+              <span [title]="bot.webhookEndpoint ?? ''" class="field-value endpoint-value">
+                {{ bot.webhookEndpoint ?? '—' }}
+              </span>
+            </div>
+            <div class="bot-field">
+              <span class="field-label">ID</span>
+              <span class="field-value id-value">{{ bot.id }}</span>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

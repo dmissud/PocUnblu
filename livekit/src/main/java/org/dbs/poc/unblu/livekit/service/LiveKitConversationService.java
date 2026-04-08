@@ -14,7 +14,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LiveKitConversationService implements StartLiveKitConversationUseCase {
 
-    private static final String NAMED_AREA_CH_HB_PREMIUM = "CH_HB_PREMIUM";
+    private static final String NAMED_AREA_C_HB_PREMIUM_ID = "ZvcLavqFTKC65YtiRKtJxg";
     private final UnbluPort unbluPort;
 
     @Override
@@ -22,7 +22,7 @@ public class LiveKitConversationService implements StartLiveKitConversationUseCa
         log.info("Démarrage d'une conversation LiveKit pour la personne Unblu: {}", personId);
 
         var request = ConversationCreationRequest.builder()
-                .namedAreaId(NAMED_AREA_CH_HB_PREMIUM)
+                .namedAreaId(NAMED_AREA_C_HB_PREMIUM_ID)
                 .topic("LiveKit Conversation")
                 .participants(List.of(
                         ConversationCreationRequest.ParticipantRequest.builder()
