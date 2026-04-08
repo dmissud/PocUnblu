@@ -24,6 +24,9 @@ unblu:
     base-url: ${UNBLU_API_BASE_URL:https://services8.unblu.com/app/rest/v4}
     username: ${UNBLU_API_USERNAME}
     password: ${UNBLU_API_PASSWORD}
+  bot:
+    welcome-message: ${UNBLU_BOT_WELCOME_MESSAGE:Bonjour ! Je suis votre assistant. Comment puis-je vous aider ?}
+    named-area-id: ${UNBLU_BOT_NAMED_AREA_ID:}
 
 logging:
   level:
