@@ -61,8 +61,8 @@ public class KafkaWebhookConsumerRoute extends RouteBuilder {
 
     @Override
     public void configure() {
-        configureDlqRoute();
         configureExceptionHandlers();
+        configureDlqRoute();
         configureConsumerRoute();
     }
 
