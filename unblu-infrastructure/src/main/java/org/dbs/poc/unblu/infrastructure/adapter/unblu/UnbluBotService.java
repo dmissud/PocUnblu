@@ -50,6 +50,7 @@ public class UnbluBotService {
             botData.setWebhookEndpoint(botEndpoint);
             botData.setWebhookStatus(ERegistrationStatus.ACTIVE);
             botData.setOnboardingFilter(EBotDialogFilter.VISITORS);
+            botData.setOnboardingOrder(unbluProperties.getPocBotOnboardingOrder());
             CustomDialogBotData updated = (CustomDialogBotData) botsApi.botsUpdate(botData);
             log.info("PocBot updated: id={}, endpoint={}", updated.getId(), updated.getWebhookEndpoint());
             return updated;
@@ -105,7 +106,7 @@ public class UnbluBotService {
             botData.setBotPersonId(createdPerson.getId());
             botData.setOnboardingFilter(EBotDialogFilter.VISITORS);
             botData.setOffboardingFilter(EBotDialogFilter.NONE);
-            botData.setOnboardingOrder(100);
+            botData.setOnboardingOrder(unbluProperties.getPocBotOnboardingOrder());
             botData.setWebhookStatus(ERegistrationStatus.ACTIVE);
             botData.setWebhookEndpoint(botEndpoint);
             botData.setWebhookApiVersion(EWebApiVersion.V4);
