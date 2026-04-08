@@ -10,6 +10,7 @@ import com.unblu.webapi.model.v4.NamedAreaData;
 import com.unblu.webapi.model.v4.TextPostMessageData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.dbs.poc.unblu.domain.port.out.ConversationSummaryPort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -26,9 +27,7 @@ import java.util.concurrent.CompletableFuture;
 public class PocBotDialogService {
 
     private final ApiClient apiClient;
-
-    @Value("${unblu.bot.welcome-message:Bonjour ! Je suis votre assistant. Comment puis-je vous aider ?}")
-    private String welcomeMessage;
+    private final ConversationSummaryPort summaryPort;
 
     @Value("${unblu.bot.named-area-id:}")
     private String namedAreaId;
@@ -45,7 +44,8 @@ public class PocBotDialogService {
             if (conversationId != null && !namedAreaId.isBlank()) {
                 setNamedAreaRecipient(conversationId);
             }
-            sendTextMessage(dialogToken, welcomeMessage);
+            String message = summaryPort.generateSummary(conversationId);
+            sendTextMessage(dialogToken, message);
         }).exceptionally(ex -> {
             log.error("Erreur lors du traitement de dialog.opened pour dialogToken={}", dialogToken, ex);
             return null;
