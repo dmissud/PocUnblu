@@ -8,7 +8,7 @@ import com.unblu.webapi.model.v4.*;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.dbs.poc.unblu.domain.port.out.ConversationSummaryPort;
+import org.dbs.poc.unblu.integration.domain.port.out.ConversationSummaryPort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 

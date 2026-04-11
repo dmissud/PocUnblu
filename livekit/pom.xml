@@ -12,18 +12,18 @@
     <description>Module dédié aux endpoints de travail LiveKit</description>
 
     <dependencies>
-        <!-- Modules Internes -->
+        <!-- Bloc 1 — Integration Modules -->
         <dependency>
             <groupId>org.dbs.poc</groupId>
-            <artifactId>unblu-domain</artifactId>
+            <artifactId>integration-domain</artifactId>
         </dependency>
         <dependency>
             <groupId>org.dbs.poc</groupId>
-            <artifactId>unblu-application</artifactId>
+            <artifactId>integration-application</artifactId>
         </dependency>
         <dependency>
             <groupId>org.dbs.poc</groupId>
-            <artifactId>unblu-infrastructure</artifactId>
+            <artifactId>integration-infrastructure</artifactId>
         </dependency>
 
         <!-- Spring Boot -->
@@ -42,10 +42,12 @@
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
+
         <dependency>
             <groupId>me.paulschwarz</groupId>
             <artifactId>spring-dotenv</artifactId>

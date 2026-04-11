@@ -27,19 +27,41 @@
     </properties>
 
     <modules>
+        <!-- Bloc 1 — Integration Layer Modules -->
+        <module>integration-domain</module>
+        <module>integration-application</module>
+        <module>integration-infrastructure</module>
+        <!-- Bloc 1 — Spring Boot Applications -->
+        <module>webhook-entrypoint</module>
+        <module>unblu-event-processor</module>
+        <module>livekit</module>
+        <!-- Bloc 2 — Supervisor Modules -->
         <module>unblu-domain</module>
         <module>unblu-infrastructure</module>
         <module>unblu-application</module>
         <module>unblu-exposition</module>
         <module>unblu-configuration</module>
-        <module>livekit</module>
-        <module>webhook-entrypoint</module>
-        <module>unblu-event-processor</module>
     </modules>
 
     <dependencyManagement>
         <dependencies>
-            <!-- Modules Internes -->
+            <!-- Bloc 1 — Integration Modules -->
+            <dependency>
+                <groupId>org.dbs.poc</groupId>
+                <artifactId>integration-domain</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.dbs.poc</groupId>
+                <artifactId>integration-application</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.dbs.poc</groupId>
+                <artifactId>integration-infrastructure</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <!-- Bloc 2 — Supervisor Modules -->
             <dependency>
                 <groupId>org.dbs.poc</groupId>
                 <artifactId>unblu-domain</artifactId>

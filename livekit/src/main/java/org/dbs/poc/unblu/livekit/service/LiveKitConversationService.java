@@ -2,9 +2,9 @@ package org.dbs.poc.unblu.livekit.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.dbs.poc.unblu.domain.model.ConversationCreationRequest;
-import org.dbs.poc.unblu.domain.model.UnbluConversationInfo;
-import org.dbs.poc.unblu.domain.port.out.UnbluPort;
+import org.dbs.poc.unblu.integration.domain.model.ConversationCreationRequest;
+import org.dbs.poc.unblu.integration.domain.model.UnbluConversationInfo;
+import org.dbs.poc.unblu.integration.domain.port.out.IntegrationUnbluPort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,7 +15,7 @@ import java.util.List;
 public class LiveKitConversationService implements StartLiveKitConversationUseCase {
 
     private static final String NAMED_AREA_C_HB_PREMIUM_ID = "ZvcLavqFTKC65YtiRKtJxg";
-    private final UnbluPort unbluPort;
+    private final IntegrationUnbluPort unbluPort;
 
     @Override
     public UnbluConversationInfo startConversation(String personId) {
