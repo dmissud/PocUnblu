@@ -1,5 +1,12 @@
 server:
   port: 8082
+  # Compression HTTP désactivée intentionnellement.
+  # Unblu envoie "Accept-Encoding: gzip" sur les outbound requests bot (/api/bot/outbound).
+  # Si la compression est activée, Tomcat répond en gzip, mais Unblu interprète la réponse
+  # comme du JSON plain → échec de parsing → pas de réponse exploitable côté Unblu.
+  # Doit rester désactivé que l'appel arrive directement ou via un proxy reverse.
+  compression:
+    enabled: false
 
 spring:
   application:

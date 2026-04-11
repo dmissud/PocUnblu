@@ -53,13 +53,13 @@ curl -X POST http://localhost:8081/api/v1/webhooks/setup
 ### Résultat attendu dans les logs de l'application
 
 ```
-INFO  WebhookSetupService - Starting webhook setup...
-INFO  WebhookSetupService - Step 1: Starting ngrok tunnel...
-INFO  NgrokManager - Starting ngrok tunnel on port 8081...
-INFO  NgrokManager - Ngrok tunnel started successfully: https://abc123def456.ngrok-free.app
-INFO  WebhookSetupService - Ngrok tunnel active: https://abc123def456.ngrok-free.app
-INFO  WebhookSetupService - Webhook endpoint will be: https://abc123def456.ngrok-free.app/api/webhooks/unblu
+INFO  NgrokManager - Starting ngrok tunnels (webhook-entrypoint:8083, livekit:8082)...
+INFO  NgrokManager - Ngrok tunnels ready — webhook-entrypoint: https://abc123.ngrok-free.app, livekit: https://def456.ngrok-free.app
 ```
+
+Deux tunnels indépendants, accès direct sans proxy :
+- `https://abc123.ngrok-free.app` → webhook-entrypoint (8083)
+- `https://def456.ngrok-free.app` → livekit/bot (8082)
 
 **URL publique générée** : visible dans les logs et enregistrée automatiquement dans Unblu
 
@@ -104,7 +104,7 @@ Cliquer sur une requête pour voir :
 
 ### Limite du plan gratuit
 
-- 1 tunnel simultané
+- 3 endpoints simultanés (2 tunnels suffisent pour ce projet)
 - URLs aléatoires (changent à chaque redémarrage)
 - Inspection du trafic limitée
 
@@ -142,6 +142,13 @@ Le tunnel ngrok s'arrête **automatiquement** lors de l'arrêt de l'application 
 Le `NgrokManager` se charge de fermer proprement le processus ngrok.
 
 ## 9. Troubleshooting
+
+### Bot ne répond pas (ngrok reçoit l'appel mais pas de réponse)
+
+Unblu envoie `Accept-Encoding: gzip` sur les outbound requests bot. Si la compression est activée
+côté livekit, la réponse est gzip-compressée et Unblu ne peut pas la parser.
+
+→ Voir [`HOWTO_BOT_OUTBOUND_GZIP.md`](./HOWTO_BOT_OUTBOUND_GZIP.md) pour le détail et la solution.
 
 ### Erreur "authtoken not found"
 
