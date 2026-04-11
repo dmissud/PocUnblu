@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.dbs.poc.unblu.domain.port.out.TunnelPort;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -19,23 +20,26 @@ import java.util.concurrent.TimeUnit;
 /**
  * Adapter implementing {@link TunnelPort} using ngrok as the underlying tunnel provider.
  *
- * <p>Starts two ngrok tunnels via a temporary config file:
+ * <p>Active uniquement avec le profil Spring {@code ngrok}.
+ *
+ * <p>Démarre deux tunnels ngrok :
  * <ul>
- *   <li><b>webhook</b>: exposes the main app (default port 8081) for Unblu webhook callbacks</li>
- *   <li><b>bot</b>: exposes the livekit app (default port 8082) for Unblu bot outbound requests</li>
+ *   <li>{@code webhook} sur le port de webhook-entrypoint (8083) — accès direct, sans proxy</li>
+ *   <li>{@code bot} sur le port de livekit (8082) — accès direct, sans proxy</li>
  * </ul>
  *
  * <p>Requires an ngrok authtoken configured ({@code ngrok config add-authtoken <token>}).
  */
 @Slf4j
 @Service
+@Profile("ngrok")
 public class NgrokManager implements TunnelPort {
 
-    @Value("${unblu.webhook.local-port:8081}")
+    @Value("${webhook.entrypoint.local-port:8083}")
     private int webhookLocalPort;
 
-    @Value("${unblu.bot.local-port:8082}")
-    private int botLocalPort;
+    @Value("${livekit.local-port:8082}")
+    private int livekitLocalPort;
 
     private Process ngrokProcess;
     private String webhookPublicUrl;
@@ -101,7 +105,7 @@ public class NgrokManager implements TunnelPort {
 
         try {
             Path configFile = writeNgrokConfig();
-            log.info("Starting ngrok with 2 tunnels (webhook:{}, bot:{})...", webhookLocalPort, botLocalPort);
+            log.info("Starting ngrok tunnels (webhook-entrypoint:{}, livekit:{})...", webhookLocalPort, livekitLocalPort);
 
             // Pass both the default config (authtoken) and our tunnel config
             String defaultConfig = resolveDefaultNgrokConfig();
@@ -124,10 +128,10 @@ public class NgrokManager implements TunnelPort {
                 }
                 fetchPublicUrls();
                 if (webhookPublicUrl != null && botPublicUrl != null) {
-                    log.info("Ngrok tunnels ready — webhook: {}, bot: {}", webhookPublicUrl, botPublicUrl);
+                    log.info("Ngrok tunnels ready — webhook-entrypoint: {}, livekit: {}", webhookPublicUrl, botPublicUrl);
                     return true;
                 }
-                log.debug("Waiting for ngrok tunnels... ({}/15)", i + 1);
+                log.debug("Waiting for ngrok tunnel... ({}/15)", i + 1);
             }
 
             log.error("Ngrok started but tunnels not ready after 15 seconds");
@@ -175,7 +179,9 @@ public class NgrokManager implements TunnelPort {
     // -------------------------------------------------------------------------
 
     /**
-     * Writes a temporary ngrok config file with two tunnels: webhook and bot.
+     * Writes a temporary ngrok config file with two tunnels :
+     * - {@code webhook} → unblu-configuration (8081) pour les webhooks Unblu
+     * - {@code bot}     → livekit (8082) pour les outbound requests bot (accès direct, sans proxy)
      */
     private Path writeNgrokConfig() throws IOException {
         String config = String.format("""
@@ -187,7 +193,7 @@ public class NgrokManager implements TunnelPort {
                   bot:
                     addr: %d
                     proto: http
-                """, webhookLocalPort, botLocalPort);
+                """, webhookLocalPort, livekitLocalPort);
 
         Path configFile = Files.createTempFile("ngrok-poc-", ".yml");
         Files.writeString(configFile, config);

@@ -1,9 +1,9 @@
 package org.dbs.poc.unblu.exposition.rest;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.dbs.poc.unblu.exposition.rest.config.ProxyHeaders;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,13 +12,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Enumeration;
-
 /**
- * Transparent reverse proxy for Unblu webhook callbacks towards WebhookEntrypointApplication (port 8083).
+ * Reverse proxy transparent pour les callbacks webhook Unblu vers webhook-entrypoint (port 8083).
  *
- * <p>Unblu sends POST /api/webhooks/unblu to this application (port 8081, exposed via ngrok).
- * This controller forwards the call to the dedicated webhook-entrypoint module.
+ * <p>Unblu envoie POST /api/webhooks/unblu sur ce service (port 8081, exposé via ngrok).
+ * Ce contrôleur forward l'appel vers le module dédié webhook-entrypoint.
  */
 @RestController
 public class WebhookEntrypointProxyController {
@@ -38,8 +36,7 @@ public class WebhookEntrypointProxyController {
                                         @RequestBody(required = false) byte[] body) {
         String targetUrl = webhookEntrypointBaseUrl + request.getRequestURI();
 
-        HttpHeaders headers = extractHeaders(request);
-        HttpEntity<byte[]> entity = new HttpEntity<>(body, headers);
+        HttpEntity<byte[]> entity = new HttpEntity<>(body, ProxyHeaders.extract(request));
 
         try {
             return restTemplate.exchange(targetUrl, HttpMethod.POST, entity, byte[].class);
@@ -50,15 +47,4 @@ public class WebhookEntrypointProxyController {
         }
     }
 
-    private HttpHeaders extractHeaders(HttpServletRequest request) {
-        HttpHeaders headers = new HttpHeaders();
-        Enumeration<String> headerNames = request.getHeaderNames();
-        while (headerNames.hasMoreElements()) {
-            String name = headerNames.nextElement();
-            if (!"host".equalsIgnoreCase(name)) {
-                headers.set(name, request.getHeader(name));
-            }
-        }
-        return headers;
-    }
 }

@@ -1,6 +1,6 @@
 package org.dbs.poc.unblu.livekit.service;
 
-import org.dbs.poc.unblu.domain.model.UnbluConversationInfo;
+import org.dbs.poc.unblu.integration.domain.model.UnbluConversationInfo;
 
 /**
  * Cas d'utilisation : démarrage d'une conversation simplifiée pour LiveKit.

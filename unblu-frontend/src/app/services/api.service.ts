@@ -54,7 +54,7 @@ export class ApiService {
   }
 
   syncConversations(): Observable<ConversationSyncResult> {
-    return this.http.post<ConversationSyncResult>(`${this.baseUrl}/conversations/sync`, {});
+    return this.http.post<ConversationSyncResult>(`/api/history/sync`, {});
   }
 
   getConversationHistory(
@@ -64,19 +64,19 @@ export class ApiService {
     sortDir: string = 'DESC'
   ): Observable<ConversationHistoryPage> {
     return this.http.get<ConversationHistoryPage>(
-      `${this.baseUrl}/conversations/history?page=${page}&size=${size}&sortField=${sortField}&sortDir=${sortDir}`
+      `/api/history/conversations?page=${page}&size=${size}&sortField=${sortField}&sortDir=${sortDir}`
     );
   }
 
   getConversationDetail(conversationId: string): Observable<ConversationHistoryDetail> {
     return this.http.get<ConversationHistoryDetail>(
-      `${this.baseUrl}/conversations/history/${conversationId}`
+      `/api/history/conversations/${conversationId}`
     );
   }
 
   enrichConversation(conversationId: string): Observable<ConversationHistoryDetail> {
     return this.http.post<ConversationHistoryDetail>(
-      `${this.baseUrl}/conversations/history/${conversationId}/enrich`, {}
+      `/api/history/conversations/${conversationId}/enrich`, {}
     );
   }
 

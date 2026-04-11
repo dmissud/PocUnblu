@@ -3,7 +3,6 @@ package org.dbs.poc.unblu.application.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dbs.poc.unblu.domain.model.*;
-import org.dbs.poc.unblu.domain.port.out.ConversationSummaryPort;
 import org.dbs.poc.unblu.domain.port.out.UnbluPort;
 import org.springframework.stereotype.Service;
 
@@ -20,16 +19,7 @@ import java.util.List;
 public class ConversationWorkflowService {
 
     private final UnbluPort unbluPort;
-    private final ConversationSummaryPort summaryPort;
 
-    /**
-     * Generates a summary for the conversation and posts it as a bot message.
-     */
-    public void addSummary(String conversationId) {
-        String summary = summaryPort.generateSummary(conversationId);
-        log.info("Summary généré pour conversation {}: {}", conversationId, summary);
-        unbluPort.addSummaryToConversation(conversationId, summary);
-    }
 
     /**
      * Finds a VIRTUAL person by sourceId.

@@ -1,13 +1,21 @@
 version: '3.8'
+# Docker Compose — côté Bloc 2 (Superviseur), utilisé pour les tests d'intégration.
+# Inclut toutes les infrastrures nécessaires aux DEUX blocs (Kafka pour Bloc 1, PostgreSQL pour Bloc 1).
+# Note: définitions Kafka centralisées ici (topics créés par kafka-init) mais consommés par Bloc 1.
 
 services:
+
+  # =====================
+  # FONDATIONS PARTAGÉES
+  # =====================
+
   postgres:
     image: postgres:16-alpine
     container_name: unblu-postgres
     environment:
       POSTGRES_DB: ${DATABASE_NAME:-unblu_poc}
       POSTGRES_USER: ${DATABASE_USERNAME:-unblu}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -19,6 +27,8 @@ services:
       retries: 5
     networks:
       - unblu-network
+    env_file:
+      - .env
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
@@ -31,6 +41,7 @@ services:
     networks:
       - unblu-network
 
+  # Kafka — infrastructure Bloc 1, définie ici pour les tests
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: unblu-kafka
@@ -50,6 +61,7 @@ services:
     networks:
       - unblu-network
 
+  # Initialisation des topics Kafka (Bloc 1)
   kafka-init:
     image: confluentinc/cp-kafka:7.5.0
     container_name: unblu-kafka-init
@@ -82,6 +94,78 @@ services:
       KAFKA_CLUSTERS_0_NAME: unblu-local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    networks:
+      - unblu-network
+
+  # ======================================
+  # BLOC 1 — Integration Layer (Tests)
+  # ======================================
+
+  # webhook-entrypoint: reçoit les événements Unblu et publie sur Kafka
+  # port: 8083 (Unblu webhook target, configuré dans WebhookSetupService du Bloc 2)
+  webhook-entrypoint:
+    profiles: ["integration"]
+    build:
+      context: ..
+      dockerfile: webhook-entrypoint/Dockerfile
+    container_name: unblu-webhook-entrypoint
+    ports:
+      - "8083:8083"
+    env_file:
+      - ../.env
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      kafka:
+        condition: service_started
+    networks:
+      - unblu-network
+
+  # engine: consomme Kafka, persiste en PostgreSQL, expose REST
+  # port: 8082 (consommé par le Bloc 2 via ConversationHistoryProxyController)
+  engine:
+    profiles: ["integration"]
+    build:
+      context: ..
+      dockerfile: engine/Dockerfile
+    container_name: unblu-engine
+    ports:
+      - "8082:8082"
+    env_file:
+      - ../.env
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${DATABASE_NAME:-unblu_poc}
+      DATABASE_USERNAME: ${DATABASE_USERNAME:-unblu}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    networks:
+      - unblu-network
+
+  # ======================================
+  # BLOC 2 — Supervisor (Tests)
+  # ======================================
+
+  # unblu-configuration: superviseur + frontend Angular
+  # port: 8081
+  supervisor:
+    profiles: ["integration"]
+    build:
+      context: ..
+      dockerfile: unblu-configuration/Dockerfile
+    container_name: unblu-supervisor
+    ports:
+      - "8081:8081"
+    env_file:
+      - ../.env
+    environment:
+      INTEGRATION_EVENT_PROCESSOR_URL: http://engine:8082
+    depends_on:
+      - engine
     networks:
       - unblu-network
 

@@ -1,5 +1,8 @@
 server:
   port: 8081
+  compression:
+    enabled: false  # Unblu-Hookshot envoie Accept-Encoding: gzip sur /api/bot/outbound
+                    # mais ne décompresse pas les réponses gzip → désactivé globalement
 
 spring:
   application:
@@ -7,21 +10,7 @@ spring:
   web:
     resources:
       static-locations: classpath:/static/browser/
-  datasource:
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-  liquibase:
-    change-log: classpath:db/changelog/db.changelog-master.xml
-    enabled: true
+
 
 # Configuration de Camel
 camel:
@@ -63,8 +52,9 @@ unblu:
     name: ${UNBLU_WEBHOOK_NAME:unblu-poc-webhook}
     local-port: ${UNBLU_WEBHOOK_LOCAL_PORT:8081}
     endpoint-path: ${UNBLU_WEBHOOK_ENDPOINT_PATH:/api/webhooks/unblu}
+    public-url: ${UNBLU_WEBHOOK_PUBLIC_URL:}
   bot:
-    local-port: ${UNBLU_BOT_LOCAL_PORT:8082}
+    public-url: ${UNBLU_BOT_PUBLIC_URL:}
 
 # Actuator configuration for monitoring
 management:
@@ -76,9 +66,9 @@ management:
     health:
       show-details: always
     camelroutes:
-      enabled: true
+      access: unrestricted
     camelroutecontroller:
-      enabled: true
+      access: unrestricted
 
 # Resilience4j configuration
 resilience4j:
@@ -113,13 +103,19 @@ resilience4j:
 livekit:
   base-url: ${LIVEKIT_BASE_URL:http://localhost:8082}
 
-# Webhook entrypoint reverse proxy configuration
+# Webhook entrypoint configuration
 webhook:
   entrypoint:
     base-url: ${WEBHOOK_ENTRYPOINT_BASE_URL:http://localhost:8083}
+    local-port: ${WEBHOOK_ENTRYPOINT_LOCAL_PORT:8083}
 
 # Mock configuration
 mock:
   rule-engine:
     enabled: true
     default-team-id: cAaYUeKyTZ25_OaA6jUeVA
+
+# Integration Layer (Bloc 1) connection
+integration:
+  event-processor:
+    base-url: ${INTEGRATION_EVENT_PROCESSOR_URL:http://localhost:8084}

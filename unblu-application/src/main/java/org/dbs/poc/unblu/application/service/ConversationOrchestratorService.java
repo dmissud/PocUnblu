@@ -56,10 +56,6 @@ public class ConversationOrchestratorService implements StartConversationUseCase
         var unbluInfo = unbluPort.createConversation(unbluRequest);
         state.updateUnbluConversation(unbluInfo.unbluConversationId(), unbluInfo.unbluJoinUrl());
 
-        // 6. Post-traitement : ajout du résumé (si succès Unblu)
-        if (state.isSuccess()) {
-            workflowService.addSummary(state.unbluConversationId());
-        }
 
         return state;
     }

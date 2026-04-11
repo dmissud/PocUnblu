@@ -62,10 +62,6 @@ public class DirectConversationService implements StartDirectConversationUseCase
         // 3. Création de la conversation
         UnbluConversationInfo info = unbluPort.createDirectConversation(virtualPerson, agentPerson, command.subject());
 
-        // 4. Post-traitement : ajout du résumé
-        if (!"OFFLINE-PENDING".equals(info.unbluConversationId())) {
-            workflowService.addSummary(info.unbluConversationId());
-        }
 
         return new UnbluConversationInfo(info.unbluConversationId(), info.unbluConversationId());
     }
