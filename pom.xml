@@ -33,7 +33,7 @@
         <module>integration-infrastructure</module>
         <!-- Bloc 1 — Spring Boot Applications -->
         <module>webhook-entrypoint</module>
-        <module>unblu-event-processor</module>
+        <module>engine</module>
         <module>livekit</module>
         <!-- Bloc 2 — Supervisor Modules -->
         <module>unblu-domain</module>
@@ -99,7 +99,7 @@
             </dependency>
             <dependency>
                 <groupId>org.dbs.poc</groupId>
-                <artifactId>unblu-event-processor</artifactId>
+                <artifactId>engine</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

@@ -13,7 +13,7 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * Reverse proxy transparent vers le module unblu-event-processor (port 8084).
+ * Reverse proxy transparent vers le module engine (port 8084).
  * Nécessaire quand le frontend Angular est servi par UnbluApplication (port 8081) :
  * le navigateur cible /api/history/** sur 8081, ce contrôleur forwarde vers 8084.
  */

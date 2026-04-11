@@ -121,14 +121,14 @@ services:
     networks:
       - unblu-network
 
-  # event-processor: consomme Kafka, persiste en PostgreSQL, expose REST
+  # engine: consomme Kafka, persiste en PostgreSQL, expose REST
   # port: 8082 (consommé par le Bloc 2 via ConversationHistoryProxyController)
-  event-processor:
+  engine:
     profiles: ["integration"]
     build:
       context: ..
-      dockerfile: unblu-event-processor/Dockerfile
-    container_name: unblu-event-processor
+      dockerfile: engine/Dockerfile
+    container_name: unblu-engine
     ports:
       - "8082:8082"
     env_file:
@@ -163,9 +163,9 @@ services:
     env_file:
       - ../.env
     environment:
-      INTEGRATION_EVENT_PROCESSOR_URL: http://event-processor:8082
+      INTEGRATION_EVENT_PROCESSOR_URL: http://engine:8082
     depends_on:
-      - event-processor
+      - engine
     networks:
       - unblu-network
 

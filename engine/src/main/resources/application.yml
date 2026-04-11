@@ -1,0 +1,74 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: engine
+  dotenv:
+    enabled: true
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        scan:
+          packages: org.dbs.poc.unblu.integration.infrastructure.persistence.entity
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+
+camel:
+  springboot:
+    jmx-enabled: false
+
+kafka:
+  topic:
+    webhook-events: ${KAFKA_TOPIC_WEBHOOK_EVENTS:unblu.webhook.events}
+    webhook-events-dlq: ${KAFKA_TOPIC_WEBHOOK_EVENTS_DLQ:unblu.webhook.events.dlq}
+  consumer:
+    group-id: ${KAFKA_CONSUMER_GROUP_ID:unblu-engine}
+
+unblu:
+  api:
+    base-url: ${UNBLU_API_BASE_URL:https://services8.unblu.com/app/rest/v4}
+    username: ${UNBLU_API_USERNAME}
+    password: ${UNBLU_API_PASSWORD}
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui/index.html
+
+logging:
+  level:
+    org.dbs.poc.unblu: INFO
+    org.apache.camel.component.kafka: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,camelroutes
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      unblu:
+        registerHealthIndicator: true
+        slidingWindowSize: 20
+        failureRateThreshold: 50
+  retry:
+    instances:
+      unblu:
+        maxAttempts: 3
+        waitDuration: 2000

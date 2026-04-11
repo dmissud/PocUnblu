@@ -10,17 +10,17 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * Bloc 2 — Supervisor: proxifies conversation history API calls to the event-processor (Bloc 1).
+ * Bloc 2 — Supervisor: proxifies conversation history API calls to the engine (Bloc 1).
  *
  * <p>The Angular frontend continues to call the Bloc 2 API uniformly. This controller
  * transparently delegates history/sync/enrich operations to the integration layer.
  *
- * <p>Target: {@code http://event-processor:8082/api/history/*}
+ * <p>Target: {@code http://engine:8082/api/history/*}
  */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/conversations")
-@Tag(name = "Conversation History (proxy)", description = "Proxifies to event-processor Bloc 1")
+@Tag(name = "Conversation History (proxy)", description = "Proxifies to engine Bloc 1")
 public class ConversationHistoryProxyController {
 
     private final RestTemplate restTemplate;
@@ -28,13 +28,13 @@ public class ConversationHistoryProxyController {
 
     public ConversationHistoryProxyController(
             RestTemplate restTemplate,
-            @Value("${integration.event-processor.base-url:http://localhost:8082}") String eventProcessorBaseUrl) {
+            @Value("${integration.engine.base-url:http://localhost:8082}") String eventProcessorBaseUrl) {
         this.restTemplate = restTemplate;
         this.eventProcessorBaseUrl = eventProcessorBaseUrl;
     }
 
     @GetMapping("/history")
-    @Operation(summary = "Liste l'historique (proxy → event-processor Bloc 1)")
+    @Operation(summary = "Liste l'historique (proxy → engine Bloc 1)")
     public ResponseEntity<?> listHistory(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -51,7 +51,7 @@ public class ConversationHistoryProxyController {
     }
 
     @GetMapping("/history/{conversationId}")
-    @Operation(summary = "Détail d'une conversation historisée (proxy → event-processor Bloc 1)")
+    @Operation(summary = "Détail d'une conversation historisée (proxy → engine Bloc 1)")
     public ResponseEntity<?> getHistory(@PathVariable String conversationId) {
         String url = eventProcessorBaseUrl + "/api/history/conversations/" + conversationId;
         log.debug("Proxying GET /history/{} → {}", conversationId, url);
@@ -67,7 +67,7 @@ public class ConversationHistoryProxyController {
     }
 
     @PostMapping("/sync")
-    @Operation(summary = "Déclenche la synchronisation (proxy → event-processor Bloc 1)")
+    @Operation(summary = "Déclenche la synchronisation (proxy → engine Bloc 1)")
     public ResponseEntity<?> sync() {
         String url = eventProcessorBaseUrl + "/api/history/sync";
         log.debug("Proxying POST /sync → {}", url);
@@ -79,7 +79,7 @@ public class ConversationHistoryProxyController {
     }
 
     @PostMapping("/history/{conversationId}/enrich")
-    @Operation(summary = "Enrichit une conversation (proxy → event-processor Bloc 1)")
+    @Operation(summary = "Enrichit une conversation (proxy → engine Bloc 1)")
     public ResponseEntity<?> enrich(@PathVariable String conversationId) {
         String url = eventProcessorBaseUrl + "/api/history/conversations/" + conversationId + "/enrich";
         log.debug("Proxying POST /history/{}/enrich → {}", conversationId, url);
