@@ -5,6 +5,12 @@
     "logLevel": "debug",
     "changeOrigin": true
   },
+  "/api/history/**": {
+    "target": "http://localhost:8084",
+    "secure": false,
+    "logLevel": "debug",
+    "changeOrigin": true
+  },
   "/api/v1/**": {
     "target": "http://localhost:8081",
     "secure": false,

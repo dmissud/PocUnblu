@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
-import org.dbs.poc.unblu.application.route.webhook.UnbluWebhookPayload;
+import org.dbs.poc.unblu.integration.domain.model.webhook.UnbluWebhookPayload;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
