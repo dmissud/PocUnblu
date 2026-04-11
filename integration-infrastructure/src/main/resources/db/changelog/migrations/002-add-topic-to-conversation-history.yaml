@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-add-topic-to-conversation-history
+      author: dbs
+      comment: Add topic column to store conversation title received from Unblu webhook
+      changes:
+        - addColumn:
+            tableName: conversation_history
+            columns:
+              - column:
+                  name: topic
+                  type: VARCHAR(500)
+      rollback:
+        - dropColumn:
+            tableName: conversation_history
+            columnName: topic

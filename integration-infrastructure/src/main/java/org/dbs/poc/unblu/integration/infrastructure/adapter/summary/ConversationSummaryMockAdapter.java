@@ -1,8 +1,8 @@
-package org.dbs.poc.unblu.infrastructure.adapter.summary;
+package org.dbs.poc.unblu.integration.infrastructure.adapter.summary;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
-import org.dbs.poc.unblu.domain.port.out.ConversationSummaryPort;
+import org.dbs.poc.unblu.integration.domain.port.out.ConversationSummaryPort;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

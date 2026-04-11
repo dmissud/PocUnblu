@@ -1,0 +1,25 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-add-message-id-to-event-history
+      author: dbs
+      comment: Ajout de la colonne message_id pour la déduplication des messages lors du fetch Unblu
+      changes:
+        - addColumn:
+            tableName: conversation_event_history
+            columns:
+              - column:
+                  name: message_id
+                  type: VARCHAR(255)
+        - createIndex:
+            tableName: conversation_event_history
+            indexName: idx_event_history_message_id
+            columns:
+              - column:
+                  name: message_id
+      rollback:
+        - dropIndex:
+            tableName: conversation_event_history
+            indexName: idx_event_history_message_id
+        - dropColumn:
+            tableName: conversation_event_history
+            columnName: message_id
