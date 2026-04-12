@@ -1,9 +1,11 @@
 package org.dbs.poc.unblu.exposition.rest;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.dbs.poc.unblu.exposition.rest.config.ProxyHeaders;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,6 +20,7 @@ import org.springframework.web.client.RestTemplate;
  * <p>Unblu envoie POST /api/webhooks/unblu sur ce service (port 8081, exposé via ngrok).
  * Ce contrôleur forward l'appel vers le module dédié webhook-entrypoint.
  */
+@Slf4j
 @RestController
 public class WebhookEntrypointProxyController {
 
@@ -38,12 +41,25 @@ public class WebhookEntrypointProxyController {
 
         HttpEntity<byte[]> entity = new HttpEntity<>(body, ProxyHeaders.extract(request));
 
+        log.debug("Webhook proxy → {}", targetUrl);
         try {
-            return restTemplate.exchange(targetUrl, HttpMethod.POST, entity, byte[].class);
+            ResponseEntity<byte[]> response = restTemplate.exchange(targetUrl, HttpMethod.POST, entity, byte[].class);
+            log.debug("Webhook proxy ← {} ({} bytes)", response.getStatusCode(),
+                    response.getBody() != null ? response.getBody().length : 0);
+            HttpHeaders responseHeaders = new HttpHeaders();
+            if (response.getHeaders().getContentType() != null) {
+                responseHeaders.setContentType(response.getHeaders().getContentType());
+            }
+            return ResponseEntity.status(response.getStatusCode())
+                    .headers(responseHeaders)
+                    .body(response.getBody());
         } catch (HttpStatusCodeException e) {
-            return ResponseEntity.status(e.getStatusCode())
-                    .headers(e.getResponseHeaders())
-                    .body(e.getResponseBodyAsByteArray());
+            log.warn("Webhook proxy ← HTTP error {}", e.getStatusCode());
+            return ResponseEntity.status(e.getStatusCode()).build();
+        } catch (Exception e) {
+            log.error("Webhook proxy — erreur inattendue vers {}: {}", targetUrl, e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                    .body(("Proxy error: " + e.getMessage()).getBytes());
         }
     }
 

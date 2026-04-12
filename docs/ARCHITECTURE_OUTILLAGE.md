@@ -7,18 +7,30 @@
 
 ## Ngrok — tunnels HTTPS
 
-Unblu (plateforme SaaS) doit pouvoir appeler des endpoints locaux. Ngrok crée des tunnels HTTPS
-publics vers les services locaux.
+Unblu (plateforme SaaS) doit pouvoir appeler des endpoints locaux. Ngrok crée un tunnel HTTPS
+public vers `unblu-configuration` (port 8081), qui proxy ensuite les requêtes vers les services
+internes.
 
-### Deux tunnels distincts
+### Un seul tunnel sur 8081
 
 | Tunnel | Nom | Port local | Usage |
 |--------|-----|-----------|-------|
-| `webhook-entrypoint` | `webhook-entrypoint` | 8083 | Réception des webhooks Unblu |
-| `livekit` | `livekit` | 8082 | Outbound requests bot (Unblu-Hookshot) |
+| `main` | `main` | 8081 | Webhook Unblu + Outbound requests bot |
 
-Les deux tunnels sont démarrés automatiquement par `NgrokManager` lors de l'appel à
+Le routing est assuré par les proxy controllers d'`unblu-exposition` :
+
+| Route publique | Proxy controller | Backend |
+|----------------|-----------------|---------|
+| `POST /api/webhooks/unblu` | `WebhookEntrypointProxyController` | `webhook-entrypoint` :8083 |
+| `POST /api/bot/outbound` | `BotOutboundProxyController` | `livekit` :8082 |
+
+Le tunnel est démarré automatiquement par `NgrokManager` lors de l'appel à
 `POST /api/v1/webhooks/setup`. **Ne pas démarrer ngrok manuellement.**
+
+> **Pourquoi un seul tunnel ?**
+> Avec un compte ngrok gratuit, un seul domaine statique est disponible. Deux tunnels nommés sans
+> `domain` explicite obtiennent tous deux le même domaine → routage non déterministe côté ngrok.
+> Un tunnel unique sur 8081 élimine ce problème ; les deux routes sont distinguées par leur chemin.
 
 ```bash
 # Démarrer l'application principale
@@ -65,44 +77,62 @@ Token disponible sur [https://dashboard.ngrok.com](https://dashboard.ngrok.com).
 
 ---
 
-## Problème gzip (Unblu-Hookshot)
+## Problèmes connus avec les proxies reverse (Unblu-Hookshot)
 
-### Symptôme
+### Problème 1 — gzip : réponse illisible côté Unblu
 
-Le bot ne répond jamais. Dans le dashboard ngrok, la requête est reçue mais Unblu ne reçoit pas
-de réponse exploitable.
+**Symptôme :** le bot ne répond jamais ; la requête est reçue par ngrok mais Unblu ne peut pas
+parser la réponse.
 
-### Cause
+**Cause :** Unblu-Hookshot envoie `Accept-Encoding: gzip`. Si la compression est activée,
+Spring/Tomcat gzip-encode la réponse. **Unblu-Hookshot ne décompresse pas.**
 
-Unblu-Hookshot envoie `Accept-Encoding: gzip` sur les outbound requests bot. Si la compression
-HTTP est activée côté serveur (comportement par défaut de Spring Boot / Tomcat au-delà d'un seuil
-de taille), la réponse est gzip-compressée. **Unblu-Hookshot ne décompresse pas cette réponse.**
+**Solution :**
 
-### Solution en deux points
-
-**1. Désactiver la compression dans `livekit`** (`livekit/src/main/resources/application.yml`) :
-
+1. Désactiver la compression sur `unblu-configuration` et `livekit` :
 ```yaml
 server:
-  port: 8082
   compression:
     enabled: false
 ```
 
-**2. Filtrer `Accept-Encoding` dans les proxies** (`ProxyHeaders.java`) :
-
+2. Filtrer `Accept-Encoding` dans `ProxyHeaders.java` pour ne pas le transmettre aux backends :
 ```java
 private static final Set<String> EXCLUDED = Set.of(
-    "host", "content-length", "transfer-encoding",
-    "connection",
+    "host", "content-length", "transfer-encoding", "connection",
     "accept-encoding"   // évite la réponse gzip vers les backends
 );
 ```
 
-`BotOutboundProxyController` utilise `ProxyHeaders.extract()` avant de transmettre la requête à
-`livekit`.
+> **Règle :** ne jamais activer `server.compression.enabled: true` sur `unblu-configuration`
+> ni sur `livekit`.
 
-> **Règle :** ne jamais activer `server.compression.enabled: true` dans `livekit/application.yml`.
+---
+
+### Problème 2 — ERR_NGROK_3004 : réponse HTTP malformée
+
+**Symptôme :** le proxy Spring retourne bien 200 OK (visible dans les logs), mais ngrok affiche
+`ERR_NGROK_3004` et Unblu ne reçoit rien. Unblu réessaie en boucle (~1 s d'intervalle).
+
+**Cause :** `restTemplate.exchange(…, byte[].class)` retourne un `ResponseEntity<byte[]>` qui
+inclut **tous les headers de réponse du backend** (notamment `Content-Length`, `Transfer-Encoding`).
+Quand Spring sur 8081 renvoie ces headers à Unblu via ngrok, il ajoute ses propres valeurs →
+headers dupliqués ou incohérents → réponse HTTP invalide que ngrok ne peut pas transmettre.
+
+**Solution :** dans chaque proxy controller, ne propager que `Content-Type` ; laisser Spring
+calculer `Content-Length` et gérer `Transfer-Encoding` :
+
+```java
+HttpHeaders responseHeaders = new HttpHeaders();
+if (response.getHeaders().getContentType() != null) {
+    responseHeaders.setContentType(response.getHeaders().getContentType());
+}
+return ResponseEntity.status(response.getStatusCode())
+        .headers(responseHeaders)
+        .body(response.getBody());
+```
+
+Appliqué dans `BotOutboundProxyController` et `WebhookEntrypointProxyController`.
 
 ---
 

@@ -22,10 +22,11 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>Active uniquement avec le profil Spring {@code ngrok}.
  *
- * <p>Démarre deux tunnels ngrok :
+ * <p>Démarre un seul tunnel ngrok sur le port d'unblu-configuration (8081).
+ * Les deux routes entrantes sont routées par les proxy controllers déjà en place :
  * <ul>
- *   <li>{@code webhook} sur le port de webhook-entrypoint (8083) — accès direct, sans proxy</li>
- *   <li>{@code bot} sur le port de livekit (8082) — accès direct, sans proxy</li>
+ *   <li>{@code POST /api/webhooks/unblu} → WebhookEntrypointProxyController → 8083</li>
+ *   <li>{@code POST /api/bot/outbound}   → BotOutboundProxyController → 8082</li>
  * </ul>
  *
  * <p>Requires an ngrok authtoken configured ({@code ngrok config add-authtoken <token>}).
@@ -35,15 +36,11 @@ import java.util.concurrent.TimeUnit;
 @Profile("ngrok")
 public class NgrokManager implements TunnelPort {
 
-    @Value("${webhook.entrypoint.local-port:8083}")
-    private int webhookLocalPort;
-
-    @Value("${livekit.local-port:8082}")
-    private int livekitLocalPort;
+    @Value("${unblu.webhook.local-port:8081}")
+    private int localPort;
 
     private Process ngrokProcess;
-    private String webhookPublicUrl;
-    private String botPublicUrl;
+    private String publicUrl;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // -------------------------------------------------------------------------
@@ -62,29 +59,25 @@ public class NgrokManager implements TunnelPort {
 
     @Override
     public String getPublicUrl() {
-        if (webhookPublicUrl != null) {
-            return webhookPublicUrl;
+        if (publicUrl != null) {
+            return publicUrl;
         }
-        fetchPublicUrls();
-        return webhookPublicUrl;
+        fetchPublicUrl();
+        return publicUrl;
     }
 
     @Override
     public String getBotPublicUrl() {
-        if (botPublicUrl != null) {
-            return botPublicUrl;
-        }
-        fetchPublicUrls();
-        return botPublicUrl;
+        return getPublicUrl();
     }
 
     @Override
     public TunnelStatus getStatus() {
         boolean running = isNgrokRunning();
         if (running) {
-            fetchPublicUrls();
+            fetchPublicUrl();
         }
-        return new TunnelStatus(running, webhookPublicUrl, botPublicUrl);
+        return new TunnelStatus(running, publicUrl, publicUrl);
     }
 
     // -------------------------------------------------------------------------
@@ -94,7 +87,7 @@ public class NgrokManager implements TunnelPort {
     public boolean startNgrok() {
         if (isNgrokRunning()) {
             log.info("Ngrok is already running");
-            fetchPublicUrls();
+            fetchPublicUrl();
             return true;
         }
 
@@ -105,7 +98,7 @@ public class NgrokManager implements TunnelPort {
 
         try {
             Path configFile = writeNgrokConfig();
-            log.info("Starting ngrok tunnels (webhook-entrypoint:{}, livekit:{})...", webhookLocalPort, livekitLocalPort);
+            log.info("Starting ngrok tunnel (unblu-configuration:{})...", localPort);
 
             // Pass both the default config (authtoken) and our tunnel config
             String defaultConfig = resolveDefaultNgrokConfig();
@@ -119,22 +112,22 @@ public class NgrokManager implements TunnelPort {
             pb.redirectError(ProcessBuilder.Redirect.DISCARD);
             ngrokProcess = pb.start();
 
-            // Poll until both tunnels are ready (up to 15 seconds)
+            // Poll until tunnel is ready (up to 15 seconds)
             for (int i = 0; i < 15; i++) {
                 Thread.sleep(1000);
                 if (!ngrokProcess.isAlive()) {
                     log.error("Ngrok process exited unexpectedly (exit code: {})", ngrokProcess.exitValue());
                     return false;
                 }
-                fetchPublicUrls();
-                if (webhookPublicUrl != null && botPublicUrl != null) {
-                    log.info("Ngrok tunnels ready — webhook-entrypoint: {}, livekit: {}", webhookPublicUrl, botPublicUrl);
+                fetchPublicUrl();
+                if (publicUrl != null) {
+                    log.info("Ngrok tunnel ready — {}", publicUrl);
                     return true;
                 }
                 log.debug("Waiting for ngrok tunnel... ({}/15)", i + 1);
             }
 
-            log.error("Ngrok started but tunnels not ready after 15 seconds");
+            log.error("Ngrok started but tunnel not ready after 15 seconds");
             stopNgrok();
             return false;
 
@@ -162,15 +155,13 @@ public class NgrokManager implements TunnelPort {
             }
         }
         ngrokProcess = null;
-        webhookPublicUrl = null;
-        botPublicUrl = null;
+        publicUrl = null;
     }
 
     public boolean isNgrokRunning() {
         if (ngrokProcess != null && ngrokProcess.isAlive()) {
             return true;
         }
-        // Also check by reaching the ngrok API
         return fetchPublicUrlsFromApi() != null;
     }
 
@@ -179,21 +170,17 @@ public class NgrokManager implements TunnelPort {
     // -------------------------------------------------------------------------
 
     /**
-     * Writes a temporary ngrok config file with two tunnels :
-     * - {@code webhook} → unblu-configuration (8081) pour les webhooks Unblu
-     * - {@code bot}     → livekit (8082) pour les outbound requests bot (accès direct, sans proxy)
+     * Writes a temporary ngrok config file with a single tunnel on unblu-configuration (8081).
+     * Webhook and bot routes are proxied internally by the exposition layer.
      */
     private Path writeNgrokConfig() throws IOException {
         String config = String.format("""
                 version: "3"
                 tunnels:
-                  webhook:
+                  main:
                     addr: %d
                     proto: http
-                  bot:
-                    addr: %d
-                    proto: http
-                """, webhookLocalPort, livekitLocalPort);
+                """, localPort);
 
         Path configFile = Files.createTempFile("ngrok-poc-", ".yml");
         Files.writeString(configFile, config);
@@ -207,23 +194,18 @@ public class NgrokManager implements TunnelPort {
     // -------------------------------------------------------------------------
 
     /**
-     * Fetches both tunnel URLs from the ngrok local API and updates the cached fields.
+     * Fetches the tunnel URL from the ngrok local API and updates the cached field.
      */
-    private void fetchPublicUrls() {
+    private void fetchPublicUrl() {
         JsonNode tunnels = fetchPublicUrlsFromApi();
         if (tunnels == null) return;
 
         for (JsonNode tunnel : tunnels) {
-            String name = tunnel.path("name").asText("");
-            String publicUrl = tunnel.path("public_url").asText("");
-            if (!publicUrl.startsWith("https://")) continue;
-
-            if ("webhook".equals(name)) {
-                webhookPublicUrl = publicUrl;
-                log.debug("Webhook tunnel URL: {}", webhookPublicUrl);
-            } else if ("bot".equals(name)) {
-                botPublicUrl = publicUrl;
-                log.debug("Bot tunnel URL: {}", botPublicUrl);
+            String url = tunnel.path("public_url").asText("");
+            if (url.startsWith("https://")) {
+                publicUrl = url;
+                log.debug("Ngrok tunnel URL: {}", publicUrl);
+                return;
             }
         }
     }

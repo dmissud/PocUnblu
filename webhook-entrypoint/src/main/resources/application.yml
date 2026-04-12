@@ -20,7 +20,7 @@ kafka:
 
 logging:
   level:
-    org.dbs.poc.unblu: INFO
+    org.dbs.poc.unblu: DEBUG
 
 springdoc:
   api-docs:

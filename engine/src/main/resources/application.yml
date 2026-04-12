@@ -51,8 +51,8 @@ springdoc:
 
 logging:
   level:
-    org.dbs.poc.unblu: INFO
-    org.apache.camel.component.kafka: INFO
+    org.dbs.poc.unblu: DEBUG
+    org.apache.camel.component.kafka: DEBUG
 
 management:
   endpoints:
