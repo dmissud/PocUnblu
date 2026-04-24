@@ -1,0 +1,82 @@
+<div class="statistics-container">
+    <h2>📊 Statistiques de Conversations</h2>
+
+    <!-- Liste des fichiers -->
+    <div class="files-section">
+        <h3>Fichiers de statistiques disponibles</h3>
+
+        <div *ngIf="loading && files.length === 0" class="loading">
+            Chargement des fichiers...
+        </div>
+
+        <div *ngIf="error" class="error">
+            {{ error }}
+        </div>
+
+        <div *ngIf="!loading && files.length === 0 && !error" class="no-data">
+            Aucun fichier de statistiques disponible
+        </div>
+
+        <div class="files-list" *ngIf="files.length > 0">
+            <div *ngFor="let file of files" class="file-item" [class.selected]="file === selectedFile"
+                (click)="selectFile(file)">
+                <span class="file-icon">📄</span>
+                <span class="file-name">{{ getDisplayName(file) }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Détails des statistiques -->
+    <div class="statistics-section" *ngIf="statistics">
+        <h3>Détails des statistiques</h3>
+
+        <div class="stats-summary">
+            <div class="stat-card">
+                <div class="stat-label">Total conversations</div>
+                <div class="stat-value">{{ statistics.totalConversations }}</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Moyenne hebdomadaire</div>
+                <div class="stat-value">{{ formatNumber(statistics.weeklyAverage) }}</div>
+                <div class="stat-note" *ngIf="statistics.weeklyAverage === 0">
+                    (Aucune conversation dans les 7 derniers jours)
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Moyenne mensuelle</div>
+                <div class="stat-value">{{ formatNumber(statistics.monthlyAverage) }}</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Moyenne globale</div>
+                <div class="stat-value">{{ formatNumber(statistics.overallAverage) }}</div>
+            </div>
+        </div>
+
+        <div class="date-range">
+            <p>
+                <strong>Période:</strong>
+                {{ formatDate(statistics.firstConversationDate) }}
+                -
+                {{ formatDate(statistics.lastConversationDate) }}
+            </p>
+            <p>
+                <strong>Généré le:</strong> {{ formatDate(statistics.generatedAt) }}
+            </p>
+        </div>
+
+        <!-- Graphique -->
+        <div class="chart-section">
+            <h3>Graphique d'évolution</h3>
+            <div class="chart-container">
+                <canvas #chartCanvas></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div *ngIf="loading && selectedFile" class="loading">
+        Chargement des statistiques...
+    </div>
+</div>

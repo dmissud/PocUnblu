@@ -1,19 +1,21 @@
-import {Injectable} from '@angular/core';
-import {HttpClient, HttpHeaders, HttpResponse} from '@angular/common/http';
-import {Observable} from 'rxjs';
-import {PersonInfo} from '../models/person.model';
-import {TeamInfo} from '../models/team.model';
-import {NamedAreaInfo} from '../models/named-area.model';
+import { HttpClient, HttpHeaders, HttpResponse } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { BotInfo } from '../models/bot.model';
+import { ConversationHistoryDetail, ConversationHistoryPage } from '../models/conversation-history.model';
+import { ConversationSearchResponse, ConversationState } from '../models/conversation-search.model';
 import {
   ConversationSyncResult,
   DirectConversationRequest,
   StartConversationResponse,
   TeamConversationRequest
 } from '../models/conversation.model';
-import {ConversationHistoryDetail, ConversationHistoryPage} from '../models/conversation-history.model';
-import {ConversationSearchResponse, ConversationState} from '../models/conversation-search.model';
-import {WebhookSetupResult, WebhookStatus} from '../models/webhook.model';
-import {BotInfo} from '../models/bot.model';
+import { JobsStatusResponse, RunningJobsResponse } from '../models/job.model';
+import { NamedAreaInfo } from '../models/named-area.model';
+import { PersonInfo } from '../models/person.model';
+import { ConversationStatistics } from '../models/statistics.model';
+import { TeamInfo } from '../models/team.model';
+import { WebhookSetupResult, WebhookStatus } from '../models/webhook.model';
 
 @Injectable({
   providedIn: 'root'
@@ -114,5 +116,23 @@ export class ApiService {
       observe: 'response',
       responseType: 'text'
     });
+  }
+
+  // Jobs monitoring methods
+  getJobsStatus(): Observable<JobsStatusResponse> {
+    return this.http.get<JobsStatusResponse>('/api/jobs/status');
+  }
+
+  getRunningJobs(): Observable<RunningJobsResponse> {
+    return this.http.get<RunningJobsResponse>('/api/jobs/running');
+  }
+
+  // Statistics methods
+  getStatisticsFiles(): Observable<string[]> {
+    return this.http.get<string[]>('/api/jobs/statistics/files');
+  }
+
+  getStatisticsFile(filename: string): Observable<ConversationStatistics> {
+    return this.http.get<ConversationStatistics>(`/api/jobs/statistics/files/${filename}`);
   }
 }

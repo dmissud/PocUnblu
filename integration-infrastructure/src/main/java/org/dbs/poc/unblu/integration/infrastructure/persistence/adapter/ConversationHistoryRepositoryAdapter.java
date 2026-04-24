@@ -1,6 +1,10 @@
 package org.dbs.poc.unblu.integration.infrastructure.persistence.adapter;
 
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.dbs.poc.unblu.integration.domain.model.history.ConversationHistory;
 import org.dbs.poc.unblu.integration.domain.model.history.ConversationHistoryPage;
 import org.dbs.poc.unblu.integration.domain.model.history.ConversationSortDirection;
@@ -18,10 +22,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
@@ -108,6 +109,23 @@ public class ConversationHistoryRepositoryAdapter implements ConversationHistory
     @Override
     public boolean existsByConversationId(String conversationId) {
         return jpaRepository.existsByConversationId(conversationId);
+    }
+    @Override
+    @Transactional(readOnly = true)
+    public List<ConversationHistory> findAll() {
+        return jpaRepository.findAll().stream()
+                .map(entity -> {
+                    // Force initialization of lazy collections within the transaction
+                    entity.getParticipants().size();
+                    entity.getEvents().size();
+                    return mapper.toDomain(entity);
+                })
+                .toList();
+    }
+
+    @Override
+    public long count() {
+        return jpaRepository.count();
     }
 
 }

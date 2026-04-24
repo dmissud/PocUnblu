@@ -1,4 +1,10 @@
 {
+  "/api/jobs/**": {
+    "target": "http://localhost:8085",
+    "secure": false,
+    "logLevel": "debug",
+    "changeOrigin": true
+  },
   "/api/v1/livekit/**": {
     "target": "http://localhost:8082",
     "secure": false,
