@@ -1,0 +1,122 @@
+<div class="jobs-monitoring">
+    <div class="header-section">
+        <h2>⚙️ Monitoring des Jobs Quartz</h2>
+        <div class="header-actions">
+            <button (click)="refresh()" class="btn-refresh" [disabled]="loading">
+                {{ loading ? '⏳' : '🔄' }} Rafraîchir
+            </button>
+            <button (click)="toggleAutoRefresh()" class="btn-toggle" [class.active]="autoRefresh">
+                {{ autoRefresh ? '⏸️' : '▶️' }} Auto-refresh (5s)
+            </button>
+        </div>
+    </div>
+
+    <div *ngIf="error" class="alert alert-error">
+        {{ error }}
+        <button (click)="error = null">✕</button>
+    </div>
+
+    <!-- Scheduler Status -->
+    <div *ngIf="jobsStatus" class="card scheduler-status">
+        <h3>📊 Statut du Scheduler</h3>
+        <div class="status-grid">
+            <div class="status-item">
+                <span class="label">Nom:</span>
+                <span class="value">{{ jobsStatus.schedulerName }}</span>
+            </div>
+            <div class="status-item">
+                <span class="label">Instance ID:</span>
+                <span class="value">{{ jobsStatus.schedulerInstanceId }}</span>
+            </div>
+            <div class="status-item">
+                <span class="label">Statut:</span>
+                <span class="value" [class.status-active]="jobsStatus.isStarted"
+                    [class.status-inactive]="!jobsStatus.isStarted">
+                    {{ jobsStatus.isStarted ? '🟢 Démarré' : '🔴 Arrêté' }}
+                </span>
+            </div>
+            <div class="status-item">
+                <span class="label">Mode Standby:</span>
+                <span class="value">{{ jobsStatus.isInStandbyMode ? '⏸️ Oui' : '▶️ Non' }}</span>
+            </div>
+            <div class="status-item">
+                <span class="label">Dernière mise à jour:</span>
+                <span class="value">{{ jobsStatus.timestamp }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Running Jobs -->
+    <div *ngIf="runningJobs" class="card running-jobs">
+        <h3>🏃 Jobs en cours d'exécution ({{ runningJobs.count }})</h3>
+        <div *ngIf="runningJobs.count === 0" class="empty-state">
+            Aucun job en cours d'exécution
+        </div>
+        <div *ngIf="runningJobs.count > 0" class="jobs-list">
+            <div *ngFor="let job of runningJobs.runningJobs" class="job-item running">
+                <div class="job-header">
+                    <span class="job-name">{{ job.jobName }}</span>
+                    <span class="job-group">{{ job.jobGroup }}</span>
+                </div>
+                <div class="job-details">
+                    <span class="detail-item">
+                        <strong>Démarré:</strong> {{ job.fireTime }}
+                    </span>
+                    <span class="detail-item">
+                        <strong>Durée:</strong> {{ job.runTime }}ms
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="timestamp">Mis à jour: {{ runningJobs.timestamp }}</div>
+    </div>
+
+    <!-- Scheduled Jobs -->
+    <div *ngIf="jobsStatus" class="card scheduled-jobs">
+        <h3>📅 Jobs planifiés ({{ jobsStatus.jobs.length }})</h3>
+        <div *ngIf="jobsStatus.jobs.length === 0" class="empty-state">
+            Aucun job planifié
+        </div>
+        <div *ngFor="let job of jobsStatus.jobs" class="job-card">
+            <div class="job-header">
+                <div class="job-title">
+                    <h4>{{ job.name }}</h4>
+                    <span class="job-group-badge">{{ job.group }}</span>
+                </div>
+                <span class="job-class">{{ job.jobClass }}</span>
+            </div>
+
+            <p class="job-description">{{ job.description }}</p>
+
+            <div class="triggers-section">
+                <h5>🔔 Triggers ({{ job.triggers.length }})</h5>
+                <div *ngFor="let trigger of job.triggers" class="trigger-item">
+                    <div class="trigger-header">
+                        <span class="trigger-name">{{ trigger.name }}</span>
+                        <span class="trigger-state" [ngClass]="getStateClass(trigger.state)">
+                            {{ getStateIcon(trigger.state) }} {{ trigger.state }}
+                        </span>
+                    </div>
+                    <div class="trigger-details">
+                        <div *ngIf="trigger.cronExpression" class="detail-row">
+                            <span class="detail-label">Cron:</span>
+                            <code class="cron-expression">{{ trigger.cronExpression }}</code>
+                        </div>
+                        <div *ngIf="trigger.previousFireTime" class="detail-row">
+                            <span class="detail-label">Dernière exécution:</span>
+                            <span class="detail-value">{{ trigger.previousFireTime }}</span>
+                        </div>
+                        <div *ngIf="trigger.nextFireTime" class="detail-row">
+                            <span class="detail-label">Prochaine exécution:</span>
+                            <span class="detail-value highlight">{{ trigger.nextFireTime }}</span>
+                        </div>
+                        <div *ngIf="!trigger.nextFireTime" class="detail-row">
+                            <span class="detail-label">Prochaine exécution:</span>
+                            <span class="detail-value muted">Non planifiée</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

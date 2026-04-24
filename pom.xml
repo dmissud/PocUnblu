@@ -35,6 +35,7 @@
         <module>webhook-entrypoint</module>
         <module>engine</module>
         <module>livekit</module>
+        <module>jobs</module>
         <!-- Bloc 2 — Supervisor Modules -->
         <module>unblu-domain</module>
         <module>unblu-infrastructure</module>
@@ -100,6 +101,11 @@
             <dependency>
                 <groupId>org.dbs.poc</groupId>
                 <artifactId>engine</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.dbs.poc</groupId>
+                <artifactId>jobs</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

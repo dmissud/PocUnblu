@@ -1,0 +1,88 @@
+server:
+  port: 8085
+  # Compression HTTP désactivée intentionnellement.
+  # Unblu envoie "Accept-Encoding: gzip" sur les outbound requests bot (/api/bot/outbound).
+  # Si la compression est activée, Tomcat répond en gzip, mais Unblu interprète la réponse
+  # comme du JSON plain → échec de parsing → pas de réponse exploitable côté Unblu.
+  # Doit rester désactivé que l'appel arrive directement ou via un proxy reverse.
+  compression:
+    enabled: false
+
+spring:
+  application:
+    name: jobs
+  dotenv:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        scan:
+          packages: org.dbs.poc.unblu.integration.infrastructure.persistence.entity
+  liquibase:
+    enabled: false
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: always
+    properties:
+      org:
+        quartz:
+          scheduler:
+            instanceName: UnbluJobsScheduler
+            instanceId: AUTO
+          threadPool:
+            threadCount: 5
+          jobStore:
+            class: org.springframework.scheduling.quartz.LocalDataSourceJobStore
+            driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+            useProperties: false
+            tablePrefix: QRTZ_
+            isClustered: true
+            clusterCheckinInterval: 20000
+
+# Configuration des statistiques
+statistics:
+  output:
+    directory: ${STATISTICS_OUTPUT_DIR:./statistics}
+    filename-pattern: conversation-stats-%s.json
+
+unblu:
+  api:
+    base-url: ${UNBLU_API_BASE_URL:https://services8.unblu.com/app/rest/v4}
+    username: ${UNBLU_API_USERNAME}
+    password: ${UNBLU_API_PASSWORD}
+
+logging:
+  level:
+    org.dbs.poc.unblu: DEBUG
+    org.springframework.scheduling.quartz: INFO
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui/index.html
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      unblu:
+        registerHealthIndicator: true
+        slidingWindowSize: 20
+        failureRateThreshold: 50
+  retry:
+    instances:
+      unblu:
+        maxAttempts: 3
+        waitDuration: 2000
+
+# Made with Bob

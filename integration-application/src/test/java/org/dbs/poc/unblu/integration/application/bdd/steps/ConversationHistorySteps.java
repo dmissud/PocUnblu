@@ -1,7 +1,14 @@
 package org.dbs.poc.unblu.integration.application.bdd.steps;
 
-import io.cucumber.java.Before;
-import io.cucumber.java.fr.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
 import org.dbs.poc.unblu.integration.application.port.in.ListConversationHistoryUseCase;
 import org.dbs.poc.unblu.integration.application.port.in.SyncConversationsUseCase;
 import org.dbs.poc.unblu.integration.application.port.in.query.ListConversationHistoryQuery;
@@ -15,13 +22,10 @@ import org.dbs.poc.unblu.integration.domain.model.webhook.UnbluWebhookPayload;
 import org.dbs.poc.unblu.integration.domain.port.out.ConversationHistoryRepository;
 import org.dbs.poc.unblu.integration.domain.port.out.IntegrationUnbluPort;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import io.cucumber.java.Before;
+import io.cucumber.java.fr.Alors;
+import io.cucumber.java.fr.Quand;
+import io.cucumber.java.fr.Soit;
 
 /**
  * Cucumber step definitions for Bloc 1 BDD tests.
@@ -180,6 +184,14 @@ public class ConversationHistorySteps {
 
             public boolean existsByConversationId(String id) {
                 return store.stream().anyMatch(h -> h.conversationId().equals(id));
+            }
+
+            public java.util.List<ConversationHistory> findAll() {
+                return List.copyOf(store);
+            }
+
+            public long count() {
+                return store.size();
             }
         };
     }

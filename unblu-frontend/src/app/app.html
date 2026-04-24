@@ -14,20 +14,12 @@
           [class.badge-inactive]="!webhookStatus?.ngrokRunning && !webhookStatus?.webhookRegistered">
           {{ webhookStatusIcon }} {{ webhookStatusText }}
         </span>
-        <button
-          *ngIf="!webhookStatus?.ngrokRunning"
-          (click)="setupWebhook()"
-          class="btn-toolbar btn-toolbar-blue"
-          [disabled]="webhookLoading"
-          title="Configurer le webhook (lance ngrok + enregistre dans Unblu)">
+        <button *ngIf="!webhookStatus?.ngrokRunning" (click)="setupWebhook()" class="btn-toolbar btn-toolbar-blue"
+          [disabled]="webhookLoading" title="Configurer le webhook (lance ngrok + enregistre dans Unblu)">
           {{ webhookLoading ? '⏳' : '🔧' }} {{ webhookLoading ? 'Configuration...' : 'Setup Webhook' }}
         </button>
-        <button
-          *ngIf="webhookStatus?.ngrokRunning"
-          (click)="teardownWebhook()"
-          class="btn-toolbar btn-toolbar-danger"
-          [disabled]="webhookLoading"
-          title="Arrêter le webhook">
+        <button *ngIf="webhookStatus?.ngrokRunning" (click)="teardownWebhook()" class="btn-toolbar btn-toolbar-danger"
+          [disabled]="webhookLoading" title="Arrêter le webhook">
           {{ webhookLoading ? '⏳' : '🗑️' }} {{ webhookLoading ? 'Arrêt...' : 'Arrêter Webhook' }}
         </button>
       </div>
@@ -44,41 +36,30 @@
 
   <!-- Tab navigation -->
   <nav class="tab-nav">
-    <button
-      class="tab-btn"
-      [class.active]="activeTab === 'conversations'"
-      (click)="activeTab = 'conversations'">
+    <button class="tab-btn" [class.active]="activeTab === 'conversations'" (click)="activeTab = 'conversations'">
       💬 First Step
     </button>
-    <button
-      (click)="activeTab = 'livekit'"
-      [class.active]="activeTab === 'livekit'"
-      class="tab-btn">
+    <button (click)="activeTab = 'livekit'" [class.active]="activeTab === 'livekit'" class="tab-btn">
       🎥 LiveKit
     </button>
-    <button
-      class="tab-btn"
-      [class.active]="activeTab === 'history'"
-      (click)="activeTab = 'history'">
+    <button class="tab-btn" [class.active]="activeTab === 'history'" (click)="activeTab = 'history'">
       📋 Historique
     </button>
-    <button
-      (click)="activeTab = 'search'"
-      [class.active]="activeTab === 'search'"
-      class="tab-btn">
+    <button (click)="activeTab = 'search'" [class.active]="activeTab === 'search'" class="tab-btn">
       🔍 Recherche par état
     </button>
-    <button
-      (click)="activeTab = 'webhook-simulator'"
-      [class.active]="activeTab === 'webhook-simulator'"
+    <button (click)="activeTab = 'webhook-simulator'" [class.active]="activeTab === 'webhook-simulator'"
       class="tab-btn">
       🪝 Webhook Simulator
     </button>
-    <button
-      (click)="activeTab = 'supervision'"
-      [class.active]="activeTab === 'supervision'"
-      class="tab-btn">
+    <button (click)="activeTab = 'supervision'" [class.active]="activeTab === 'supervision'" class="tab-btn">
       🤖 Supervision
+    </button>
+    <button (click)="activeTab = 'jobs'" [class.active]="activeTab === 'jobs'" class="tab-btn">
+      ⚙️ Jobs
+    </button>
+    <button (click)="activeTab = 'statistics'" [class.active]="activeTab === 'statistics'" class="tab-btn">
+      📊 Statistiques
     </button>
   </nav>
 
@@ -105,15 +86,23 @@
 
   <!-- Tab: Webhook Simulator -->
   <div *ngIf="!loadingData && activeTab === 'webhook-simulator'" class="tab-content">
-    <app-webhook-simulator
-      [agents]="agents"
-      [clients]="clients">
+    <app-webhook-simulator [agents]="agents" [clients]="clients">
     </app-webhook-simulator>
   </div>
 
   <!-- Tab: Supervision -->
   <div *ngIf="activeTab === 'supervision'" class="tab-content">
     <app-supervision></app-supervision>
+  </div>
+
+  <!-- Tab: Jobs -->
+  <div *ngIf="activeTab === 'jobs'" class="tab-content">
+    <app-jobs-monitoring></app-jobs-monitoring>
+  </div>
+
+  <!-- Tab: Statistics -->
+  <div *ngIf="activeTab === 'statistics'" class="tab-content">
+    <app-statistics></app-statistics>
   </div>
 
   <div *ngIf="!loadingData && activeTab === 'conversations'" class="content">
@@ -124,11 +113,7 @@
 
       <div class="form-group">
         <label for="direct-client">Client (VIRTUAL)</label>
-        <select
-          id="direct-client"
-          [(ngModel)]="selectedClient"
-          class="form-control"
-          [disabled]="loading">
+        <select id="direct-client" [(ngModel)]="selectedClient" class="form-control" [disabled]="loading">
           <option [ngValue]="null">-- Sélectionner un client --</option>
           <option *ngFor="let client of clients" [ngValue]="client">
             {{ client.displayName }} ({{ client.id }} / {{ client.sourceId }})
@@ -138,11 +123,7 @@
 
       <div class="form-group">
         <label for="direct-agent">Agent (USER_DB)</label>
-        <select
-          id="direct-agent"
-          [(ngModel)]="selectedAgent"
-          class="form-control"
-          [disabled]="loading">
+        <select id="direct-agent" [(ngModel)]="selectedAgent" class="form-control" [disabled]="loading">
           <option [ngValue]="null">-- Sélectionner un agent --</option>
           <option *ngFor="let agent of agents" [ngValue]="agent">
             {{ agent.displayName }} ({{ agent.id }} / {{ agent.sourceId }})
@@ -152,26 +133,16 @@
 
       <div class="form-group">
         <label for="direct-subject">Sujet (optionnel)</label>
-        <input
-          type="text"
-          id="direct-subject"
-          [(ngModel)]="directSubject"
-          class="form-control"
-          placeholder="Conversation directe"
-          [disabled]="loading">
+        <input type="text" id="direct-subject" [(ngModel)]="directSubject" class="form-control"
+          placeholder="Conversation directe" [disabled]="loading">
       </div>
 
       <div class="button-group">
-        <button
-          (click)="startDirectConversation()"
-          class="btn btn-primary"
+        <button (click)="startDirectConversation()" class="btn btn-primary"
           [disabled]="loading || !selectedClient || !selectedAgent">
           {{ loading ? 'Création...' : 'Créer Conversation Directe' }}
         </button>
-        <button
-          (click)="resetDirectForm()"
-          class="btn btn-secondary"
-          [disabled]="loading">
+        <button (click)="resetDirectForm()" class="btn btn-secondary" [disabled]="loading">
           Réinitialiser
         </button>
       </div>
@@ -179,7 +150,8 @@
       <div *ngIf="directResult" class="result">
         <h3>✅ Conversation créée avec succès!</h3>
         <p><strong>ID Conversation:</strong> {{ directResult.unbluConversationId }}</p>
-        <p><strong>URL:</strong> <a [href]="directResult.unbluJoinUrl" target="_blank">{{ directResult.unbluJoinUrl }}</a></p>
+        <p><strong>URL:</strong> <a [href]="directResult.unbluJoinUrl" target="_blank">{{ directResult.unbluJoinUrl
+            }}</a></p>
       </div>
     </div>
 
@@ -190,11 +162,7 @@
 
       <div class="form-group">
         <label for="team-client">Client (VIRTUAL)</label>
-        <select
-          id="team-client"
-          [(ngModel)]="selectedClient"
-          class="form-control"
-          [disabled]="loading">
+        <select id="team-client" [(ngModel)]="selectedClient" class="form-control" [disabled]="loading">
           <option [ngValue]="null">-- Sélectionner un client --</option>
           <option *ngFor="let client of clients" [ngValue]="client">
             {{ client.displayName }} ({{ client.id }} / {{ client.sourceId }})
@@ -206,23 +174,13 @@
         <label>Type de destinataire</label>
         <div class="radio-group">
           <label class="radio-label">
-            <input
-              type="radio"
-              name="recipientType"
-              value="TEAM"
-              [(ngModel)]="recipientType"
-              (change)="onRecipientTypeChange()"
-              [disabled]="loading">
+            <input type="radio" name="recipientType" value="TEAM" [(ngModel)]="recipientType"
+              (change)="onRecipientTypeChange()" [disabled]="loading">
             Équipe
           </label>
           <label class="radio-label">
-            <input
-              type="radio"
-              name="recipientType"
-              value="NAMED_AREA"
-              [(ngModel)]="recipientType"
-              (change)="onRecipientTypeChange()"
-              [disabled]="loading">
+            <input type="radio" name="recipientType" value="NAMED_AREA" [(ngModel)]="recipientType"
+              (change)="onRecipientTypeChange()" [disabled]="loading">
             Zone Nommée
           </label>
         </div>
@@ -230,11 +188,7 @@
 
       <div class="form-group" *ngIf="recipientType === 'TEAM'">
         <label for="team-select">Équipe</label>
-        <select
-          id="team-select"
-          [(ngModel)]="selectedTeam"
-          class="form-control"
-          [disabled]="loading">
+        <select id="team-select" [(ngModel)]="selectedTeam" class="form-control" [disabled]="loading">
           <option [ngValue]="null">-- Sélectionner une équipe --</option>
           <option *ngFor="let team of teams" [ngValue]="team">
             {{ team.name }} - {{ team.description }}
@@ -244,11 +198,7 @@
 
       <div class="form-group" *ngIf="recipientType === 'NAMED_AREA'">
         <label for="named-area-select">Zone Nommée</label>
-        <select
-          id="named-area-select"
-          [(ngModel)]="selectedNamedArea"
-          class="form-control"
-          [disabled]="loading">
+        <select id="named-area-select" [(ngModel)]="selectedNamedArea" class="form-control" [disabled]="loading">
           <option [ngValue]="null">-- Sélectionner une zone nommée --</option>
           <option *ngFor="let namedArea of namedAreas" [ngValue]="namedArea">
             {{ namedArea.name }} - {{ namedArea.description }}
@@ -258,26 +208,16 @@
 
       <div class="form-group">
         <label for="team-subject">Sujet (optionnel)</label>
-        <input
-          type="text"
-          id="team-subject"
-          [(ngModel)]="teamSubject"
-          class="form-control"
-          placeholder="Conversation équipe"
-          [disabled]="loading">
+        <input type="text" id="team-subject" [(ngModel)]="teamSubject" class="form-control"
+          placeholder="Conversation équipe" [disabled]="loading">
       </div>
 
       <div class="button-group">
-        <button
-          (click)="startTeamConversation()"
-          class="btn btn-primary"
+        <button (click)="startTeamConversation()" class="btn btn-primary"
           [disabled]="loading || !selectedClient || (recipientType === 'TEAM' && !selectedTeam) || (recipientType === 'NAMED_AREA' && !selectedNamedArea)">
           {{ loading ? 'Création...' : 'Créer Conversation' }}
         </button>
-        <button
-          (click)="resetTeamForm()"
-          class="btn btn-secondary"
-          [disabled]="loading">
+        <button (click)="resetTeamForm()" class="btn btn-secondary" [disabled]="loading">
           Réinitialiser
         </button>
       </div>
@@ -285,7 +225,8 @@
       <div *ngIf="teamResult" class="result">
         <h3>✅ Conversation créée avec succès!</h3>
         <p><strong>ID Conversation:</strong> {{ teamResult.unbluConversationId }}</p>
-        <p><strong>URL:</strong> <a [href]="teamResult.unbluJoinUrl" target="_blank">{{ teamResult.unbluJoinUrl }}</a></p>
+        <p><strong>URL:</strong> <a [href]="teamResult.unbluJoinUrl" target="_blank">{{ teamResult.unbluJoinUrl }}</a>
+        </p>
         <p *ngIf="teamResult.teamId"><strong>Team ID:</strong> {{ teamResult.teamId }}</p>
         <p *ngIf="teamResult.agentPersonId"><strong>Agent ID:</strong> {{ teamResult.agentPersonId }}</p>
       </div>
@@ -300,11 +241,7 @@
 
       <div class="form-group">
         <label for="livekit-client">Client (VIRTUAL)</label>
-        <select
-          [(ngModel)]="selectedClient"
-          [disabled]="loading"
-          class="form-control"
-          id="livekit-client">
+        <select [(ngModel)]="selectedClient" [disabled]="loading" class="form-control" id="livekit-client">
           <option [ngValue]="null">-- Sélectionner un client --</option>
           <option *ngFor="let client of liveKitClients" [ngValue]="client">
             {{ client.displayName }} ({{ client.sourceId }})
@@ -313,16 +250,10 @@
       </div>
 
       <div class="button-group">
-        <button
-          (click)="startLiveKitConversation()"
-          [disabled]="loading || !selectedClient"
-          class="btn btn-primary">
+        <button (click)="startLiveKitConversation()" [disabled]="loading || !selectedClient" class="btn btn-primary">
           {{ loading ? 'Création...' : 'Démarrer Conversation LiveKit' }}
         </button>
-        <button
-          (click)="resetLiveKitForm()"
-          [disabled]="loading"
-          class="btn btn-secondary">
+        <button (click)="resetLiveKitForm()" [disabled]="loading" class="btn btn-secondary">
           Réinitialiser
         </button>
       </div>

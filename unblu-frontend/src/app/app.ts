@@ -1,26 +1,28 @@
-import {Component, OnInit} from '@angular/core';
-import {CommonModule} from '@angular/common';
-import {FormsModule} from '@angular/forms';
-import {ApiService} from './services/api.service';
-import {PersonInfo} from './models/person.model';
-import {TeamInfo} from './models/team.model';
-import {NamedAreaInfo} from './models/named-area.model';
-import {WebhookStatus} from './models/webhook.model';
-import {ConversationHistoryComponent} from './components/conversation-history/conversation-history.component';
-import {InactiveConversationsComponent} from './components/inactive-conversations/inactive-conversations.component';
-import {WebhookSimulatorComponent} from './components/webhook-simulator/webhook-simulator.component';
-import {SupervisionComponent} from './components/supervision/supervision.component';
+import { CommonModule } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { ConversationHistoryComponent } from './components/conversation-history/conversation-history.component';
+import { InactiveConversationsComponent } from './components/inactive-conversations/inactive-conversations.component';
+import { JobsMonitoringComponent } from './components/jobs-monitoring/jobs-monitoring.component';
+import { StatisticsComponent } from './components/statistics/statistics.component';
+import { SupervisionComponent } from './components/supervision/supervision.component';
+import { WebhookSimulatorComponent } from './components/webhook-simulator/webhook-simulator.component';
+import { NamedAreaInfo } from './models/named-area.model';
+import { PersonInfo } from './models/person.model';
+import { TeamInfo } from './models/team.model';
+import { WebhookStatus } from './models/webhook.model';
+import { ApiService } from './services/api.service';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, FormsModule, ConversationHistoryComponent, InactiveConversationsComponent, WebhookSimulatorComponent, SupervisionComponent],
+  imports: [CommonModule, FormsModule, ConversationHistoryComponent, InactiveConversationsComponent, WebhookSimulatorComponent, SupervisionComponent, JobsMonitoringComponent, StatisticsComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
 export class App implements OnInit {
   title = 'Unblu Conversation Manager';
 
-  activeTab: 'conversations' | 'history' | 'search' | 'livekit' | 'webhook-simulator' | 'supervision' = 'conversations';
+  activeTab: 'conversations' | 'history' | 'search' | 'livekit' | 'webhook-simulator' | 'supervision' | 'jobs' | 'statistics' = 'conversations';
 
   // Lists
   clients: PersonInfo[] = [];
