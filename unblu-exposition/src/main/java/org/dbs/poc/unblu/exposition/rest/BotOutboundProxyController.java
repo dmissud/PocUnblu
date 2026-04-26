@@ -17,29 +17,29 @@ import org.springframework.web.client.RestTemplate;
 import java.util.UUID;
 
 /**
- * Reverse proxy transparent pour les outbound requests bot Unblu vers livekit (port 8082).
+ * Reverse proxy transparent pour les outbound requests bot Unblu vers webhook-entrypoint (port 8083).
  *
  * <p>Unblu envoie POST /api/bot/outbound sur ce service (port 8081, exposé via ngrok).
- * Ce contrôleur forward l'appel vers le module livekit qui gère la logique bot.
+ * Ce contrôleur forward l'appel vers webhook-entrypoint qui publie sur Kafka et acquitte immédiatement.
  */
 @Slf4j
 @RestController
 public class BotOutboundProxyController {
 
     private final RestTemplate restTemplate;
-    private final String livekitBaseUrl;
+    private final String webhookEntrypointBaseUrl;
 
     public BotOutboundProxyController(
             RestTemplate restTemplate,
-            @Value("${livekit.base-url:http://localhost:8082}") String livekitBaseUrl) {
+            @Value("${webhook.entrypoint.base-url:http://localhost:8083}") String webhookEntrypointBaseUrl) {
         this.restTemplate = restTemplate;
-        this.livekitBaseUrl = livekitBaseUrl;
+        this.webhookEntrypointBaseUrl = webhookEntrypointBaseUrl;
     }
 
     @PostMapping("/api/bot/outbound")
     public ResponseEntity<byte[]> proxy(HttpServletRequest request,
                                         @RequestBody(required = false) byte[] body) {
-        String targetUrl = livekitBaseUrl + request.getRequestURI();
+        String targetUrl = webhookEntrypointBaseUrl + request.getRequestURI();
         String correlationId = UUID.randomUUID().toString().substring(0, 8);
         String serviceName = request.getHeader("x-unblu-service-name");
         long start = System.currentTimeMillis();
