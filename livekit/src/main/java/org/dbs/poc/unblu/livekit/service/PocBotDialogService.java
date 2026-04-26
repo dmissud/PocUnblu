@@ -65,8 +65,10 @@ public class PocBotDialogService {
             long t3 = System.currentTimeMillis();
             String namedAreaId = namedAreaResolverPort.resolveNamedAreaId(clientContext);
             log.info("[BOT_TRACE] step=NAMED_AREA_RESOLVED correlationId={} namedAreaId={} durationMs={}",
-                    correlationId, namedAreaId, System.currentTimeMillis() - t3);
-            setNamedAreaRecipient(conversationId, namedAreaId, correlationId);
+                    correlationId, namedAreaId != null ? namedAreaId : "null (skipped)", System.currentTimeMillis() - t3);
+            if (namedAreaId != null) {
+                setNamedAreaRecipient(conversationId, namedAreaId, correlationId);
+            }
 
             // --- Étape 4 : calcul de l'URL contextuelle + envoi au visiteur ---
             long t4 = System.currentTimeMillis();
