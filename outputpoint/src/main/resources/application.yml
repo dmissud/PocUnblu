@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: outputpoint
+  dotenv:
+    enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP_ID_OUTPUTPOINT:unblu-outputpoint}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: manual
+
+kafka:
+  topic:
+    bot-actions: ${KAFKA_TOPIC_BOT_ACTIONS:unblu.bot.actions}
+    bot-actions-dlq: ${KAFKA_TOPIC_BOT_ACTIONS_DLQ:unblu.bot.actions.dlq}
+
+unblu:
+  api:
+    base-url: ${UNBLU_API_BASE_URL:https://services8.unblu.com/app/rest/v4}
+    username: ${UNBLU_API_USERNAME}
+    password: ${UNBLU_API_PASSWORD}
+
+logging:
+  level:
+    org.dbs.poc.unblu: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
