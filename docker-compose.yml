@@ -76,6 +76,9 @@ services:
       echo 'Creating topics...'
       kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 3 --replication-factor 1 --topic unblu.webhook.events
       kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic unblu.webhook.events.dlq
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 3 --replication-factor 1 --topic unblu.bot.commands
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 3 --replication-factor 1 --topic unblu.bot.actions
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic unblu.bot.actions.dlq
 
       echo 'Topics created:'
       kafka-topics --list --bootstrap-server kafka:29092

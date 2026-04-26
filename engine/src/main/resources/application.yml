@@ -34,6 +34,10 @@ kafka:
   topic:
     webhook-events: ${KAFKA_TOPIC_WEBHOOK_EVENTS:unblu.webhook.events}
     webhook-events-dlq: ${KAFKA_TOPIC_WEBHOOK_EVENTS_DLQ:unblu.webhook.events.dlq}
+    bot-commands: ${KAFKA_TOPIC_BOT_COMMANDS:unblu.bot.commands}
+    bot-commands-dlq: ${KAFKA_TOPIC_BOT_COMMANDS_DLQ:unblu.bot.actions.dlq}
+    bot-actions: ${KAFKA_TOPIC_BOT_ACTIONS:unblu.bot.actions}
+    bot-actions-dlq: ${KAFKA_TOPIC_BOT_ACTIONS_DLQ:unblu.bot.actions.dlq}
   consumer:
     group-id: ${KAFKA_CONSUMER_GROUP_ID:unblu-engine}
 
