@@ -3,7 +3,8 @@
 > Sessions enregistrées le 2026-04-26  
 > Session 1 — 18h47 — Conversation : `1i2eyr7LRhC8j7uK-Av7rw` — Person : `kWiZxECTRxmMXBOBgwXIGg`  
 > Session 2 — 18h55 — Conversation : `dlDdMb4HQa-HGLEDRdQFcg` — Person : `7rWA8x_WTfKlrLAslh5grA`  
-> Session 3 — 19h04 — Conversation : `WEuipEHdS1mU59j0aTvYkQ` — Person : `6K70w0e7TrqWReVPEb_PeA`
+> Session 3 — 19h04 — Conversation : `WEuipEHdS1mU59j0aTvYkQ` — Person : `6K70w0e7TrqWReVPEb_PeA`  
+> Session 4 — 19h52 — Conversation : `qsfFvt94R2O6xYOKNQ3Qrw` — Person : `DzQdOs1aSfOF1vvl-fwEmA` *(première avec orchestration 3 systèmes externes)*
 
 ---
 
@@ -125,6 +126,36 @@ sequenceDiagram
 
 ---
 
+## Session 4 — Timeline détaillée (première orchestration 3 systèmes externes)
+
+| Timestamp | ΔT | Étape | Détail |
+|---|---|---|---|
+| 19:52:18.301 | — | `CREATE_START` | personId=DzQdOs1... namedAreaId=ZvcLavqF... |
+| 19:52:19.028 | +720ms | `CONVERSATIONS_CREATE` | conversationId=qsfFvt94... |
+| **19:52:19.055** | **+27ms** | **`onboarding_offer` #1** | **pendant la création — INVITE_VISITOR pas encore appelé** |
+| 19:52:19.214 | +186ms | `INVITE_VISITOR` | tokenPresent=true |
+| 19:52:19.251 | +37ms | `GET_ACCEPT_LINK` | linksCount=1 |
+| 19:52:19.253 | +2ms | `CREATE_DONE` | totalDurationMs=**952ms** |
+| 19:52:29.145 | +9,9s | `onboarding_offer` #2 | visiteur ouvre l'URL |
+| 19:52:29.477 | +332ms | `dialog.opened` | ASYNC_START |
+| 19:52:29.604 | +122ms | `CLIENT_CONTEXT` | segment=VIP language=fr (CRM mock) |
+| 19:52:29.606 | +1ms | `SUMMARY_GENERATED` | summaryLength=155 (LLM mock) |
+| 19:52:29.724 | +118ms | `NAMED_AREA_RESOLVED` | ⚠ null — named areas non résolus au démarrage |
+| 19:52:29.724 | — | `SET_NAMED_AREA` | skippé (namedAreaId null) |
+| 19:52:29.821 | +97ms | `URL_COMPUTED` | url=https://client-portal.example.com/...?segment=vip&lang=fr |
+| 19:52:30.035 | +214ms | `SEND_MESSAGE` | textLength=**296** (résumé + URL) status=OK |
+| 19:52:30.043 | +8ms | `dialog.message` | senderType="" textLength=296 — écho bot |
+| 19:52:30.196 | +160ms | `HAND_OFF` | OK — totalDurationMs=**714ms** |
+| 19:52:30.198 | +2ms | `dialog.closed` | fin du dialog |
+
+**Nouveautés vs sessions précédentes :**
+- Première exécution complète des 3 systèmes externes (CRM → LLM → NamedArea → URL)
+- `ASYNC_DONE` passe de ~320ms à **714ms** — delta dû aux latences simulées CRM (~122ms) + NamedArea (~118ms) + URL (~97ms)
+- `textLength` passe de 131–148 à **296** — le message contient désormais le résumé ET l'URL contextuelle
+- `NAMED_AREA_RESOLVED` = null : les named areas `C_HB_PREMIUM` / `C_HB_COLLABORATEUR` n'ont pas été trouvées au démarrage (probablement noms incorrects dans Unblu ou lookup échoué silencieusement)
+
+---
+
 ## Points remarquables
 
 ### Double `onboarding_offer` — comportement normal, deux déclencheurs distincts
@@ -136,6 +167,7 @@ Observé sur les deux sessions avec des écarts variables :
 | Session 1 (18h47) | +11,6s |
 | Session 2 (18h55) | +25,4s |
 | Session 3 (19h04) | +15,4s |
+| Session 4 (19h52) | +9,9s |
 
 **Cause identifiée :** les deux offres correspondent à deux déclencheurs distincts dans le cycle de vie Unblu :
 
@@ -150,10 +182,12 @@ L'écart variable entre les deux (11s à 25s) correspond au temps que met l'util
 
 ---
 
-### ⚠ `SET_NAMED_AREA` absent
+### ⚠ `SET_NAMED_AREA` skippé — named areas non résolues au démarrage
 
-La propriété `unblu.bot.named-area-id` est vide dans cet environnement — l'étape est silencieusement skippée.
-Normal pour un environnement de test, mais à configurer en intégration.
+Session 4 : `NamedAreaResolverMockAdapter` n'a pas trouvé `C_HB_PREMIUM` ni `C_HB_COLLABORATEUR` dans Unblu au `@PostConstruct`.
+Log de démarrage attendu mais absent → le lookup a échoué silencieusement ou les noms sont différents dans cet environnement.
+
+**À vérifier :** appeler `GET /api/v1/named-areas` pour lister les noms exacts disponibles.
 
 ---
 
@@ -199,15 +233,19 @@ La fermeture du dialog est bien pilotée par le bot, pas par le visiteur.
 
 ### Séquence dialog (3 sessions)
 
-| Étape | Session 1 (18h47) | Session 2 (18h55) | Session 3 (19h04) |
-|---|---|---|---|
-| Acquittement `dialog.opened` | < 4ms | < 1ms | < 1ms |
-| `generateSummary` (mock) | 2ms | 0ms | 2ms |
-| `botsSendDialogMessage` (Unblu API) | 224ms | 196ms | 188ms |
-| `botsFinishDialog` (Unblu API) | 132ms | 110ms | 130ms |
-| **Total async (ASYNC_DONE)** | **358ms** | **307ms** | **321ms** |
-| `dialog.closed` après HAND_OFF | 5ms | 9ms | 3ms |
+| Étape | S1 (18h47) | S2 (18h55) | S3 (19h04) | S4 (19h52) |
+|---|---|---|---|---|
+| Acquittement `dialog.opened` | < 4ms | < 1ms | < 1ms | < 1ms |
+| `CLIENT_CONTEXT` (CRM) | — | — | — | 122ms |
+| `SUMMARY_GENERATED` (LLM) | 2ms | 0ms | 2ms | 1ms |
+| `NAMED_AREA_RESOLVED` (règles) | — | — | — | 118ms *(null)* |
+| `SET_NAMED_AREA` (Unblu API) | skippé | skippé | skippé | skippé |
+| `URL_COMPUTED` (service docs) | — | — | — | 97ms |
+| `botsSendDialogMessage` (Unblu API) | 224ms | 196ms | 188ms | 214ms |
+| `botsFinishDialog` (Unblu API) | 132ms | 110ms | 130ms | 160ms |
+| **Total async (ASYNC_DONE)** | **358ms** | **307ms** | **321ms** | **714ms** |
+| `dialog.closed` après HAND_OFF | 5ms | 9ms | 3ms | 2ms |
+| `textLength` message envoyé | 148 | 130 | 131 | **296** |
 
-Les appels Unblu API sont stables (~190ms pour `sendMessage`, ~120ms pour `handOff`).  
-Le goulot d'étranglement reste `botsSendDialogMessage`.  
-Avec un vrai LLM à la place du mock `generateSummary`, ce poste deviendra dominant.
+**Impact des 3 systèmes externes (S4 vs S3) :** +393ms de latence async (CRM 122ms + NamedArea 118ms + URL 97ms = 337ms simulés + overhead).  
+Les appels Unblu API restent stables. Avec un vrai LLM, `SUMMARY_GENERATED` deviendra le poste dominant.
