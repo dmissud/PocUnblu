@@ -17,6 +17,7 @@ spring:
 kafka:
   topic:
     webhook-events: ${KAFKA_TOPIC_WEBHOOK_EVENTS:unblu.webhook.events}
+    bot-commands: ${KAFKA_TOPIC_BOT_COMMANDS:unblu.bot.commands}
 
 logging:
   level:
