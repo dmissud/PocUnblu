@@ -220,3 +220,77 @@ Chaque mock implémente une interface port — le remplacement se fait sans modi
 | `ConversationSummaryPort` | `ConversationSummaryMockAdapter` | Adapter Claude API (LLM) |
 | `NamedAreaResolverPort` | `NamedAreaResolverMockAdapter` | Adapter moteur de règles |
 | `ResourceUrlPort` | `ResourceUrlMockAdapter` | Adapter portail client |
+
+---
+
+## Analyse — Limites de l'architecture actuelle et modèle de référence
+
+### Architecture actuelle du bot (fragile)
+
+```
+Unblu outbound
+  → BotOutboundController        réception synchrone, ACK immédiat
+      → CompletableFuture.runAsync()
+          → PocBotDialogService  orchestration async (CRM, LLM, rules, URL, Unblu API)
+```
+
+**Problèmes identifiés :**
+
+| Risque | Impact |
+|---|---|
+| Pas de retry | Si un appel externe échoue (CRM, Unblu API), la séquence est abandonnée silencieusement |
+| Pas de persistance | Si le JVM crash pendant le traitement async, l'événement est perdu définitivement |
+| Pas de backpressure | Un pic d'événements simultanés sature le ForkJoinPool sans régulation |
+| Erreurs silencieuses | `.exceptionally()` logue l'erreur mais aucun mécanisme de reprise |
+
+---
+
+### Modèle de référence existant dans le projet — `webhook-entrypoint` + `engine`
+
+Le projet dispose déjà d'une architecture event-driven robuste pour les webhooks Unblu :
+
+```
+Unblu webhook
+  → WebhookReceiverController    202 Accepted immédiat
+      → Kafka topic: unblu.webhook.events
+          → KafkaWebhookConsumerRoute (Camel)
+              → direct:webhook-event-processor
+                  → WebhookEventRoute (Camel choice sur eventType)
+                      → ConversationEventProcessor
+                      → PersonEventProcessor
+                      → UnknownEventProcessor
+```
+
+**Ce que ce modèle apporte :**
+
+| Mécanisme | Bénéfice |
+|---|---|
+| Kafka entre réception et traitement | Découplage total — le traitement peut être lent sans impacter Unblu |
+| `onException` avec retry + backoff | Résilience sur erreurs transitoires (3 tentatives, délai exponentiel) |
+| DLQ (`unblu.webhook.events.dlq`) | Les messages non traitables sont parkés avec métadonnées d'erreur |
+| Route Camel `choice` sur event type | Même pattern que le `switch` du `BotOutboundController` |
+
+---
+
+### Analogie directe bot ↔ webhook engine
+
+| Rôle | Webhook engine (existant) | Bot actuel | Bot cible |
+|---|---|---|---|
+| Réception | `WebhookReceiverController` | `BotOutboundController` | `BotOutboundController` (inchangé) |
+| Bus d'événements | Kafka `unblu.webhook.events` | `CompletableFuture` | Kafka ou Camel `seda:` |
+| Consumer | `KafkaWebhookConsumerRoute` | — | Route Camel consumer |
+| Dispatch | `WebhookEventRoute` (choice) | `switch(serviceName)` | Route Camel (choice) |
+| Traitement | `ConversationEventProcessor` | `PocBotDialogService` | Processor Camel |
+| Résilience | Retry + DLQ | Aucune | Retry + DLQ |
+
+---
+
+### Évolution recommandée
+
+Remplacer le `CompletableFuture.runAsync()` par le même pattern que l'`engine` :
+
+1. `BotOutboundController` publie l'événement sur un topic Kafka (ou `seda:` Camel pour rester in-process)
+2. Une route Camel consomme et dispatche par type (`onboarding_offer`, `dialog.opened`, etc.)
+3. `PocBotDialogService` devient un `Processor` Camel avec retry et DLQ
+
+Ce refactoring ne change pas les ports ni les mocks — seul le fil conducteur entre réception et exécution change.
