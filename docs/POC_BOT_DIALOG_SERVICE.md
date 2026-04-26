@@ -294,3 +294,185 @@ Remplacer le `CompletableFuture.runAsync()` par le même pattern que l'`engine` 
 3. `PocBotDialogService` devient un `Processor` Camel avec retry et DLQ
 
 Ce refactoring ne change pas les ports ni les mocks — seul le fil conducteur entre réception et exécution change.
+
+---
+
+## Architecture cible — orchestration via Kafka et engine
+
+### Vue d'ensemble
+
+```
+Unblu (outbound bot events)
+  │  POST /api/bot/outbound
+  ▼
+BotOutboundController (livekit, port 8082)
+  │  ACK immédiat → Unblu
+  │  publie commande JSON
+  ▼
+[unblu.bot.commands]
+  │  consomme
+  ▼
+engine (port 8084, Camel)
+  │  BotCommandConsumerRoute
+  │  dispatche sur commandType
+  ├─ BOT_ONBOARDING_OFFER → accepte (pas d'action Unblu nécessaire)
+  └─ BOT_DIALOG_OPENED    → BotDialogProcessor
+                               │  Recherche 1 : CRM  → ClientContext
+                               │  Recherche 2 : LLM  → résumé
+                               │  Recherche 3 : règles → namedAreaId
+                               │  publie 3 actions séquentielles
+                               ▼
+                          [unblu.bot.actions]
+                               │  consomme
+                               ▼
+                          BotActionExecutorRoute (engine, Camel)
+                               │  dispatche sur actionType
+                               ├─ SET_NAMED_AREA → conversationsSetRecipient()
+                               ├─ SEND_MESSAGE   → botsSendDialogMessage()
+                               └─ HAND_OFF       → botsFinishDialog(HAND_OFF)
+                                                    └─ acquitte la fin de traitement
+                                                       → Unblu ferme le dialog (dialog.closed)
+```
+
+---
+
+### Séquence détaillée
+
+```mermaid
+sequenceDiagram
+    participant Unblu
+    participant BotCtrl as BotOutboundController<br/>(livekit)
+    participant KC as [unblu.bot.commands]<br/>Kafka topic
+    participant Engine as BotDialogProcessor<br/>(engine, Camel)
+    participant CRM as ClientContextPort
+    participant LLM as ConversationSummaryPort
+    participant Rules as NamedAreaResolverPort
+    participant KA as [unblu.bot.actions]<br/>Kafka topic
+    participant Exec as BotActionExecutorRoute<br/>(engine, Camel)
+    participant UnbluAPI as Unblu API
+
+    Unblu->>BotCtrl: POST /api/bot/outbound<br/>x-unblu-service-name: dialog.opened
+    BotCtrl-->>Unblu: 200 ACK immédiat
+    BotCtrl->>KC: publish BOT_DIALOG_OPENED<br/>key=dialogToken
+
+    KC->>Engine: consume BOT_DIALOG_OPENED
+
+    activate Engine
+    Note over Engine: Recherche 1 — CRM
+    Engine->>CRM: resolveClientContext(conversationId)
+    CRM-->>Engine: ClientContext(clientId, segment, language)
+
+    Note over Engine: Recherche 2 — LLM
+    Engine->>LLM: generateSummary(conversationId)
+    LLM-->>Engine: résumé texte
+
+    Note over Engine: Recherche 3 — Moteur de règles
+    Engine->>Rules: resolveNamedAreaId(clientContext)
+    Rules-->>Engine: namedAreaId
+
+    Engine->>KA: publish SET_NAMED_AREA key=dialogToken
+    Engine->>KA: publish SEND_MESSAGE   key=dialogToken
+    Engine->>KA: publish HAND_OFF       key=dialogToken
+    deactivate Engine
+
+    KA->>Exec: consume SET_NAMED_AREA
+    Exec->>UnbluAPI: conversationsSetRecipient(conversationId, namedAreaId)
+    UnbluAPI-->>Exec: OK
+
+    KA->>Exec: consume SEND_MESSAGE
+    Exec->>UnbluAPI: botsSendDialogMessage(résumé + URL)
+    UnbluAPI-->>Exec: OK
+
+    KA->>Exec: consume HAND_OFF
+    Exec->>UnbluAPI: botsFinishDialog(HAND_OFF)
+    UnbluAPI-->>Exec: OK
+    Note over Exec,UnbluAPI: acquittement fin de traitement
+
+    UnbluAPI->>BotCtrl: POST /api/bot/outbound<br/>dialog.closed
+    BotCtrl-->>UnbluAPI: 200 OK
+```
+
+---
+
+### Routes Camel à créer dans `engine`
+
+#### `BotCommandConsumerRoute` — consomme `unblu.bot.commands`
+
+```
+kafka:unblu.bot.commands
+  → désérialise BotCommand
+  → choice sur commandType
+      BOT_ONBOARDING_OFFER → log + no-op
+      BOT_DIALOG_OPENED    → direct:bot-dialog-processor
+      default              → log warn
+```
+
+#### `BotDialogProcessor` — réalise les 3 recherches
+
+```
+direct:bot-dialog-processor
+  → ClientContextPort.resolveClientContext()    [Recherche 1 — CRM]
+  → ConversationSummaryPort.generateSummary()   [Recherche 2 — LLM]
+  → NamedAreaResolverPort.resolveNamedAreaId()  [Recherche 3 — règles]
+  → publie SET_NAMED_AREA sur unblu.bot.actions
+  → publie SEND_MESSAGE   sur unblu.bot.actions
+  → publie HAND_OFF       sur unblu.bot.actions
+```
+
+#### `BotActionExecutorRoute` — consomme `unblu.bot.actions` et appelle Unblu
+
+```
+kafka:unblu.bot.actions
+  → désérialise BotAction
+  → choice sur actionType
+      SET_NAMED_AREA → conversationsSetRecipient()
+      SEND_MESSAGE   → botsSendDialogMessage()
+      HAND_OFF       → botsFinishDialog(HAND_OFF)  ← acquittement fin de traitement
+```
+
+---
+
+### Garanties apportées par ce design
+
+| Propriété | Mécanisme |
+|---|---|
+| **Ordre des actions** | Même clé `dialogToken` → même partition → ordre garanti SET_NAMED_AREA → SEND_MESSAGE → HAND_OFF |
+| **Retry sur erreur Unblu API** | `onException` Camel avec backoff exponentiel sur `BotActionExecutorRoute` |
+| **Pas de perte d'événement** | Kafka persiste les messages — un redémarrage engine reprend là où il s'est arrêté |
+| **ACK immédiat à Unblu** | `BotOutboundController` répond avant même que le message soit traité |
+| **DLQ** | Actions non exécutables après retry → `unblu.bot.actions.dlq` |
+| **HAND_OFF = acquittement** | Dernier message publié sur `unblu.bot.actions` — ferme le dialog côté Unblu |
+
+---
+
+### Messages Kafka
+
+**`unblu.bot.commands`** — clé : `dialogToken`
+
+```json
+{
+  "commandType": "BOT_DIALOG_OPENED",
+  "correlationId": "f231180c",
+  "dialogToken": "qsfFvt94R2O6xYOKNQ3Qrw-c-Qt8DWI...",
+  "conversationId": "qsfFvt94R2O6xYOKNQ3Qrw",
+  "timestamp": "2026-04-26T19:52:29.477Z"
+}
+```
+
+**`unblu.bot.actions`** — clé : `dialogToken`
+
+```json
+{ "actionType": "SET_NAMED_AREA", "correlationId": "f231180c",
+  "conversationId": "qsfFvt94R2O6xYOKNQ3Qrw",
+  "payload": { "namedAreaId": "ZvcLavqFTKC65YtiRKtJxg" } }
+
+{ "actionType": "SEND_MESSAGE", "correlationId": "f231180c",
+  "dialogToken": "qsfFvt94R2O6xYOKNQ3Qrw-c-Qt8DWI...",
+  "payload": { "text": "Résumé...\n\nVotre espace : https://..." } }
+
+{ "actionType": "HAND_OFF", "correlationId": "f231180c",
+  "dialogToken": "qsfFvt94R2O6xYOKNQ3Qrw-c-Qt8DWI...",
+  "payload": { "reason": "HAND_OFF" } }
+```
+
+> Voir `docs/KAFKA_TOPICS_DESIGN.md` pour le détail complet des topics et formats.
