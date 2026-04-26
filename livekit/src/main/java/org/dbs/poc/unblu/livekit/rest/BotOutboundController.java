@@ -42,18 +42,20 @@ public class BotOutboundController {
     @Operation(summary = "Reçoit les outbound requests Unblu pour PocBot")
     public ResponseEntity<Map<String, Object>> handle(
             @RequestHeader("x-unblu-service-name") String serviceName,
+            @RequestHeader(value = "x-bot-correlation-id", required = false, defaultValue = "-") String correlationId,
             @RequestBody String rawBody) {
 
-        log.debug("Outbound request reçu: serviceName={}", serviceName);
+        log.info("[BOT_EVENT] correlationId={} event={}", correlationId, serviceName);
 
         return switch (serviceName) {
-            case SERVICE_ONBOARDING_OFFER, SERVICE_REBOARDING_OFFER -> acceptBoarding();
-            case SERVICE_OFFBOARDING_OFFER -> acceptOffboarding();
-            case SERVICE_DIALOG_OPENED                               -> handleDialogOpened(rawBody);
-            case SERVICE_DIALOG_MESSAGE                              -> handleDialogMessage(rawBody);
-            case SERVICE_DIALOG_CLOSED                               -> handleDialogClosed(rawBody);
+            case SERVICE_ONBOARDING_OFFER, SERVICE_REBOARDING_OFFER -> acceptBoarding(correlationId);
+            case SERVICE_OFFBOARDING_OFFER                          -> acceptOffboarding(correlationId);
+            case SERVICE_DIALOG_OPENED                              -> handleDialogOpened(rawBody, correlationId);
+            case SERVICE_DIALOG_MESSAGE                             -> handleDialogMessage(rawBody, correlationId);
+            case SERVICE_DIALOG_CLOSED                              -> handleDialogClosed(rawBody, correlationId);
             default -> {
-                log.warn("Service name inconnu ignoré: {}", serviceName);
+                log.warn("[BOT_EVENT] correlationId={} event={} action=IGNORED (unknown service-name)",
+                        correlationId, serviceName);
                 yield ack();
             }
         };
@@ -61,16 +63,16 @@ public class BotOutboundController {
 
     // --- Boarding decisions (synchrones) ---
 
-    private ResponseEntity<Map<String, Object>> acceptBoarding() {
-        log.info("Onboarding accepté par PocBot");
+    private ResponseEntity<Map<String, Object>> acceptBoarding(String correlationId) {
+        log.info("[BOT_EVENT] correlationId={} event=onboarding_offer action=ACCEPTED", correlationId);
         return ResponseEntity.ok(Map.of(
                 "$_type", "BotBoardingOfferResponse",
                 "offerAccepted", true
         ));
     }
 
-    private ResponseEntity<Map<String, Object>> acceptOffboarding() {
-        log.info("Offboarding accepté par PocBot (handoff vers les agents)");
+    private ResponseEntity<Map<String, Object>> acceptOffboarding(String correlationId) {
+        log.info("[BOT_EVENT] correlationId={} event=offboarding_offer action=ACCEPTED", correlationId);
         return ResponseEntity.ok(Map.of(
                 "$_type", "BotBoardingOfferResponse",
                 "offerAccepted", true
@@ -79,41 +81,44 @@ public class BotOutboundController {
 
     // --- Dialog events (acquittement immédiat + traitement async) ---
 
-    private ResponseEntity<Map<String, Object>> handleDialogOpened(String rawBody) {
+    private ResponseEntity<Map<String, Object>> handleDialogOpened(String rawBody, String correlationId) {
         try {
             JsonNode node = objectMapper.readTree(rawBody);
             String dialogToken    = node.path("dialogToken").asText();
             String conversationId = node.path("conversation").path("id").asText(null);
-            log.info("Dialog ouvert: dialogToken={}, conversationId={}", dialogToken, conversationId);
-            pocBotDialogService.onDialogOpened(dialogToken, conversationId);
+            log.info("[BOT_EVENT] correlationId={} event=dialog.opened dialogToken={} conversationId={}",
+                    correlationId, dialogToken, conversationId);
+            pocBotDialogService.onDialogOpened(dialogToken, conversationId, correlationId);
         } catch (Exception e) {
-            log.error("Erreur lors du parsing de dialog.opened", e);
+            log.error("[BOT_EVENT] correlationId={} event=dialog.opened action=PARSE_ERROR", correlationId, e);
         }
         return ack();
     }
 
-    private ResponseEntity<Map<String, Object>> handleDialogMessage(String rawBody) {
+    private ResponseEntity<Map<String, Object>> handleDialogMessage(String rawBody, String correlationId) {
         try {
             JsonNode node          = objectMapper.readTree(rawBody);
             String dialogToken     = node.path("dialogToken").asText();
             String conversationId  = node.path("conversationId").asText();
             String fallbackText    = node.path("conversationMessage").path("fallbackText").asText();
             String senderType      = node.path("conversationMessage").path("senderPerson").path("type").asText();
-            log.info("Message dialog: dialogToken={}, senderType={}", dialogToken, senderType);
+            log.info("[BOT_EVENT] correlationId={} event=dialog.message dialogToken={} senderType={} textLength={}",
+                    correlationId, dialogToken, senderType, fallbackText.length());
             pocBotDialogService.onDialogMessage(dialogToken, conversationId, fallbackText, senderType);
         } catch (Exception e) {
-            log.error("Erreur lors du parsing de dialog.message", e);
+            log.error("[BOT_EVENT] correlationId={} event=dialog.message action=PARSE_ERROR", correlationId, e);
         }
         return ResponseEntity.ok(Map.of("$_type", "BotDialogMessageResponse"));
     }
 
-    private ResponseEntity<Map<String, Object>> handleDialogClosed(String rawBody) {
+    private ResponseEntity<Map<String, Object>> handleDialogClosed(String rawBody, String correlationId) {
         try {
             JsonNode node = objectMapper.readTree(rawBody);
             String dialogToken = node.path("dialogToken").asText();
+            log.info("[BOT_EVENT] correlationId={} event=dialog.closed dialogToken={}", correlationId, dialogToken);
             pocBotDialogService.onDialogClosed(dialogToken);
         } catch (Exception e) {
-            log.error("Erreur lors du parsing de dialog.closed", e);
+            log.error("[BOT_EVENT] correlationId={} event=dialog.closed action=PARSE_ERROR", correlationId, e);
         }
         return ResponseEntity.ok(Map.of("$_type", "BotDialogClosedResponse"));
     }

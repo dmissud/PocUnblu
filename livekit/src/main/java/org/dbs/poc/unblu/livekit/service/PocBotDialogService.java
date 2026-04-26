@@ -37,18 +37,32 @@ public class PocBotDialogService {
      * @param dialogToken    token du dialog Unblu
      * @param conversationId identifiant de la conversation
      */
-    public void onDialogOpened(String dialogToken, String conversationId) {
+    public void onDialogOpened(String dialogToken, String conversationId, String correlationId) {
+        long asyncStart = System.currentTimeMillis();
+        log.info("[BOT_TRACE] step=ASYNC_START correlationId={} dialogToken={} conversationId={}",
+                correlationId, dialogToken, conversationId);
+
         CompletableFuture.runAsync(() -> {
             if (conversationId != null && !namedAreaId.isBlank()) {
-                setNamedAreaRecipient(conversationId);
+                setNamedAreaRecipient(conversationId, correlationId);
             }
             String message = summaryPort.generateSummary(conversationId);
-            sendTextMessage(dialogToken, message);
-            handOffToAgent(dialogToken);
+            log.info("[BOT_TRACE] step=SUMMARY_GENERATED correlationId={} dialogToken={} summaryLength={}",
+                    correlationId, dialogToken, message != null ? message.length() : 0);
+            sendTextMessage(dialogToken, message, correlationId);
+            handOffToAgent(dialogToken, correlationId);
+            log.info("[BOT_TRACE] step=ASYNC_DONE correlationId={} dialogToken={} totalDurationMs={}",
+                    correlationId, dialogToken, System.currentTimeMillis() - asyncStart);
         }).exceptionally(ex -> {
-            log.error("Erreur lors du traitement de dialog.opened pour dialogToken={}", dialogToken, ex);
+            log.error("[BOT_TRACE] step=ASYNC_ERROR correlationId={} dialogToken={} error={}",
+                    correlationId, dialogToken, ex.getMessage(), ex);
             return null;
         });
+    }
+
+    /** @deprecated use {@link #onDialogOpened(String, String, String)} */
+    public void onDialogOpened(String dialogToken, String conversationId) {
+        onDialogOpened(dialogToken, conversationId, "-");
     }
 
     /**
@@ -75,39 +89,41 @@ public class PocBotDialogService {
      * @param dialogToken token du dialog fermé
      */
     public void onDialogClosed(String dialogToken) {
-        log.info("Dialog fermé : dialogToken={}", dialogToken);
+        log.info("[BOT_EVENT] step=DIALOG_CLOSED dialogToken={}", dialogToken);
     }
 
-    /**
-     * Termine le dialog bot avec raison HAND_OFF pour rendre la main à un agent.
-     * Doit être appelé après que le bot a terminé son traitement.
-     */
-    private void handOffToAgent(String dialogToken) {
+    private void handOffToAgent(String dialogToken, String correlationId) {
+        long t = System.currentTimeMillis();
         try {
             BotsApi botsApi = new BotsApi(apiClient);
             botsApi.botsFinishDialog(new BotsFinishDialogBody()
                     .dialogToken(dialogToken)
                     .reason(EBotDialogFinishReason.HAND_OFF));
-            log.info("Handoff vers agent effectué pour dialog {}", dialogToken);
+            log.info("[BOT_TRACE] step=HAND_OFF correlationId={} dialogToken={} status=OK durationMs={}",
+                    correlationId, dialogToken, System.currentTimeMillis() - t);
         } catch (ApiException e) {
-            log.error("Échec du handoff vers agent pour dialogToken={} : status={}", dialogToken, e.getCode(), e);
+            log.error("[BOT_TRACE] step=HAND_OFF correlationId={} dialogToken={} status=ERROR httpStatus={} durationMs={}",
+                    correlationId, dialogToken, e.getCode(), System.currentTimeMillis() - t, e);
         }
     }
 
-    private void setNamedAreaRecipient(String conversationId) {
+    private void setNamedAreaRecipient(String conversationId, String correlationId) {
+        long t = System.currentTimeMillis();
         try {
             ConversationsApi conversationsApi = new ConversationsApi(apiClient);
             NamedAreaData recipient = new NamedAreaData();
             recipient.setId(namedAreaId);
             conversationsApi.conversationsSetRecipient(conversationId, recipient, null);
-            log.info("NamedArea {} positionné comme destinataire de la conversation {}", namedAreaId, conversationId);
+            log.info("[BOT_TRACE] step=SET_NAMED_AREA correlationId={} conversationId={} namedAreaId={} status=OK durationMs={}",
+                    correlationId, conversationId, namedAreaId, System.currentTimeMillis() - t);
         } catch (ApiException e) {
-            log.error("Échec du positionnement du namedArea pour conversationId={} : status={}",
-                    conversationId, e.getCode(), e);
+            log.error("[BOT_TRACE] step=SET_NAMED_AREA correlationId={} conversationId={} status=ERROR httpStatus={} durationMs={}",
+                    correlationId, conversationId, e.getCode(), System.currentTimeMillis() - t, e);
         }
     }
 
-    private void sendTextMessage(String dialogToken, String text) {
+    private void sendTextMessage(String dialogToken, String text, String correlationId) {
+        long t = System.currentTimeMillis();
         try {
             BotsApi botsApi = new BotsApi(apiClient);
             botsApi.botsSendDialogMessage(
@@ -118,9 +134,11 @@ public class PocBotDialogService {
                                     .text(text)
                                     .fallbackText(text))
             );
-            log.info("Message envoyé dans le dialog {}", dialogToken);
+            log.info("[BOT_TRACE] step=SEND_MESSAGE correlationId={} dialogToken={} status=OK durationMs={}",
+                    correlationId, dialogToken, System.currentTimeMillis() - t);
         } catch (ApiException e) {
-            log.error("Échec de l'envoi du message dans dialog={} : status={}", dialogToken, e.getCode(), e);
+            log.error("[BOT_TRACE] step=SEND_MESSAGE correlationId={} dialogToken={} status=ERROR httpStatus={} durationMs={}",
+                    correlationId, dialogToken, e.getCode(), System.currentTimeMillis() - t, e);
         }
     }
 }
