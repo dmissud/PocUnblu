@@ -8,6 +8,7 @@ import org.dbs.poc.unblu.integration.domain.port.out.IntegrationUnbluPort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -19,7 +20,10 @@ public class LiveKitConversationService implements StartLiveKitConversationUseCa
 
     @Override
     public UnbluConversationInfo startConversation(String personId) {
-        log.info("Démarrage d'une conversation LiveKit pour la personne Unblu: {}", personId);
+        String convCorrelationId = UUID.randomUUID().toString().substring(0, 8);
+        long start = System.currentTimeMillis();
+        log.info("[CONV_TRACE] step=CREATE_START convCorrelationId={} personId={} namedAreaId={}",
+                convCorrelationId, personId, NAMED_AREA_C_HB_PREMIUM_ID);
 
         var request = ConversationCreationRequest.builder()
                 .namedAreaId(NAMED_AREA_C_HB_PREMIUM_ID)
@@ -32,6 +36,11 @@ public class LiveKitConversationService implements StartLiveKitConversationUseCa
                 ))
                 .build();
 
-        return unbluPort.createConversation(request);
+        UnbluConversationInfo info = unbluPort.createConversation(request);
+        log.info("[CONV_TRACE] step=CREATE_DONE convCorrelationId={} conversationId={} joinUrl={} totalDurationMs={}",
+                convCorrelationId, info.unbluConversationId(),
+                info.unbluJoinUrl() != null ? "present" : "null",
+                System.currentTimeMillis() - start);
+        return info;
     }
 }

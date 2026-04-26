@@ -37,9 +37,17 @@ public class UnbluConversationClient {
 
     public UnbluConversationInfo createConversation(ConversationCreationRequest request) throws ApiException {
         ConversationCreationData data = buildConversationCreationData(request);
-        var result = conversationsApi().conversationsCreate(data, null);
 
+        long t1 = System.currentTimeMillis();
+        var result = conversationsApi().conversationsCreate(data, null);
+        log.info("[CONV_TRACE] step=CONVERSATIONS_CREATE conversationId={} durationMs={}",
+                result.getId(), System.currentTimeMillis() - t1);
+
+        long t2 = System.currentTimeMillis();
         String joinUrl = getVisitorJoinUrl(result.getId());
+        log.info("[CONV_TRACE] step=GET_JOIN_URL conversationId={} joinUrl={} durationMs={}",
+                result.getId(), joinUrl != null ? "present" : "null", System.currentTimeMillis() - t2);
+
         return new UnbluConversationInfo(result.getId(), joinUrl);
     }
 
@@ -93,14 +101,22 @@ public class UnbluConversationClient {
     private String getVisitorJoinUrl(String conversationId) throws ApiException {
         InvitationsInviteAnonymousVisitorToConversationWithLinkBody inviteBody = new InvitationsInviteAnonymousVisitorToConversationWithLinkBody();
         inviteBody.setConversationId(conversationId);
+
+        long t1 = System.currentTimeMillis();
         ConversationInvitationData invitation = invitationsApi().invitationsInviteAnonymousVisitorToConversationWithLink(inviteBody);
+        log.info("[CONV_TRACE] step=INVITE_VISITOR conversationId={} tokenPresent={} durationMs={}",
+                conversationId, invitation != null && invitation.getToken() != null, System.currentTimeMillis() - t1);
 
         if (invitation == null || invitation.getToken() == null) {
             return null;
         }
 
+        long t2 = System.currentTimeMillis();
         AcceptLinkData acceptLink = invitationsApi().invitationsGetAcceptLink(
                 new InvitationsGetAcceptLinkBody().token(invitation.getToken()));
+        log.info("[CONV_TRACE] step=GET_ACCEPT_LINK conversationId={} linksCount={} durationMs={}",
+                conversationId, acceptLink != null && acceptLink.getLinks() != null ? acceptLink.getLinks().size() : 0,
+                System.currentTimeMillis() - t2);
 
         if (acceptLink == null || acceptLink.getLinks() == null) {
             return null;
